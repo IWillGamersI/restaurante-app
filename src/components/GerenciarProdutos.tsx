@@ -35,7 +35,7 @@ export default function GerenciarProdutos() {
   const [categoria,setCategoria] = useState('');
   const [classe, setClasse] = useState('')
   const [classeSelecionada, setClasseSelecionada] = useState<string>("todas");
-  const classes = ["todas", "entrada", "prato", "pizza", "pizza-escolha", "massa", "bebida","sobremesa"];
+  const classes = ["todas", "entrada", "prato", "pizza", "pizza-escolha", "massa", "bebida","sobremesa", 'estudante'];
 
 
   useEffect(() => {
@@ -154,6 +154,7 @@ export default function GerenciarProdutos() {
             <option value="massa">Massa</option>
             <option value="bebida">Bebida</option>
             <option value="sobremesa">Sobremesa</option>
+            <option value="estudante">Estudante</option>
           </select>
 
 
