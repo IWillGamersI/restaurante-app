@@ -25,6 +25,7 @@ import {
   ClipboardList,
   ChevronRight,
   ChevronDown,
+  CheckCheckIcon,
 } from 'lucide-react';
 
 
@@ -368,9 +369,7 @@ useEffect(() => {
           </button>
         </div>
       </div>
-
-       
-
+      
       {/* Listas de Pedidos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Abertos */}
@@ -449,13 +448,7 @@ useEffect(() => {
                               >
                                 <Edit size={24} />
                               </button>
-                              <button
-                                onClick={() => remover(p.id)}
-                                className="text-red-600 p-2 cursor-pointer rounded-full hover:bg-red-600 hover:text-white"
-                                title="Remover pedido"
-                              >
-                                <Trash2 size={24} />
-                              </button>
+                              
                             </div>
 
                           </div>
@@ -483,17 +476,9 @@ useEffect(() => {
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                         </div>
 
-                        <select
-                          value={p.status}
-                          onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                        >
-                          <option value="Fila">Fila</option>
-                          <option value="Preparando">Preparando</option>
-                          <option value="Pronto">Pronto</option>
-                          <option value="Entregue">Entregue</option>
-                          <option value="Cancelado">Cancelado</option>
-                        </select>
+                        <div className='bg-blue-600 p-2 text-white rounded'>
+                          {p.codigo}
+                        </div>
 
                       </div>
                       <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside">
@@ -503,7 +488,7 @@ useEffect(() => {
                             <div>Sub-Total</div>
                         </div>
                         {p.produtos?.map((item) => (
-                            <div className='flex gap-10 justify-between ' key={item.id}>
+                            <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded ' key={item.id}>
                                 <div className='flex-1'>{item.nome}</div>
                                 <div>{item.quantidade}</div>
                                 <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
@@ -516,13 +501,9 @@ useEffect(() => {
                               <p className="text-gray-600 text-sm"> € {Number(p.valor).toFixed(2)}</p>
                             </div>
                             <div className="flex justify-between">
-                              <button
-                                onClick={() => editar(p)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Editar pedido"
-                              >
-                                <Edit size={24} />
-                              </button>
+                              <div>
+                                {p.status}
+                              </div>
                               
                             </div>
 

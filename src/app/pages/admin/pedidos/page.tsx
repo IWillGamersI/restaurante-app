@@ -1,7 +1,7 @@
-import GerenciarPedidos from "@/components/GerenciarPedidos";
+import CentralPedidos from "@/components/CentralPedidos";
 
 export default function PedidosPage() {
   return (
-    <GerenciarPedidos/>
+    <CentralPedidos/>
   );
 }

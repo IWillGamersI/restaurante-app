@@ -15,8 +15,11 @@ export function Sidebar() {
         <Link href="/pages/admin/usuarios" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <Users size={20} /> Usuários
         </Link>
-        <Link href="/pages/admin/pedidos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+        <Link href="/pages/admin/loja" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <ClipboardList size={20} /> Loja
+        </Link>
+        <Link href="/pages/admin/pedidos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+          <ClipboardList size={20} /> Pedidos
         </Link>
         <Link href="/pages/admin/cardapio" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <Utensils size={20} /> Cadastro de Produtos
