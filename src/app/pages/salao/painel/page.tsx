@@ -79,7 +79,7 @@ export default function SalaoCliente() {
       <div className="w-full flex">
         {/* Área de Divulgação */}
         <div className="bg-black text-white p-4 relative overflow-hidden flex flex-col items-center justify-center w-1/3 min-w-[300px]">
-          <h2 className="text-6xl font-bold mb-4">Promoções</h2>
+          <h2 className="text-9xl font-bold mb-4">Promoções</h2>
           {produtosCarregados && produtos.length > 0 ? (
             <AnimatePresence mode="wait">
               <motion.div
@@ -93,10 +93,10 @@ export default function SalaoCliente() {
                 <img
                   src={produtos[carrosselIndex].imagemUrl || ''}
                   alt={produtos[carrosselIndex].nome || 'Promoção'}
-                  className="object-contain rounded-lg mb-3 max-h-100 mx-auto transition-all duration-300"
+                  className="object-contain rounded-lg mb-3 max-h-300 mx-auto transition-all duration-300"
                 />
-                <h3 className="text-3xl font-semibold">{produtos[carrosselIndex].nome}</h3>
-                <p className="text-green-400 text-3xl">
+                <h3 className="text-7xl font-semibold">{produtos[carrosselIndex].nome}</h3>
+                <p className="text-green-400 text-9xl">
                   € {produtos[carrosselIndex].preco.toFixed(2)}
                 </p>
               </motion.div>
@@ -118,15 +118,15 @@ export default function SalaoCliente() {
               ) : (
                 pedidosPorStatus(status).map(p => (
                   <div key={p.id} className="border rounded p-2 mb-2 bg-blue-200 text-center border-gray-400 ">
-                    <p className='bg-blue-600 text-center text-white rounded font-bold text-6xl'>{p.codigo}</p>
-                    <p className="font-semibold text-center text-6xl">{p.cliente}</p>
-                    <ul className="text-sm mt-1">
+                    <p className='bg-blue-600 text-center text-white rounded font-bold text-8xl'>{p.codigo}</p>
+                    <p className="font-semibold text-center text-5xl">{p.cliente}</p>
+                    {/*<ul className="text-sm mt-1">
                       {p.produtos.map(item => (
                         <li key={item.id}>
                           {item.quantidade} - {item.nome}
                         </li>
                       ))}
-                    </ul>
+                    </ul>*/}
                   </div>
                 ))
               )}
