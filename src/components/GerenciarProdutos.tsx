@@ -16,6 +16,8 @@ interface Produto {
   nome: string;
   descricao: string;
   imagemUrl: string;
+  categoria: string;
+  classe: string;
   preco: number;
   precoCusto: number;
 }
@@ -30,6 +32,11 @@ export default function GerenciarProdutos() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
+  const [categoria,setCategoria] = useState('');
+  const [classe, setClasse] = useState('')
+  const [classeSelecionada, setClasseSelecionada] = useState<string>("todas");
+  const classes = ["todas", "entrada", "prato", "pizza", "pizza-escolha", "massa", "bebida","sobremesa"];
+
 
   useEffect(() => {
     carregarProdutos();
@@ -50,6 +57,8 @@ export default function GerenciarProdutos() {
     setEditandoId(null);
     setErro('');
     setSucesso('');
+    setCategoria('');
+    setClasse('')
   };
 
   const salvarProduto = async () => {
@@ -64,6 +73,8 @@ export default function GerenciarProdutos() {
       imagemUrl,
       preco: Number(preco),
       precoCusto: Number(precoCusto),
+      categoria,
+      classe,
     };
 
     try {
@@ -89,6 +100,8 @@ export default function GerenciarProdutos() {
     setPreco(p.preco.toString());
     setPrecoCusto(p.precoCusto.toString());
     setEditandoId(p.id);
+    setCategoria(p.categoria);
+    setClasse(p.classe)
   };
 
   const remover = async (id: string) => {
@@ -97,6 +110,13 @@ export default function GerenciarProdutos() {
     carregarProdutos();
   };
 
+  const produtosFiltrados =
+  classeSelecionada === "todas"
+    ? produtos
+    : produtos.filter((p) => p.classe.toLowerCase().trim() === classeSelecionada.toLowerCase());
+
+  produtosFiltrados.sort((a,b)=> a.nome.localeCompare(b.nome, 'pt', {sensitivity: 'base'}))
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="bg-white rounded-xl shadow p-6 mb-8">
@@ -104,7 +124,39 @@ export default function GerenciarProdutos() {
           <Package className="text-blue-500" /> {editandoId ? 'Editar Produto' : 'Novo Produto'}
         </h2>
 
+      
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <select
+            className="border p-3 rounded-lg"
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+          >
+            <option value="">Selecione a Categoria</option>
+            <option value="entradas">Entradas</option>
+            <option value="pratos">Pratos</option>
+            <option value="pizzas-tradicionais">Pizza Tradicional</option>
+            <option value="pizzas-individuais">Pizza Individual</option>
+            <option value="massas">Massas</option>
+            <option value="bebidas">Bebidas</option>
+            <option value="sobremesas">Sobremesas</option>
+          </select>
+
+          <select
+            className="border p-3 rounded-lg"
+            value={classe}
+            onChange={(e) => setClasse(e.target.value)}
+          >
+            <option value="">Selecione a Classe</option>
+            <option value="entrada">Entrada</option>
+            <option value="prato">Prato</option>
+            <option value="pizza">Pizza</option>
+            <option value="pizza-escolha">Pizza à Escolha</option>
+            <option value="massa">Massa</option>
+            <option value="bebida">Bebida</option>
+            <option value="sobremesa">Sobremesa</option>
+          </select>
+
+
           <input
             type="text"
             className="border p-3 rounded-lg"
@@ -173,28 +225,57 @@ export default function GerenciarProdutos() {
           <ImageIcon className="text-green-500" /> Produtos Cadastrados
         </h2>
 
+        <div className="flex gap-4 mb-6">
+          {classes.map((c) => (
+            <button
+              key={c}
+              onClick={() => setClasseSelecionada(c)}
+              className={`px-4 py-2 rounded-lg font-semibold cursor-pointer ${
+                classeSelecionada === c ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {c.charAt(0).toUpperCase() + c.slice(1)}
+            </button>
+          ))}
+        </div>
+
+
         {produtos.length === 0 ? (
           <p className="text-gray-500">Nenhum produto cadastrado.</p>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {produtos.map((p) => (
-              <div key={p.id} className="border rounded-xl p-4 shadow-sm">
+            {produtosFiltrados.map((p) => (
+              <div key={p.id} className="border-2 rounded-xl  shadow-sm border-blue-600">
                 {p.imagemUrl && (
                   <img
                     src={p.imagemUrl}
                     alt={p.nome}
-                    className="w-full h-40 object-contain rounded mb-3"
+                    className="w-full h-60 object-cover rounded-xl"
                   />
                 )}
-                <h3 className="font-semibold text-lg">{p.nome}</h3>
-                <p className="text-gray-600 text-sm mb-2">{p.descricao}</p>
-                <p className="text-blue-600 font-medium">
-                  Venda: € {Number(p.preco).toFixed(2)}
-                </p>
-                <p className="text-red-500 text-sm">
-                  Custo: € {Number(p.precoCusto).toFixed(2)}
-                </p>
-                <div className="flex gap-3 mt-3">
+                <hr className='border-blue-600' />
+                <div className='p-2'>
+                  <h3 className="font-semibold text-lg text-blue-600 ">{p.nome}</h3>
+                  <p className='text-sm'> {p.categoria === 'pizzas-tradicionais'? ' Pizza - 8 Fatias - Tradicional': p.categoria === 'pizzas-individuais'? 'Pizza - 4 Fatias - Individual':p.categoria }</p>
+                </div>
+                <hr className='border-blue-600'/>
+                <div className='h-25 p-2'>
+                  <p className='text-sm font-semibold text-blue-600'>Descrição</p>
+                  <p className="text-gray-600 text-sm mb-2 ">{p.descricao}</p>
+                </div>
+                <hr className='border-blue-600'/>
+                <div className='flex justify-between p-2'>
+                  
+                  <div className='flex items-center justify-end gap-2 w-full'>
+                    <p className='text-sm text-blue-500 font-semibold'>Classe: </p>
+                    <p className='text-right'>{p.classe}</p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center bg-blue-600 p-2 text-white font-bold">
+                  <p className='font-medium'>Preço</p>
+                  <p className='text-2xl'>€ {Number(p.preco).toFixed(2)}</p>
+                </div>
+                <div className="flex justify-between gap-3 mt-3 p-2">
                   <button
                     onClick={() => editar(p)}
                     className="text-blue-500 p-2 rounded cursor-pointer hover:bg-blue-600 flex items-center gap-1 hover:text-white"

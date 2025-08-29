@@ -15,22 +15,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Top pizzas",
+  title: "Top Pizzas",
   description: "Pizzaria localizada em Sesimbra",
+  icons: {
+    icon: "/logo.png", // Coloque um PNG aqui em public/
+    shortcut: "/logo.png", // Para garantir compatibilidade com navegadores
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
-        <SpeedInsights/>
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -16,7 +16,7 @@ export function Sidebar() {
           <Users size={20} /> Usuários
         </Link>
         <Link href="/pages/admin/pedidos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
-          <ClipboardList size={20} /> Pedidos
+          <ClipboardList size={20} /> Loja
         </Link>
         <Link href="/pages/admin/cardapio" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <Utensils size={20} /> Cadastro de Produtos

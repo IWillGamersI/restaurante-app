@@ -53,7 +53,9 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-500">
+    <div className="flex flex-col items-center gap-3 justify-center min-h-screen bg-gray-100 text-gray-500">
+      {/* Logo da pizzaria */}
+      <img src="/logo.png" alt="Logo Top Pizzas" width={250} height={250} className='rounded-full border-6 text-orange-500' />
       <div className="bg-white p-6 rounded shadow-md w-96">
         <h1 className="text-xl mb-4 font-bold text-center">Login</h1>
 
