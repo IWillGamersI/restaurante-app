@@ -77,6 +77,7 @@ export default function GerenciarPedidos() {
   const [tiposColapsados, setTiposColapsados] = useState<Record<string, boolean>>({});
   const [codigoPedido, setCodigoPedido] = useState('');
 
+  
 
 // Puxa os extras do Firestore
 useEffect(() => {
@@ -232,8 +233,20 @@ useEffect(() => {
     }
   };
 
-  const pedidosAbertos = pedidos.filter(p => ['fila', 'preparando','pronto'].includes(p.status.toLowerCase()));
-  const pedidosFechados = pedidos.filter(p => [ 'entregue', 'cancelado'].includes(p.status.toLowerCase()));
+  const hoje = new Date()
+  const diaHoje = hoje.getDate()
+  const mesHoje = hoje.getMonth()
+  const anoHoje = hoje.getFullYear()
+
+  const pedidosDoDia = pedidos.filter(p=>{
+    const pData = new Date(p.data)
+    return(
+      pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje
+    )
+  })
+
+  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando','pronto'].includes(p.status.toLowerCase()));
+  const pedidosFechados = pedidosDoDia.filter(p => [ 'entregue', 'cancelado'].includes(p.status.toLowerCase()));
 
   const toggleExtraSelecionado = (extra: Extra) => {
     setExtrasSelecionados((prevSelecionados) => {
@@ -393,12 +406,12 @@ useEffect(() => {
 
                       </div>
                       <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside ">
-                        <div className='flex justify-between px-2 gap-1 text-md font-bold '>
+                        <div className='flex justify-between px-2 gap-1 text-md font-bold border-b-2 '>
                             <div className='flex-1'>Produto</div>
                             <div>Quant</div>
                             <div>Sub-Total</div>
                         </div>
-                        <div className='flex flex-col gap-1'>
+                        <div className='flex flex-col mb-1 mt-1 gap-1 '>
                           {p.produtos?.map((item) => (
                               <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded' key={item.id}>
                                   <div className='flex-1'>
