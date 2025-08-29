@@ -10,6 +10,7 @@
     "dev:lan": "node dev-lan.js"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^1.2.0",
     "autoprefixer": "^10.4.21",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
