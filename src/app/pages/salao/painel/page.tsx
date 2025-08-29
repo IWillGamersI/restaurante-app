@@ -111,9 +111,10 @@ export default function SalaoCliente() {
         <div className="w-full flex-1 bg-gray-100 p-3 grid grid-cols-1 md:grid-cols-3 gap-4">
           {['Fila', 'Preparando', 'Pronto'].map((status) => (
             <div key={status} className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-6xl font-bold mb-2">{status}</h2>
+              <h2 className=" text-6xl font-bold mb-2 text-center">{status}</h2>
+              <hr className='mb-6'/>
               {pedidosPorStatus(status).length === 0 ? (
-                <p className="text-gray-500 text-6xl">Nenhum pedido</p>
+                <p className="text-gray-500 text-6xl text-center">Nenhum pedido</p>
               ) : (
                 pedidosPorStatus(status).map(p => (
                   <div key={p.id} className="border rounded p-2 mb-2 bg-blue-200 text-center border-gray-400 ">
