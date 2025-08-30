@@ -226,31 +226,33 @@ export default function GerenciarPedidos() {
 
  
 
-async function imprimir(pedido: any, vias: number = 1) {
-  const auth = getAuth();
-  const user = auth.currentUser;
+  async function imprimir(pedido: any, vias: number = 1) {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
 
-  if (!user) {
-    alert('É necessário estar logado para imprimir!');
-    return;
+      if (!user) {
+        console.error('Usuário não logado!');
+        return;
+      }
+
+      const token = await user.getIdToken(); // pega o ID token do Firebase
+
+      await fetch('/api/print', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // envia o token
+        },
+        body: JSON.stringify({ pedido, vias }),
+      });
+
+      console.log('Pedido enviado para impressão!');
+    } catch (err) {
+      console.error('Erro ao imprimir pedido:', err);
+    }
   }
 
-  const token = await user.getIdToken();
-
-  try {
-    await fetch('/api/print', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`  // <-- envia o token
-      },
-      body: JSON.stringify({ pedido, vias })
-    });
-    console.log('Pedido enviado para impressão!');
-  } catch(err) {
-    console.error('Erro ao imprimir pedido:', err);
-  }
-}
 
 
 
