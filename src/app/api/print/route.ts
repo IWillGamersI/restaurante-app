@@ -9,14 +9,15 @@ if (!admin.apps.length) {
 
 export async function POST(req: Request) {
   try {
-    // Extrai o token do header Authorization
+    // ======================
+    // 1. Verifica autenticação
+    // ======================
     const authHeader = req.headers.get('Authorization') || '';
-    const idToken = authHeader.replace('Bearer ', '').trim();
-    if (!idToken) {
+    if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Token não fornecido' }), { status: 401 });
     }
 
-    // Verifica token Firebase
+    const idToken = authHeader.split('Bearer ')[1];
     let decodedToken;
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -24,7 +25,9 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401 });
     }
 
-    // Verifica a role do usuário
+    // ======================
+    // 2. Verifica role do usuário
+    // ======================
     const userDoc = await admin.firestore().collection('usuarios').doc(decodedToken.uid).get();
     const role = userDoc.exists ? userDoc.data()?.role : null;
 
@@ -32,7 +35,9 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Usuário não autorizado' }), { status: 403 });
     }
 
-    // Usuário autorizado, segue a impressão
+    // ======================
+    // 3. Dados do pedido
+    // ======================
     const Network = require('escpos-network');
     const { pedido, vias = 1 } = await req.json();
     const device = new Network('192.168.1.100', 9100);
@@ -49,6 +54,7 @@ export async function POST(req: Request) {
           .toBuffer({ resolveWithObject: true });
 
         const { data, info } = logoBuffer;
+
         printer.align('ct');
         printer.raster(new escpos.Image(data, info.width, info.height), 'dwdh');
 
@@ -58,16 +64,15 @@ export async function POST(req: Request) {
           .size(1, 1)
           .text(`Pedido: ${pedido.codigo}\n`)
           .text(`Cliente: ${pedido.cliente}\n`)
-          .text(`Data: ${new Date(pedido.data).toLocaleString('pt-PT')}\n`)
+          .text(`Data: ${new Date(pedido.data).toLocaleString('pt-BR')}\n`)
           .text('---------------------------\n');
 
         pedido.produtos.forEach((p: any) => {
-          printer.text(`${p.quantidade} - ${p.nome} - € ${(p.quantidade * p.preco).toFixed(2)}`);
+          printer.text(`${p.quantidade} - ${p.nome} - ${(p.quantidade * p.preco).toFixed(2)}`);
+          if (p.extras?.length) {
+            p.extras.forEach((e: any) => printer.text(`   + ${e}\n`));
+          }
         });
-
-        if (pedido.extras?.length) {
-          pedido.extras.forEach((e: any) => printer.text(` - ${e.nome}\n`));
-        }
 
         printer
           .text('---------------------------\n')
@@ -80,19 +85,51 @@ export async function POST(req: Request) {
           .text('\nPEÇA SUA FATURA COM CONTRIBUINTE NO CAIXA!\n')
           .cut();
       } catch (err) {
-        console.error('Erro ao imprimir', err);
+        console.error('Erro ao gerar o pedido:', err);
+        throw err;
       }
     };
 
-    device.open(async () => {
-      await imprimiPedido();
-      if (vias > 1) await imprimiPedido();
-      printer.close();
-    });
+    // ======================
+    // 4. Abre dispositivo e imprime com timeout
+    // ======================
+    const printWithTimeout = async (timeoutMs = 10000) => {
+      return new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error('Tempo limite da impressora excedido'));
+        }, timeoutMs);
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        device.open(async (err: any) => {
+          clearTimeout(timer);
+          if (err) return reject(err);
+
+          try {
+            await imprimiPedido();
+            if (vias > 1) {
+              for (let i = 1; i < vias; i++) {
+                await imprimiPedido();
+              }
+            }
+            printer.close();
+            resolve();
+          } catch (err) {
+            printer.close();
+            reject(err);
+          }
+        });
+      });
+    };
+
+    try {
+      await printWithTimeout();
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    } catch (err: any) {
+      console.error('Erro ao imprimir:', err.message || err);
+      return new Response(JSON.stringify({ error: 'Erro ao imprimir: ' + (err.message || 'desconhecido') }), { status: 500 });
+    }
+
   } catch (err) {
-    console.error(err);
+    console.error('Erro interno na API:', err);
     return new Response(JSON.stringify({ error: 'Erro Interno' }), { status: 500 });
   }
 }

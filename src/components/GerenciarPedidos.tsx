@@ -232,26 +232,55 @@ export default function GerenciarPedidos() {
       const user = auth.currentUser;
 
       if (!user) {
-        console.error('Usuário não logado!');
+        alert("Você precisa estar logado para imprimir!");
         return;
       }
 
-      const token = await user.getIdToken(); // pega o ID token do Firebase
+      // Pega token atualizado
+      const token = await user.getIdToken(true);
+      console.log('Usuário:', user.uid, 'Token:', token);
 
-      await fetch('/api/print', {
+      // Timeout de 10s para o fetch
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch('/api/print', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // envia o token
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ pedido, vias }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeout);
+
+      // Tenta ler JSON, mas se falhar, loga o texto cru
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        console.error('Erro ao imprimir (não JSON):', text);
+        return;
+      }
+
+      if (!res.ok) {
+        console.error('Erro ao imprimir:', data.error || 'Erro desconhecido');
+        return;
+      }
+
       console.log('Pedido enviado para impressão!');
-    } catch (err) {
-      console.error('Erro ao imprimir pedido:', err);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.error('Erro ao imprimir: tempo limite excedido');
+      } else {
+        console.error('Erro ao imprimir pedido:', err);
+      }
     }
   }
+
 
 
 
