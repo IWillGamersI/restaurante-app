@@ -78,49 +78,45 @@ export default function GerenciarPedidos() {
   const [tiposColapsados, setTiposColapsados] = useState<Record<string, boolean>>({});
   const [codigoPedido, setCodigoPedido] = useState('');
 
-  
+  // Puxa os extras do Firestore
+  useEffect(() => {
+    const q = query(collection(db, 'pedidos'));
 
-  
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const lista = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Pedido[];
 
-// Puxa os extras do Firestore
-useEffect(() => {
-  const q = query(collection(db, 'pedidos'));
+      // Ordena pelos timestamp (quem foi criado primeiro aparece primeiro)
+      const ordenado = lista.sort((a, b) => {
+        const t1 = (a as any).criadoEm?.seconds || 0;
+        const t2 = (b as any).criadoEm?.seconds || 0;
+        return t1 - t2;
+      });
 
-  const unsubscribe = onSnapshot(q, (snap) => {
-    const lista = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Pedido[];
-
-    // Ordena pelos timestamp (quem foi criado primeiro aparece primeiro)
-    const ordenado = lista.sort((a, b) => {
-      const t1 = (a as any).criadoEm?.seconds || 0;
-      const t2 = (b as any).criadoEm?.seconds || 0;
-      return t1 - t2;
+      setPedidos(ordenado);
     });
 
-    setPedidos(ordenado);
-  });
-
-  return () => unsubscribe();
-}, []);
+    return () => unsubscribe();
+  }, []);
 
 
 
-const extrasPorTipo = extras.reduce((acc, extra) => {
+  const extrasPorTipo = extras.reduce((acc, extra) => {
   if (!acc[extra.tipo]) acc[extra.tipo] = [];
   acc[extra.tipo].push(extra);
   return acc;
-}, {} as Record<string, Extra[]>);
+  }, {} as Record<string, Extra[]>);
 
 
-useEffect(() => {
+  useEffect(() => {
   carregarProdutos();
-}, []);
+  }, []);
 
-  
 
-useEffect(() => {
+
+  useEffect(() => {
   const q = query(collection(db, 'pedidos'));
   const unsubscribe = onSnapshot(q, (snap) => {
     const lista = snap.docs.map(doc => ({
@@ -131,19 +127,8 @@ useEffect(() => {
   });
 
   return () => unsubscribe(); // remove listener ao desmontar componente
-}, []);
+  }, []);
 
-  /*
-    const carregarProdutos = async () => {
-        const snap = await getDocs(collection(db, 'produtos'));
-        const lista = snap.docs.map(doc => {
-            const data = doc.data() as Produto;
-            const { id, ...rest } = data;  // remove 'id' vindo do banco se existir
-            return { id: doc.id, ...rest };
-        });
-        setProdutos(lista);
-    };
-  */
   const carregarProdutos = async () => {
     const q = query(
       collection(db, 'produtos'),
@@ -175,7 +160,7 @@ useEffect(() => {
   setSucesso('');
   setExtrasSelecionados([]); // 👈 limpa os extras  
   setTiposColapsados({});
-};
+  };
 
 
   const adicionarProdutoAoPedido = () => {
@@ -233,7 +218,7 @@ useEffect(() => {
       await addDoc(collection(db, 'pedidos'), dados);
     }
 
-     imprimir(dados,2)
+      imprimir(dados,2)
 
     limparCampos();
   };
