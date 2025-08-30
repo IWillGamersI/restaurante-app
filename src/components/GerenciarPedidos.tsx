@@ -225,7 +225,7 @@ export default function GerenciarPedidos() {
   };
 
  
-
+/*
   async function imprimir(pedido: any, vias: number = 1) {
     try {
       const auth = getAuth();
@@ -281,6 +281,57 @@ export default function GerenciarPedidos() {
     }
   }
 
+*/
+
+
+
+  async function imprimir(pedido: any, vias: number = 1) {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        alert("Você precisa estar logado para imprimir!");
+        return;
+      }
+
+      // Pega token atual
+      const token = await user.getIdToken(true); // força refresh do token
+      console.log('Usuário:', user.uid, 'Token:', token);
+
+      const res = await fetch('/api/print', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pedido, vias }),
+      });
+
+      if (res.status === 401) {
+        alert('Sua sessão expirou. Faça login novamente.');
+        return;
+      }
+
+      if (res.status === 403) {
+        alert('Você não tem permissão para imprimir este pedido.');
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Erro ao imprimir:', data.error);
+        alert(`Erro ao imprimir: ${data.error}`);
+        return;
+      }
+
+      console.log('Pedido enviado para impressão!');
+      alert('Pedido enviado para impressão!');
+    } catch (err) {
+      console.error('Erro ao imprimir pedido:', err);
+      alert('Ocorreu um erro ao tentar imprimir o pedido.');
+    }
+  }
 
 
 
