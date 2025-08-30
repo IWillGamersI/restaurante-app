@@ -224,65 +224,6 @@ export default function GerenciarPedidos() {
     limparCampos();
   };
 
- 
-/*
-  async function imprimir(pedido: any, vias: number = 1) {
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        alert("Você precisa estar logado para imprimir!");
-        return;
-      }
-
-      // Pega token atualizado
-      const token = await user.getIdToken(true);
-      console.log('Usuário:', user.uid, 'Token:', token);
-
-      // Timeout de 10s para o fetch
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const res = await fetch('/api/print', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ pedido, vias }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-
-      // Tenta ler JSON, mas se falhar, loga o texto cru
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text();
-        console.error('Erro ao imprimir (não JSON):', text);
-        return;
-      }
-
-      if (!res.ok) {
-        console.error('Erro ao imprimir:', data.error || 'Erro desconhecido');
-        return;
-      }
-
-      console.log('Pedido enviado para impressão!');
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.error('Erro ao imprimir: tempo limite excedido');
-      } else {
-        console.error('Erro ao imprimir pedido:', err);
-      }
-    }
-  }
-
-*/
-
 
 
   async function imprimir(pedido: any, vias: number = 1) {
@@ -297,8 +238,7 @@ export default function GerenciarPedidos() {
 
       // Pega token atual
       const token = await user.getIdToken(true); // força refresh do token
-      console.log('Usuário:', user.uid, 'Token:', token);
-
+      
       const res = await fetch('/api/print', {
         method: 'POST',
         headers: {

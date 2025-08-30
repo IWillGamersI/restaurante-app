@@ -1,23 +1,34 @@
-import escpos from 'escpos';
+// src/app/api/print/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
+import fs from 'fs';
+import escpos from 'escpos';
 import sharp from 'sharp';
 import admin from 'firebase-admin';
 
-// Carrega o JSON da conta de serviço
-const serviceAccount = require('../../serviceAccountKey.json'); // ajuste o caminho conforme seu projeto
-
+// Inicializa Firebase Admin apenas no servidor
 if (!admin.apps.length) {
+  const serviceAccountPath = path.join(process.cwd(), 'src', 'secret', 'serviceAccountKey.json');
+
+  if (!fs.existsSync(serviceAccountPath)) {
+    throw new Error(`Arquivo de conta de serviço não encontrado em: ${serviceAccountPath}`);
+  }
+
+  const serviceAccount = require(serviceAccountPath);
+
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
   });
+
+  console.log('✅ Firebase Admin inicializado com sucesso!');
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Verifica header de autorização
     const authHeader = req.headers.get('Authorization') || '';
     if (!authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Token não fornecido' }), { status: 401 });
+      return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 });
     }
 
     const idToken = authHeader.split('Bearer ')[1];
@@ -26,37 +37,38 @@ export async function POST(req: Request) {
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch (err) {
-      return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401 });
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
-    // Pega a role do usuário
+    // Verifica role do usuário
     const userDoc = await admin.firestore().collection('usuarios').doc(decodedToken.uid).get();
     const role = userDoc.exists ? userDoc.data()?.role : null;
 
     if (role !== 'admin' && role !== 'loja') {
-      return new Response(JSON.stringify({ error: 'Usuário não autorizado' }), { status: 403 });
+      return NextResponse.json({ error: 'Usuário não autorizado' }, { status: 403 });
     }
 
     // Dados do pedido
-    const Network = require('escpos-network');
     const { pedido, vias = 1 } = await req.json();
+    const Network = require('escpos-network');
     const device = new Network('192.168.1.100', 9100);
     const printer = new escpos.Printer(device);
     const logoPath = path.join(process.cwd(), 'public', 'logo1.png');
 
     const imprimiPedido = async () => {
       try {
+        // Gera buffer da logo em PNG
         const logoBuffer = await sharp(logoPath)
           .resize(200)
           .flatten({ background: '#FFFFFF' })
           .threshold(128)
-          .raw()
-          .toBuffer({ resolveWithObject: true });
+          .png()
+          .toBuffer();
 
-        const { data, info } = logoBuffer;
+        const logoImage = await escpos.Image.load(logoBuffer);
 
         printer.align('ct');
-        printer.raster(new escpos.Image(data, info.width, info.height), 'dwdh');
+        printer.raster(logoImage, 'dwdh');
 
         printer
           .align('ct')
@@ -70,7 +82,7 @@ export async function POST(req: Request) {
         pedido.produtos.forEach((p: any) => {
           printer.text(`${p.quantidade} - ${p.nome} - ${(p.quantidade * p.preco).toFixed(2)}`);
           if (pedido.extras?.length) {
-            pedido.extras.forEach((e: any, i: any) => printer.text(` - ${e[i]}\n`));
+            pedido.extras.forEach((e: any) => printer.text(` - ${e}\n`));
           }
         });
 
@@ -90,7 +102,6 @@ export async function POST(req: Request) {
       }
     };
 
-    // Abre dispositivo e imprime
     try {
       await new Promise<void>((resolve, reject) => {
         device.open(async (err: any) => {
@@ -108,14 +119,14 @@ export async function POST(req: Request) {
         });
       });
 
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      return NextResponse.json({ ok: true }, { status: 200 });
     } catch (err) {
       console.error('Erro ao imprimir:', err);
-      return new Response(JSON.stringify({ error: 'Erro ao imprimir' }), { status: 500 });
+      return NextResponse.json({ error: 'Erro ao imprimir' }, { status: 500 });
     }
 
   } catch (err) {
     console.error('Erro interno na API:', err);
-    return new Response(JSON.stringify({ error: 'Erro Interno' }), { status: 500 });
+    return NextResponse.json({ error: 'Erro Interno' }, { status: 500 });
   }
 }
