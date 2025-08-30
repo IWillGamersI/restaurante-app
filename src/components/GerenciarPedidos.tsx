@@ -1,5 +1,5 @@
 'use client';
-
+ import { getAuth } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import {
   collection,
@@ -11,7 +11,7 @@ import {
   query,
   onSnapshot,
   serverTimestamp,
-  orderBy
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -224,18 +224,34 @@ export default function GerenciarPedidos() {
     limparCampos();
   };
 
-  async function imprimir (pedido: any, vias: number = 1){
-    try{
-      await fetch('/api/print',{
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({pedido, vias})
-      })
-      console.log('Pedido enviado para impressão!')
-    }catch(err){
-      console.error('Erro ao imprimir pedido:', err)
-    }
+ 
+
+async function imprimir(pedido: any, vias: number = 1) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert('É necessário estar logado para imprimir!');
+    return;
   }
+
+  const token = await user.getIdToken();
+
+  try {
+    await fetch('/api/print', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`  // <-- envia o token
+      },
+      body: JSON.stringify({ pedido, vias })
+    });
+    console.log('Pedido enviado para impressão!');
+  } catch(err) {
+    console.error('Erro ao imprimir pedido:', err);
+  }
+}
+
 
 
   const editar = (p: Pedido) => {
