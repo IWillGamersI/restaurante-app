@@ -1,23 +1,22 @@
 // src/app/api/print/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
-import fs from 'fs';
 import escpos from 'escpos';
 import sharp from 'sharp';
 import admin from 'firebase-admin';
 
 // Inicializa Firebase Admin apenas no servidor
 if (!admin.apps.length) {
-  const serviceAccountPath = path.join(process.cwd(), 'src', 'secret', 'serviceAccountKey.json');
-
-  if (!fs.existsSync(serviceAccountPath)) {
-    throw new Error(`Arquivo de conta de serviço não encontrado em: ${serviceAccountPath}`);
+  if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+    throw new Error('Variáveis de ambiente do Firebase não configuradas');
   }
 
-  const serviceAccount = require(serviceAccountPath);
-
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    credential: admin.credential.cert({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    }),
   });
 
   console.log('✅ Firebase Admin inicializado com sucesso!');
@@ -57,7 +56,6 @@ export async function POST(req: NextRequest) {
 
     const imprimiPedido = async () => {
       try {
-        // Gera buffer da logo em PNG
         const logoBuffer = await sharp(logoPath)
           .resize(200)
           .flatten({ background: '#FFFFFF' })
