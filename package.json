@@ -12,8 +12,10 @@
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0",
     "autoprefixer": "^10.4.21",
+    "body-parser": "^2.2.0",
     "escpos": "^3.0.0-alpha.6",
     "escpos-network": "^3.0.0-alpha.5",
+    "express": "^5.1.0",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
     "framer-motion": "^12.23.12",
@@ -34,5 +36,19 @@
     "eslint-config-next": "15.4.5",
     "tailwindcss": "^4.1.11",
     "typescript": "^5"
-  }
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "dev-lan.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IWillGamersI/restaurante-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/IWillGamersI/restaurante-app/issues"
+  },
+  "homepage": "https://github.com/IWillGamersI/restaurante-app#readme"
 }

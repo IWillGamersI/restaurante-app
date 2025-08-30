@@ -1,7 +1,9 @@
 // src/app/api/print/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import escpos from 'escpos';
+import iconv from 'iconv-lite';
 import admin from 'firebase-admin';
+import path from 'path';
 
 // Inicializa Firebase Admin apenas no servidor
 if (!admin.apps.length) {
@@ -20,9 +22,14 @@ if (!admin.apps.length) {
   console.log('✅ Firebase Admin inicializado com sucesso!');
 }
 
+// Função para normalizar texto e remover problemas com acentos
+function formatarTexto(texto: string) {
+  return iconv.encode(texto.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), 'cp858');
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // Verifica header de autorização
+    // Autenticação
     const authHeader = req.headers.get('Authorization') || '';
     if (!authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 });
@@ -40,7 +47,6 @@ export async function POST(req: NextRequest) {
     // Verifica role do usuário
     const userDoc = await admin.firestore().collection('usuarios').doc(decodedToken.uid).get();
     const role = userDoc.exists ? userDoc.data()?.role : null;
-
     if (role !== 'admin' && role !== 'loja') {
       return NextResponse.json({ error: 'Usuário não autorizado' }, { status: 403 });
     }
@@ -52,28 +58,38 @@ export async function POST(req: NextRequest) {
     const printer = new escpos.Printer(device);
 
     const imprimiPedido = async () => {
-      printer.align('ct');
-      printer.text('Top pizzas')
-      printer.style('b').size(1, 1).text(`Pedido: ${pedido.codigo}\n`);
-      printer.text(`Cliente: ${pedido.cliente}\n`);
-      printer.text(`Data: ${new Date(pedido.data).toLocaleString('pt-BR')}\n`);
-      printer.text('---------------------------\n');
+      printer
+        .align('ct')
+        .style('b')
+        .size(1, 1) // tamanho normal
+        .text('Top pizzas')
+        .text(formatarTexto(`Pedido: ${pedido.codigo}`))
+        .text(formatarTexto(`Cliente: ${pedido.cliente}`))
+        .size(0,0)
+        .text(formatarTexto(`Data: ${new Date(pedido.data).toLocaleString('pt-BR')}`))
+        .text(formatarTexto('---------------------------'));
 
       pedido.produtos.forEach((p: any) => {
-        printer.text(`${p.quantidade} - ${p.nome} - ${(p.quantidade * p.preco).toFixed(2)}`);
+        printer.text(formatarTexto(`${p.quantidade} - ${p.nome} - ${(p.quantidade * p.preco).toFixed(2)}`));
         if (pedido.extras?.length) {
-          pedido.extras.forEach((e: any) => printer.text(` - ${e}\n`));
+          pedido.extras.forEach((e: any, i: number) => printer.text(formatarTexto(` - ${e[i]}`)));
         }
       });
 
-      printer.text('---------------------------\n')
+      printer
+        .text(formatarTexto('---------------------------'))
         .style('b')
-        .text(`TOTAL: € ${Number(pedido.valor).toFixed(2)}\n`)
-        .text('\nObrigado pela preferência!!!\n')
-        .text('\nENTREGUE ESSA COMANDA PARA RETIRAR O PEDIDO\n')
-        .text('\nCOMANDA INTERNA\n')
-        .text('\nNÃO SERVE COMO COMPROVANTE FISCAL\n')
-        .text('\nPEÇA SUA FATURA COM CONTRIBUINTE NO CAIXA!\n')
+        .text(formatarTexto(`TOTAL: ${Number(pedido.valor).toFixed(2)}`))
+        .text(formatarTexto('Obrigado pela preferência!!!'))
+        .text(formatarTexto('ENTREGUE ESSA COMANDA PARA RETIRAR O PEDIDO'))
+        .text(formatarTexto('COMANDA INTERNA'))
+        .text(formatarTexto('NÃO SERVE COMO COMPROVANTE FISCAL'))
+        .text(formatarTexto('PEÇA SUA FATURA COM CONTRIBUINTE NO CAIXA!'))
+        .text()
+        .text(formatarTexto('PEÇA SUA FATURA COM CONTRIBUINTE NO CAIXA!'))
+        .text(formatarTexto(''))
+        .text(formatarTexto(''))
+        .text(formatarTexto(''))
         .cut();
     };
 
@@ -81,7 +97,6 @@ export async function POST(req: NextRequest) {
       await new Promise<void>((resolve, reject) => {
         device.open(async (err: any) => {
           if (err) return reject(err);
-
           try {
             await imprimiPedido();
             if (vias > 1) await imprimiPedido();
