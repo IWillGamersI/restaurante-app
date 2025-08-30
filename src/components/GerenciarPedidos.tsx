@@ -239,7 +239,7 @@ export default function GerenciarPedidos() {
       // Pega token atual do usuário
       const token = await user.getIdToken(true); // força refresh do token
       
-      const res = await fetch('/api/print', {
+      const res = await fetch('http://localhost:3001/print', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
