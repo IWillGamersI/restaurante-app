@@ -1,6 +1,7 @@
 // src/app/api/print/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
+import fs from 'fs';
 import escpos from 'escpos';
 import sharp from 'sharp';
 import admin from 'firebase-admin';
@@ -53,17 +54,23 @@ export async function POST(req: NextRequest) {
     const device = new Network('192.168.1.100', 9100);
     const printer = new escpos.Printer(device);
     const logoPath = path.join(process.cwd(), 'public', 'logo1.png');
+    const tempLogoPath = path.join(process.cwd(), 'public', 'temp-logo.png');
 
     const imprimiPedido = async () => {
       try {
-        const logoBuffer = await sharp(logoPath)
+        // Gera PNG temporário compatível com escpos
+        await sharp(logoPath)
           .resize(200)
           .flatten({ background: '#FFFFFF' })
           .threshold(128)
-          .png()
-          .toBuffer();
+          .toFile(tempLogoPath);
 
-        const logoImage = await escpos.Image.load(logoBuffer);
+        const logoImage = await new Promise<escpos.Image>((resolve, reject) => {
+          escpos.Image.load(tempLogoPath, (err, image) => {
+            if (err) return reject(err);
+            resolve(image);
+          });
+        });
 
         printer.align('ct');
         printer.raster(logoImage, 'dwdh');
@@ -94,6 +101,10 @@ export async function POST(req: NextRequest) {
           .text('\nNÃO SERVE COMO COMPROVANTE FISCAL\n')
           .text('\nPEÇA SUA FATURA COM CONTRIBUINTE NO CAIXA!\n')
           .cut();
+
+        // Remove arquivo temporário
+        fs.unlinkSync(tempLogoPath);
+
       } catch (err) {
         console.error('Erro ao gerar o pedido:', err);
         throw err;
@@ -122,6 +133,7 @@ export async function POST(req: NextRequest) {
       console.error('Erro ao imprimir:', err);
       return NextResponse.json({ error: 'Erro ao imprimir' }, { status: 500 });
     }
+
   } catch (err) {
     console.error('Erro interno na API:', err);
     return NextResponse.json({ error: 'Erro Interno' }, { status: 500 });

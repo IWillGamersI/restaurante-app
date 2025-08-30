@@ -236,7 +236,7 @@ export default function GerenciarPedidos() {
         return;
       }
 
-      // Pega token atual
+      // Pega token atual do usuário
       const token = await user.getIdToken(true); // força refresh do token
       
       const res = await fetch('/api/print', {
@@ -258,20 +258,22 @@ export default function GerenciarPedidos() {
         return;
       }
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         console.error('Erro ao imprimir:', data.error);
         alert(`Erro ao imprimir: ${data.error}`);
         return;
       }
 
-      console.log('Pedido enviado para impressão!');
+      console.log('Pedido enviado para impressão!', data);
       alert('Pedido enviado para impressão!');
     } catch (err) {
       console.error('Erro ao imprimir pedido:', err);
       alert('Ocorreu um erro ao tentar imprimir o pedido.');
     }
   }
+
 
 
 
