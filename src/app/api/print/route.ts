@@ -1,10 +1,12 @@
 import escpos from 'escpos'
-import { Network } from 'escpos-network'
+
 import path from 'path'
 import sharp from 'sharp'
 
+
 export async function POST(req: Request){
     try{
+        const Network = require('escpos-network');
         const { pedido, vias = 1 } = await req.json()
         const device = new Network("192.168.1.100",9100)
         const printer = new escpos.Printer(device)

@@ -104,29 +104,30 @@ export default function GerenciarPedidos() {
 
 
   const extrasPorTipo = extras.reduce((acc, extra) => {
-  if (!acc[extra.tipo]) acc[extra.tipo] = [];
-  acc[extra.tipo].push(extra);
-  return acc;
+    if (!acc[extra.tipo]) acc[extra.tipo] = [];
+    acc[extra.tipo].push(extra);
+    return acc;
   }, {} as Record<string, Extra[]>);
 
 
   useEffect(() => {
-  carregarProdutos();
+    carregarProdutos();
   }, []);
 
 
 
   useEffect(() => {
-  const q = query(collection(db, 'pedidos'));
-  const unsubscribe = onSnapshot(q, (snap) => {
-    const lista = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Pedido[];
-    setPedidos(lista);
-  });
+    const q = query(
+      collection(db, 'pedidos'),
+      orderBy('criadoEm', 'asc') // ordena do mais antigo para o mais novo
+    );
 
-  return () => unsubscribe(); // remove listener ao desmontar componente
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPedidos(lista as Pedido[]);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const carregarProdutos = async () => {
@@ -225,7 +226,7 @@ export default function GerenciarPedidos() {
 
   async function imprimir (pedido: any, vias: number = 1){
     try{
-      await fetch('/api/print-test',{
+      await fetch('/api/print',{
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({pedido, vias})
