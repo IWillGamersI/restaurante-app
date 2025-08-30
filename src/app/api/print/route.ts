@@ -122,7 +122,6 @@ export async function POST(req: NextRequest) {
       console.error('Erro ao imprimir:', err);
       return NextResponse.json({ error: 'Erro ao imprimir' }, { status: 500 });
     }
-
   } catch (err) {
     console.error('Erro interno na API:', err);
     return NextResponse.json({ error: 'Erro Interno' }, { status: 500 });
