@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import escpos from 'escpos';
 import sharp from 'sharp';
 import admin from 'firebase-admin';
@@ -54,19 +55,21 @@ export async function POST(req: NextRequest) {
     const device = new Network('192.168.1.100', 9100);
     const printer = new escpos.Printer(device);
     const logoPath = path.join(process.cwd(), 'public', 'logo1.png');
-    const tempLogoPath = path.join(process.cwd(), 'public', 'temp-logo.png');
 
     const imprimiPedido = async () => {
       try {
-        // Gera PNG temporário compatível com escpos
+        // Cria arquivo PNG temporário
+        const tempPath = path.join(os.tmpdir(), `logo_temp.png`);
         await sharp(logoPath)
           .resize(200)
           .flatten({ background: '#FFFFFF' })
           .threshold(128)
-          .toFile(tempLogoPath);
+          .png()
+          .toFile(tempPath);
 
+        // Carrega a imagem no escpos
         const logoImage = await new Promise<escpos.Image>((resolve, reject) => {
-          escpos.Image.load(tempLogoPath, (err, image) => {
+          escpos.Image.load(tempPath, (err: any, image: any) => {
             if (err) return reject(err);
             resolve(image);
           });
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest) {
         printer.align('ct');
         printer.raster(logoImage, 'dwdh');
 
+        // Imprime o pedido
         printer
           .align('ct')
           .style('b')
@@ -103,7 +107,7 @@ export async function POST(req: NextRequest) {
           .cut();
 
         // Remove arquivo temporário
-        fs.unlinkSync(tempLogoPath);
+        fs.unlinkSync(tempPath);
 
       } catch (err) {
         console.error('Erro ao gerar o pedido:', err);
