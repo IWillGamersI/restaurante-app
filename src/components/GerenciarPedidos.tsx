@@ -1,4 +1,3 @@
-// GerenciarPedidos.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,7 +10,8 @@ import {
   updateDoc,
   query,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -26,6 +26,7 @@ import {
   ChevronRight,
   ChevronDown,
   CheckCheckIcon,
+  Printer,
 } from 'lucide-react';
 
 
@@ -65,7 +66,6 @@ export default function GerenciarPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [cliente, setCliente] = useState('');
-  const [data, setData] = useState('');
   const [status, setStatus] = useState('');
   const [produtoSelecionado, setProdutoSelecionado] = useState('');
   const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
@@ -77,6 +77,8 @@ export default function GerenciarPedidos() {
   const [extrasSelecionados, setExtrasSelecionados] = useState<Extra[]>([]);
   const [tiposColapsados, setTiposColapsados] = useState<Record<string, boolean>>({});
   const [codigoPedido, setCodigoPedido] = useState('');
+
+  
 
   
 
@@ -131,20 +133,39 @@ useEffect(() => {
   return () => unsubscribe(); // remove listener ao desmontar componente
 }, []);
 
-
+  /*
+    const carregarProdutos = async () => {
+        const snap = await getDocs(collection(db, 'produtos'));
+        const lista = snap.docs.map(doc => {
+            const data = doc.data() as Produto;
+            const { id, ...rest } = data;  // remove 'id' vindo do banco se existir
+            return { id: doc.id, ...rest };
+        });
+        setProdutos(lista);
+    };
+  */
   const carregarProdutos = async () => {
-      const snap = await getDocs(collection(db, 'produtos'));
-      const lista = snap.docs.map(doc => {
-          const data = doc.data() as Produto;
-          const { id, ...rest } = data;  // remove 'id' vindo do banco se existir
-          return { id: doc.id, ...rest };
-      });
-      setProdutos(lista);
+    const q = query(
+      collection(db, 'produtos'),
+      orderBy('nome', 'asc') // ordena pelo campo 'nome' em ordem crescente
+    );
+
+    const snap = await getDocs(q);
+    const lista: Produto[] = snap.docs.map(doc => {
+    const data = doc.data();
+      return {
+        id: doc.id,
+        nome: data.nome || '',    // garante que não seja undefined
+        preco: data.preco || 0,   // padrão 0 se não existir
+      };
+    });
+
+
+    setProdutos(lista);
   };
 
   const limparCampos = () => {
   setCliente('');
-  setData('');
   setStatus('');
   setProdutosPedido([]);
   setProdutoSelecionado('');
@@ -191,10 +212,14 @@ useEffect(() => {
   const valorTotal = produtosPedido.reduce((acc, p) => acc + p.preco * p.quantidade, 0);
 
   const salvarPedido = async () => {
-    if (!cliente || !data || produtosPedido.length === 0) return;
+
+    const agora = new Date()
+    const dataLisboa = new Date(agora.toLocaleString('en-US',{timeZone:'Europe/Lisbon'}))
+    
+    if (!cliente || produtosPedido.length === 0) return;
     const dados = {
       cliente,
-      data,
+      data: dataLisboa.toISOString(),
       status: 'Fila',
       valor: valorTotal,
       produtos: produtosPedido,
@@ -207,20 +232,31 @@ useEffect(() => {
     } else {
       await addDoc(collection(db, 'pedidos'), dados);
     }
+
+     imprimir(dados,2)
+
     limparCampos();
   };
 
+  async function imprimir (pedido: any, vias: number = 1){
+    try{
+      await fetch('/api/print-test',{
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({pedido, vias})
+      })
+      console.log('Pedido enviado para impressão!')
+    }catch(err){
+      console.error('Erro ao imprimir pedido:', err)
+    }
+  }
+
+
   const editar = (p: Pedido) => {
     setCliente(p.cliente);
-    setData(p.data);
     setStatus(p.status);
     setProdutosPedido(p.produtos);
     setEditandoId(p.id);
-  };
-
-  const remover = async (id: string) => {
-    if (!confirm('Remover este pedido?')) return;
-    await deleteDoc(doc(db, 'pedidos', id));
   };
 
   const statusColor = (status: string) => {
@@ -302,8 +338,7 @@ useEffect(() => {
           <input type="text" className="border p-3 rounded" value={codigoPedido} disabled readOnly placeholder="Código do Pedido"/>
 
           <input type="text" className="border p-3 rounded" placeholder="Cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
-          <input type="date" className="border p-3 rounded" value={data} onChange={e => setData(e.target.value)} />
-          
+                    
         </div>
 
         <div className="flex items-center gap-4 mt-4">
@@ -448,6 +483,12 @@ useEffect(() => {
                               >
                                 <Edit size={24} />
                               </button>
+
+                              <button
+                                onClick={()=> imprimir(p)}
+                              >
+                                <Printer size={24}/>
+                              </button>
                               
                             </div>
 
@@ -491,8 +532,7 @@ useEffect(() => {
                             <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded ' key={item.id}>
                                 <div className='flex-1'>{item.nome}</div>
                                 <div>{item.quantidade}</div>
-                                <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
-                                
+                                <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>                                
                             </div>
                         ))}
                           <div>

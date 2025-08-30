@@ -120,13 +120,6 @@ export default function SalaoCliente() {
                   <div key={p.id} className="border rounded p-2 mb-2 bg-blue-200 text-center border-gray-400 ">
                     <p className='bg-blue-600 text-center text-white rounded font-bold text-7xl'>{p.codigo}</p>
                     <p className="font-semibold text-center text-7xl">{p.cliente}</p>
-                    {/*<ul className="text-sm mt-1">
-                      {p.produtos.map(item => (
-                        <li key={item.id}>
-                          {item.quantidade} - {item.nome}
-                        </li>
-                      ))}
-                    </ul>*/}
                   </div>
                 ))
               )}
