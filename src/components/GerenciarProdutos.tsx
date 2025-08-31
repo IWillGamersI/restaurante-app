@@ -34,8 +34,8 @@ export default function GerenciarProdutos() {
   const [sucesso, setSucesso] = useState('');
   const [categoria,setCategoria] = useState('');
   const [classe, setClasse] = useState('')
-  const [classeSelecionada, setClasseSelecionada] = useState<string>("todas");
-  const classes = ["todas", "entrada", "prato", "pizza", "pizza-escolha", "massa", "bebida","sobremesa", 'estudante'];
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>("todas");
+  const categoriasOrdem = ["todas", "entrada", "prato", "pizza-individual", "pizza-tradicional", "massa", "bebida","sobremesa", 'estudante'];
 
 
   useEffect(() => {
@@ -111,9 +111,9 @@ export default function GerenciarProdutos() {
   };
 
   const produtosFiltrados =
-  classeSelecionada === "todas"
+  categoriaSelecionada === "todas"
     ? produtos
-    : produtos.filter((p) => p.classe.toLowerCase().trim() === classeSelecionada.toLowerCase());
+    : produtos.filter((p) => p.categoria.toLowerCase().trim() === categoriaSelecionada.toLowerCase());
 
   produtosFiltrados.sort((a,b)=> a.nome.localeCompare(b.nome, 'pt', {sensitivity: 'base'}))
 
@@ -134,8 +134,8 @@ export default function GerenciarProdutos() {
             <option value="">Selecione a Categoria</option>
             <option value="entradas">Entradas</option>
             <option value="pratos">Pratos</option>
-            <option value="pizzas-tradicionais">Pizza Tradicional</option>
-            <option value="pizzas-individuais">Pizza Individual</option>
+            <option value="pizza-tradicional">Pizza Tradicional</option>
+            <option value="pizza-individual">Pizza Individual</option>
             <option value="massas">Massas</option>
             <option value="bebidas">Bebidas</option>
             <option value="sobremesas">Sobremesas</option>
@@ -147,6 +147,7 @@ export default function GerenciarProdutos() {
             onChange={(e) => setClasse(e.target.value)}
           >
             <option value="">Selecione a Classe</option>
+            <option value="acai">Açai</option>
             <option value="entrada">Entrada</option>
             <option value="prato">Prato</option>
             <option value="pizza">Pizza</option>
@@ -226,13 +227,13 @@ export default function GerenciarProdutos() {
           <ImageIcon className="text-green-500" /> Produtos Cadastrados
         </h2>
 
-        <div className="flex gap-4 mb-6">
-          {classes.map((c) => (
+        <div className="grid grid-cols-5 gap-4 mb-6">
+          {categoriasOrdem.map((c) => (
             <button
               key={c}
-              onClick={() => setClasseSelecionada(c)}
+              onClick={() => setCategoriaSelecionada(c)}
               className={`px-4 py-2 rounded-lg font-semibold cursor-pointer ${
-                classeSelecionada === c ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
+                categoriaSelecionada === c ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
               }`}
             >
               {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -257,7 +258,7 @@ export default function GerenciarProdutos() {
                 <hr className='border-blue-600' />
                 <div className='p-2'>
                   <h3 className="font-semibold text-lg text-blue-600 ">{p.nome}</h3>
-                  <p className='text-sm'> {p.categoria === 'pizzas-tradicionais'? ' Pizza - 8 Fatias - Tradicional': p.categoria === 'pizzas-individuais'? 'Pizza - 4 Fatias - Individual':p.categoria }</p>
+                  <p className='text-sm'> {p.categoria === 'pizza-tradicional'? ' Pizza - 8 Fatias - Tradicional': p.categoria === 'pizza-individual'? 'Pizza - 4 Fatias - Individual':p.categoria }</p>
                 </div>
                 <hr className='border-blue-600'/>
                 <div className='h-25 p-2'>

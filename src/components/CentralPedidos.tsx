@@ -157,6 +157,7 @@ export default function CentralPedidos() {
   return (
     <div className="w-full mx-auto p-6 space-y-8">
       
+      <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2"><ClipboardList className='text-gray-800' /> Central de Pedidos</h3>
      
       {/* Listas de Pedidos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -188,7 +189,7 @@ export default function CentralPedidos() {
                     className="flex w-[90%] m-auto  border p-3 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
-                      <div className='flex justify-between items-center'>
+                      <div className='flex flex-wrap justify-between items-center'>
                         <div>
                           <div className='flex w-full justify-between '>
                             <div className='w-full'><strong>{p.cliente}</strong></div>                            
@@ -293,7 +294,7 @@ export default function CentralPedidos() {
                     className="flex w-[90%] m-auto  border p-3 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
-                      <div className='flex justify-between items-center'>
+                      <div className='flex flex-wrap justify-between items-center'>
                         <div>
                           <strong>{p.cliente}</strong> 
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
@@ -375,7 +376,7 @@ export default function CentralPedidos() {
                     className="flex w-[90%] m-auto  border p-3 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
-                      <div className='flex justify-between items-center'>
+                      <div className='flex flex-wrap justify-between items-center'>
                         <div>
                           <strong>{p.cliente}</strong> 
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>

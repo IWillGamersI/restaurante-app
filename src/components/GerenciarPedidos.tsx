@@ -29,6 +29,7 @@ import {
   Printer,
 } from 'lucide-react';
 
+import { imprimir } from '@/lib/impressao';
 
 interface Produto {
   id: string;
@@ -62,6 +63,7 @@ interface Pedido {
 
 
 
+
 export default function GerenciarPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -77,6 +79,8 @@ export default function GerenciarPedidos() {
   const [extrasSelecionados, setExtrasSelecionados] = useState<Extra[]>([]);
   const [tiposColapsados, setTiposColapsados] = useState<Record<string, boolean>>({});
   const [codigoPedido, setCodigoPedido] = useState('');
+
+  
 
   // Puxa os extras do Firestore
   useEffect(() => {
@@ -225,59 +229,6 @@ export default function GerenciarPedidos() {
   };
 
 
-
-  async function imprimir(pedido: any, vias: number = 1) {
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        alert("Você precisa estar logado para imprimir!");
-        return;
-      }
-
-      // Pega token atual do usuário
-      const token = await user.getIdToken(true); // força refresh do token
-      
-      const res = await fetch('http://localhost:3001/print', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ pedido, vias }),
-      });
-
-      if (res.status === 401) {
-        alert('Sua sessão expirou. Faça login novamente.');
-        return;
-      }
-
-      if (res.status === 403) {
-        alert('Você não tem permissão para imprimir este pedido.');
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error('Erro ao imprimir:', data.error);
-        alert(`Erro ao imprimir: ${data.error}`);
-        return;
-      }
-
-      console.log('Pedido enviado para impressão!', data);
-      alert('Pedido enviado para impressão!');
-    } catch (err) {
-      console.error('Erro ao imprimir pedido:', err);
-      alert('Ocorreu um erro ao tentar imprimir o pedido.');
-    }
-  }
-
-
-
-
-
   const editar = (p: Pedido) => {
     setCliente(p.cliente);
     setStatus(p.status);
@@ -288,7 +239,7 @@ export default function GerenciarPedidos() {
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'fila': return 'bg-gray-300 text-gray-800';
-      case 'preparando': return 'bg-cyan-200 text-cyan-700';
+      case 'preparando': return 'bg-yellow-200 text-blue-700';
       case 'pronto': return 'bg-blue-100 text-blue-700';
       case 'entregue': return 'bg-green-100 text-green-800';
       case 'cancelado': return 'bg-red-100 text-red-800';
@@ -360,7 +311,10 @@ export default function GerenciarPedidos() {
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Package /> {editandoId ? 'Editar Pedido' : 'Novo Pedido'}</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
+          <div className='flex justify-center items-center bg-gray-200 rounded font-bold text-3xl'>
+            <p>{diaHoje < 10 ? `0${diaHoje}`:  diaHoje} / {(mesHoje+1) < 10 ? `0${mesHoje+1}`:  mesHoje+1} / {anoHoje}</p>
+          </div>
           <input type="text" className="border p-3 rounded" value={codigoPedido} disabled readOnly placeholder="Código do Pedido"/>
 
           <input type="text" className="border p-3 rounded" placeholder="Cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
@@ -410,7 +364,7 @@ export default function GerenciarPedidos() {
               </div>
             );
           })}
-        </div>
+        </div> 
 
         {/* Lista de produtos do pedido */}
         <ul className="mt-4 divide-y">
