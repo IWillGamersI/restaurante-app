@@ -18,6 +18,9 @@ export function Sidebar() {
         <Link href="/pages/admin/loja" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <ClipboardList size={20} /> Loja
         </Link>
+        <Link href="/pages/admin/loja" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+          <ClipboardList size={20} /> Loja
+        </Link>
         <Link href="/pages/admin/pedidos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <ClipboardList size={20} /> Pedidos
         </Link>
