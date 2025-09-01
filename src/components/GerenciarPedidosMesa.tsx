@@ -582,7 +582,7 @@ export default function GerenciarPedidos() {
       {/* Listagem de Pedidos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
         {/* Pedidos Abertos */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-2 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
             <ClipboardList /> Pedidos Abertos
           </h3>
@@ -590,7 +590,7 @@ export default function GerenciarPedidos() {
             <p className="text-gray-500">Nenhum pedido aberto.</p>
           ) : (
             pedidosAbertos.map(p => (
-              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
+              <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
                     <div>
@@ -650,11 +650,7 @@ export default function GerenciarPedidos() {
                   </div>
                   
                   <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
-                    <div className="flex gap-2">
-                      <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
-                        <Printer className='cursor-pointer' size={24} />
-                      </button>
-                    </div>
+                    
                     <div>
                       Total  
                     </div>
