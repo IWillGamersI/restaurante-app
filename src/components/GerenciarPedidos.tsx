@@ -36,6 +36,7 @@ interface Produto {
   nome: string;
   preco: number;
   classe: string
+  categoria: string
 }
 
 interface Extra {
@@ -51,6 +52,7 @@ interface ProdutoPedido {
   preco: number;
   quantidade: number;
   extras: Extra[] // ❌ agora sempre array, não opcional
+  categoria: string
 }
 
 interface Pedido {
@@ -108,7 +110,8 @@ export default function GerenciarPedidos() {
         id: doc.id,
         nome: data.nome || '',
         preco: data.preco || 0,
-        classe: data.classe || ''
+        classe: data.classe || '',
+        categoria: data.categoria || ''
       };
     });
     setProdutos(lista);
@@ -151,7 +154,8 @@ export default function GerenciarPedidos() {
     nome: produto.nome,
     preco: produto.preco,
     quantidade: quantidadeSelecionada,
-    extras: extrasSelecionados
+    extras: extrasSelecionados,
+    categoria: produto.categoria
   };
 
   // Verifica se já existe um produto com mesmo id e MESMOS extras
@@ -205,6 +209,7 @@ export default function GerenciarPedidos() {
       produtos: produtosPedido,
       codigo: codigoPedido,
       extras: extrasSelecionados,
+      categoria:produtosPedido,
       criadoEm: serverTimestamp()
     };
 
@@ -367,7 +372,7 @@ export default function GerenciarPedidos() {
                         const qtdSelecionadosTipo = extrasSelecionados.filter(e => e.tipo === tipo).length;
 
                         return (
-                          <label key={extra.id} className="flex items-center gap-2">
+                          <label key={extra.id} className="flex justify-between items-center gap-2">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -382,11 +387,14 @@ export default function GerenciarPedidos() {
                                 }
                               }}
                             />
-                            <span>
+                            <div className='flex-1'>
                               {extra.nome}
-                              {extra.valor && extra.valor > 0 && (
+
+                            </div>
+                            <span>
+                              {(extra.valor ?? 0) > 0 && (
                                 <span className="text-sm text-gray-600 ml-1">
-                                  (+€ {extra.valor.toFixed(2)})
+                                  (+€ {(extra.valor ?? 0).toFixed(2)})
                                 </span>
                               )}
                             </span>
@@ -402,9 +410,9 @@ export default function GerenciarPedidos() {
 
         {/* Lista de produtos do pedido */}
         <ul className="mt-4 divide-y">
-          {produtosPedido.map(p => (
-            <li key={p.id} className="flex justify-between items-center py-2">
-              <span>{p.nome} x {p.quantidade}</span>
+          {produtosPedido.map((p,i) => (
+            <li key={p.id + i} className="flex justify-between items-center py-2">
+              <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
               <button
                 onClick={() => removerProdutoPedido(p.id)}
@@ -428,7 +436,7 @@ export default function GerenciarPedidos() {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[50vh] overflow-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[55vh] overflow-auto">
         {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -471,7 +479,7 @@ export default function GerenciarPedidos() {
                             className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
-                            <div>{item.nome}</div>
+                            <div>{item.nome} - {item.categoria}</div>
                             {item.extras?.length > 0 && (
                               <div className="mt-1 text-sm">
                                 <div className='font-semibold border-t-1'>
