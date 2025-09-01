@@ -207,54 +207,6 @@ export default function GerenciarPedidos() {
       const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
       return acc + p.preco * p.quantidade + extrasValor;
     }, 0);
-/*
-  const salvarPedido = async () => {
-    const agora = new Date();
-    const dataLisboa = new Date(
-      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
-    );
-
-    // Valida se o cliente foi selecionado
-    if (!idCliente || produtosPedido.length === 0) {
-      alert('Informe o cliente e adicione pelo menos um produto');
-      return;
-    }
-
-    const dados = {
-      idCliente,                  // ID do cliente no Firestore
-      nomeCliente: clienteNome,    // Nome do cliente
-      telefoneCliente: clienteTelefone, // Telefone do cliente
-      codigoCliente,              // Código do cliente
-      data: dataLisboa.toISOString(),
-      status: 'Fila',
-      valor: valorTotal,
-      produtos: produtosPedido,
-      extras: extrasSelecionados,
-      codigoPedido,               // Código do pedido
-      criadoEm: serverTimestamp(),
-    };
-
-    try {
-      if (editandoId) {
-        // Atualiza pedido existente
-        await updateDoc(doc(db, 'pedidos', editandoId), dados);
-      } else {
-        // Cria novo pedido
-        await addDoc(collection(db, 'pedidos'), dados);
-      }
-
-      // Opcional: imprime ou loga o pedido
-      imprimir(dados, 2);
-
-      // Limpa campos do formulário
-      limparCampos();
-
-    } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
-    }
-  };
-*/
 
   const salvarPedido = async () => {
     const agora = new Date();
@@ -308,7 +260,6 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
-      imprimir(dados, 2);
       limparCampos();
 
     } catch (error) {
@@ -432,10 +383,10 @@ export default function GerenciarPedidos() {
 
    
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6 ">
+    <div className="w-full mx-auto space-y-6 ">
       {/* Formulário */}
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
-        <div className='flex justify-between items-center'>
+        <div className='flex flex-col items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
           </h2>
@@ -446,7 +397,7 @@ export default function GerenciarPedidos() {
         <hr />
        
 
-        <div className="flex justify-between">
+        <div className="flex flex-col gap-2">
           {/* Código do pedido */}
           <input
             type="text"
@@ -503,12 +454,7 @@ export default function GerenciarPedidos() {
             }}
           />
 
-        </div>
-
-        {/* Seleção de produto */}
-
-        <div className="flex items-center gap-4 mt-4">
-          <select
+            <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
             onChange={e => setProdutoSelecionado(e.target.value)}
@@ -520,6 +466,12 @@ export default function GerenciarPedidos() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Seleção de produto */}
+
+        <div className="flex justify-between items-center gap-4 mt-4">
+          
           <input
             type="number"
             className="border p-3 rounded w-24"
@@ -536,7 +488,7 @@ export default function GerenciarPedidos() {
         </div>
             <hr />
         {/* Extras dinâmicos */}
-        <div className="grid grid-cols-3 gap-6 mt-4">
+        <div className="flex flex-col gap-2 mt-4">
           {produtoSelecionado &&
             (() => {
               const produto = produtos.find(p => p.id === produtoSelecionado);
@@ -628,7 +580,7 @@ export default function GerenciarPedidos() {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[55vh] overflow-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
         {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -646,17 +598,7 @@ export default function GerenciarPedidos() {
                       <strong>{p.nomeCliente}</strong>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                    <select
-                      value={p.status}
-                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                    >
-                      <option value="Fila">Fila</option>
-                      <option value="Preparando">Preparando</option>
-                      <option value="Pronto">Pronto</option>
-                      <option value="Entregue">Entregue</option>
-                      <option value="Cancelado">Cancelado</option>
-                    </select>
+                    
 
                   </div>
 
@@ -719,91 +661,6 @@ export default function GerenciarPedidos() {
                     <p className='flex-1 text-right text-xl'>€ {p.valor.toFixed(2)}</p>
                   </div>
 
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Pedidos Finalizados */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2">
-            <CheckCircle2 /> Pedidos Finalizados
-          </h3>
-          {pedidosFechados.length === 0 ? (
-            <p className="text-gray-500">Nenhum pedido finalizado.</p>
-          ) : (
-            pedidosFechados.map(p => (
-              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
-                <div className="flex flex-col w-full">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
-                      <strong>{p.nomeCliente}</strong>
-                    </div>
-                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
-                    {p.produtos.map(item => {
-                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
-                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
-
-                      return (
-                        <div
-                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
-                          >
-                          <div className="flex-1">
-                            <div>{item.nome} - {item.categoria}</div>
-                            {item.extras?.length > 0 && (
-                              <div className="mt-1 text-sm">
-                                <div className='font-semibold border-t-1'>
-                                 - Extras
-                                </div>
-                                <div className="pl-5">
-                                  {item.extras.map(extra => (
-                                    <div className='flex justify-between' key={extra.id}>
-                                      <div>
-                                        {extra.nome} 
-                                      </div>
-                                      <div>
-                                        {extra.valor && extra.valor > 0 ?`€ ${extra.valor?.toFixed(2)}`:''} 
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                <hr />
-                                <div className='flex justify-between font-bold'>
-                                  <div>Total Extras</div>
-                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div>{item.quantidade}</div>
-                          <div>€ {subtotalProduto.toFixed(2)}</div>
-                        </div>
-                      );
-                    })}
-
-                  </div>
-
-                  <div className="flex justify-between font-black p-2 border-t-2 pt-2">
-                    <p>Total</p>
-                    <p>€ {p.valor.toFixed(2)}</p>
-                  </div>
-                  <hr className='border-1'/>
-                  <div >
-                    {p.status == 'Cancelado' ? 
-                      <div className='font-semibold text-right' >
-                        <span className='text-blue-600'>Status:</span> <span className='text-red-500'>{p.status}</span>
-                      </div>
-
-                    :<div className='font-semibold text-right' >
-                        <span className='text-blue-600'>Status:</span> <span className='text-green-500'>{p.status}</span>
-                      </div>}
-                  </div>
                 </div>
               </div>
             ))

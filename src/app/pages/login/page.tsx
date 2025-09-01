@@ -43,6 +43,9 @@ export default function Login() {
         case 'divulgacao':
           router.push('/pages/salao/divulgacao');
           break;
+        case 'mesa':
+          router.push('/pages/mesa');
+          break;
         default:
           setErro('Função desconhecida');
       }

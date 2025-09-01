@@ -39,6 +39,7 @@ interface Extra {
   id: string
   nome: string
   tipo: string
+  valor?: number
 }
 
 interface ProdutoPedido {
@@ -46,12 +47,14 @@ interface ProdutoPedido {
   nome: string;
   preco: number;
   quantidade: number;
+  extras: Extra[] // ❌ agora sempre array, não opcional
+  categoria: string
 }
 
 interface Pedido {
   id: string;
-  codigo: string
-  cliente: string;
+  codigoPedido: string
+  nomeCliente: string;
   data: string;
   status: string;
   valor: number;
@@ -155,49 +158,52 @@ export default function CentralPedidos() {
 
 
   return (
-    <div className="w-full mx-auto p-6 space-y-8">
+    <div className="w-full mx-auto space-y-8">
       
-      <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2"><ClipboardList className='text-gray-800' /> Central de Pedidos</h3>
+      <h3 className="text-3xl font-semibold mb-4 flex items-center text-blue-600 gap-2"><ClipboardList className='text-gray-800' /> Central de Pedidos</h3>
      
       {/* Listas de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         
         {/* Abertos */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white  p-4 rounded-lg shadow">
 
-          <div className='flex justify-between  mb-3 text-center'>
+          <div className='flex w-full gap-2 justify-between  mb-3 text-center'>
+            <div className='w-full flex flex-col gap-2 bg-gray-200 p-2 rounded'>
+              <div className='font-black text-blue-600'> Pedidos</div>
+              <div className='text-3xl'>{pedidosAbertos.length}</div>
+            </div> 
 
-            <div className='flex flex-col gap-2 min-w-[33%] bg-gray-200 p-2 rounded'>
-              <div className='font-black text-blue-600'>Data de Hoje</div>
-              <div>{diaHoje} / {mesHoje} / {anoHoje}</div>
-            </div>
-
-            <div className='flex flex-col gap-2 min-w-[33%] bg-gray-200 p-2 rounded'>
+            <div className='w-full flex flex-col gap-2 bg-gray-200 p-2 rounded'>
               <div className='font-black text-blue-600'>Faturamento</div>
-              <div>€ {calcularFaturamento(pedidosAbertos).toFixed(2)}</div>
+              <div className='flex p-2 text-lg justify-between font-semibold'>
+                <div>
+                   €
+                </div>
+                <div>
+                  {calcularFaturamento(pedidosAbertos).toFixed(2)}
+                </div>
+              </div>
             </div> 
 
-            <div className='flex flex-col gap-2 min-w-[33%] bg-gray-200 p-2 rounded'>
-              <div className='font-black text-blue-600'>Número de Pedidos</div>
-              <div>{pedidosAbertos.length}</div>
-            </div> 
           </div>
+
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2"><ClipboardList /> Pedidos Abertos</h3>
           {pedidosAbertos.length === 0 ? <p className="text-gray-500">Nenhum pedido aberto.</p> : pedidosAbertos.map(p => (
             <div
                     key={p.id}
-                    className="flex w-[90%] m-auto  border p-3 rounded mb-3"
+                    className="flex w-full m-auto  border p-2 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
                       <div className='flex flex-wrap justify-between items-center'>
                         <div>
                           <div className='flex w-full justify-between '>
-                            <div className='w-full'><strong>{p.cliente}</strong></div>                            
+                            <div className='w-full'><strong>{p.nomeCliente}</strong></div>                            
                           </div> 
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                         </div>
 
-                        <div className='flex text-2xl bg-blue-600 text-white rounded font-bold p-1'>{p.codigo}</div> 
+                        <div className='flex text-lg bg-blue-600 text-white rounded font-bold p-1'>{p.codigoPedido}</div> 
  
                         <select
                           value={p.status}
@@ -218,31 +224,52 @@ export default function CentralPedidos() {
                             <div>Quant</div>
                             <div>Sub-Total</div>
                         </div>
-                        <div className='flex flex-col mb-1 mt-1 gap-1 '>
-                          {p.produtos?.map((item) => (
-                              <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded' key={item.id}>
-                                  <div className='flex-1'>
-                                    <div>{item.nome}</div>
-                                    <div>
-                                      {p.extras?.length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="text-sm font-medium">Extras:</p>
-                                          <ul className="flex flex-col justify-between pl-5 list-disc text-sm text-gray-700">
-                                            {p.extras.map((extra, index) => (
-                                              <p key={index}>- {extra.nome}</p>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
+                        <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                    {p.produtos.map(item => {
+                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
 
+                      return (
+                        <div
+                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                          >
+                          <div className="flex-1">
+                            <div>{item.nome} - {item.categoria}</div>
+                            {item.extras?.length > 0 && (
+                              <div className="mt-1 text-sm">
+                                <div className='font-semibold border-t-1'>
+                                 - Extras
+                                </div>
+                                <div className="pl-5">
+                                  {item.extras.map(extra => (
+                                    <div className='flex justify-between' key={extra.id}>
+                                      <div>
+                                        {extra.nome} 
+                                      </div>
+                                      <div>
+                                        € {extra.valor?.toFixed(2)}
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div>{item.quantidade}</div>
-                                  <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
+                                  ))}
+                                </div>
+                                <hr />
+                                <div className='flex justify-between font-bold'>
+                                  <div>Total Extras</div>
+                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
+                                </div>
                               </div>
-                          ))}
-
+                            )}
+                          </div>
+                          <div>{item.quantidade}</div>
+                          <div>€ {subtotalProduto.toFixed(2)}</div>
                         </div>
+
+                        
+                      );
+                    })}
+
+                  </div>
                           <div>
                             <div className='flex justify-between border-t-2'>
                               <div>Total:</div>
@@ -270,22 +297,26 @@ export default function CentralPedidos() {
 
         {/* Concluidos */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className='flex justify-between  mb-3 text-center'>
-            <div className='flex flex-col gap-2 min-w-[33%] bg-gray-200 p-2 rounded'>
-              <div className='font-black text-blue-600'>Selecione o Período</div>
-              <div className="flex gap-2">
-                <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
-                <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
-              </div>
-            </div>
-            <div className='flex flex-col gap-2 bg-gray-200 p-2 rounded'>
-              <div className='font-black text-blue-600'>Faturamento</div>
-              <div>€ {calcularFaturamento(pedidosConcluidosFiltrados).toFixed(2)}</div>
-            </div> 
-            <div className='flex flex-col gap-2 bg-gray-200 p-2 rounded'>
+          <div className='flex gap-2 justify-between  mb-3 text-center'>
+            
+            <div className='flex w-full flex-col gap-2 bg-gray-200 p-2 rounded'>
               <div className='font-black text-blue-600'>Qt. Pedidos</div>
-              <div>{pedidosConcluidos.length}</div>
+              <div className='text-3xl'>{pedidosConcluidos.length}</div>
             </div> 
+            
+            <div className='flex w-full flex-col gap-2 bg-gray-200 p-2 rounded'>
+              
+              <div className='font-black text-blue-600'>Faturamento</div>
+              <div className='flex text-lg font-semibold p-2 justify-between'>
+                <div>€ </div>
+                <div>
+                  {calcularFaturamento(pedidosConcluidosFiltrados).toFixed(2)}
+
+                </div>
+              </div>
+            
+            </div> 
+            
           </div>
           <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2"><CheckCircle2 /> Pedidos Finalizados</h3>
           {pedidosConcluidosFiltrados.length === 0 ? <p className="text-gray-500">Nenhum pedido finalizado.</p> : pedidosConcluidosFiltrados.map(p => (
@@ -296,7 +327,7 @@ export default function CentralPedidos() {
                     <div className='flex flex-col w-full'>
                       <div className='flex flex-wrap justify-between items-center'>
                         <div>
-                          <strong>{p.cliente}</strong> 
+                          <strong>{p.nomeCliente}</strong> 
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                         </div>
 
@@ -378,7 +409,7 @@ export default function CentralPedidos() {
                     <div className='flex flex-col w-full'>
                       <div className='flex flex-wrap justify-between items-center'>
                         <div>
-                          <strong>{p.cliente}</strong> 
+                          <strong>{p.nomeCliente}</strong> 
                           <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                         </div>
 
