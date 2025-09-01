@@ -602,7 +602,8 @@ export default function GerenciarPedidos() {
 
                   </div>
 
-                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                  <div className="flex flex-col w-full text-sm border-t-2  text-gray-700"> 
+                                      
                     {p.produtos.map(item => {
                       const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                       const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
@@ -610,7 +611,7 @@ export default function GerenciarPedidos() {
                       return (
                         <div
                             key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                            className="flex mt-2 p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
                             <div>{item.nome} - {item.categoria}</div>
@@ -641,18 +642,16 @@ export default function GerenciarPedidos() {
                           </div>
                           <div>{item.quantidade}</div>
                           <div>€ {subtotalProduto.toFixed(2)}</div>
-                        </div>
-
-                        
+                        </div>                        
                       );
                     })}
 
                   </div>
                   
-                  <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
+                  <div className="flex justify-between font-black mt-2 border-t-2 pt-2 gap-6 items-center">
                     
                     <div>
-                      Total  
+                      Total
                     </div>
                     <p className='flex-1 text-right text-xl'>€ {p.valor.toFixed(2)}</p>
                   </div>

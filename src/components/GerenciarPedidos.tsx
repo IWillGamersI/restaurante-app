@@ -638,7 +638,7 @@ export default function GerenciarPedidos() {
             <p className="text-gray-500">Nenhum pedido aberto.</p>
           ) : (
             pedidosAbertos.map(p => (
-              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
+              <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
                     <div>
@@ -668,7 +668,7 @@ export default function GerenciarPedidos() {
                       return (
                         <div
                             key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
                             <div>{item.nome} - {item.categoria}</div>
@@ -734,7 +734,7 @@ export default function GerenciarPedidos() {
             <p className="text-gray-500">Nenhum pedido finalizado.</p>
           ) : (
             pedidosFechados.map(p => (
-              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
+              <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
                     <div>
@@ -752,7 +752,7 @@ export default function GerenciarPedidos() {
                       return (
                         <div
                             key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
                             <div>{item.nome} - {item.categoria}</div>

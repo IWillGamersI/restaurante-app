@@ -232,7 +232,7 @@ export default function CentralPedidos() {
                       return (
                         <div
                             key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
                             <div>{item.nome} - {item.categoria}</div>
@@ -322,7 +322,7 @@ export default function CentralPedidos() {
           {pedidosConcluidosFiltrados.length === 0 ? <p className="text-gray-500">Nenhum pedido finalizado.</p> : pedidosConcluidosFiltrados.map(p => (
             <div
                     key={p.id}
-                    className="flex w-[90%] m-auto  border p-3 rounded mb-3"
+                    className="flex w-full m-auto  border p-3 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
                       <div className='flex flex-wrap justify-between items-center'>
@@ -351,7 +351,7 @@ export default function CentralPedidos() {
                             <div>Sub-Total</div>
                         </div>
                         {p.produtos?.map((item) => (
-                            <div className='flex gap-10 justify-between ' key={item.id}>
+                            <div className='flex gap-5 justify-between ' key={item.id}>
                                 <div className='flex-1'>{item.nome}</div>
                                 <div>{item.quantidade}</div>
                                 <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
@@ -404,7 +404,7 @@ export default function CentralPedidos() {
           {pedidosCancelados.length === 0 ? <p className="text-gray-500">Nenhum pedido Cancelado.</p> : pedidosCancelados.map(p => (
             <div
                     key={p.id}
-                    className="flex w-[90%] m-auto  border p-3 rounded mb-3"
+                    className="flex w-full m-auto  border p-3 rounded mb-3"
                   >
                     <div className='flex flex-col w-full'>
                       <div className='flex flex-wrap justify-between items-center'>
@@ -433,7 +433,7 @@ export default function CentralPedidos() {
                             <div>Sub-Total</div>
                         </div>
                         {p.produtos?.map((item) => (
-                            <div className='flex gap-10 justify-between ' key={item.id}>
+                            <div className='flex gap-5 justify-between ' key={item.id}>
                                 <div className='flex-1'>{item.nome}</div>
                                 <div>{item.quantidade}</div>
                                 <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
