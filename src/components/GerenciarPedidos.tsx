@@ -12,6 +12,7 @@ import {
   onSnapshot,
   serverTimestamp,
   orderBy,
+  where
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
+import { hr } from 'framer-motion/client';
 
 interface Produto {
   id: string;
@@ -57,13 +59,20 @@ interface ProdutoPedido {
 
 interface Pedido {
   id: string;
-  codigo: string
-  cliente: string;
+  codigoPedido: string
+  nomeCliente: string;
   data: string;
   status: string;
   valor: number;
   produtos: ProdutoPedido[];
   extras: Extra[]
+}
+
+interface Cliente {
+  id: string
+  nome: string
+  telefone:string
+  codigoCliente:string
 }
 
 export default function GerenciarPedidos() {
@@ -74,15 +83,17 @@ export default function GerenciarPedidos() {
   const [produtoSelecionado, setProdutoSelecionado] = useState('');
   const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
   const [produtosPedido, setProdutosPedido] = useState<ProdutoPedido[]>([]);
-  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [extras, setExtras] = useState<Extra[]>([]);
   const [extrasSelecionados, setExtrasSelecionados] = useState<Extra[]>([]);
-  
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteTelefone, setClienteTelefone] = useState('');
+  const [codigoCliente, setCodigoCliente] = useState('');
   const [codigoPedido, setCodigoPedido] = useState('');
+  const [idCliente, setIdCliente] = useState<string | null>(null);
 
-  
+ 
 
   // Puxa os pedidos do Firestore
   useEffect(() => {
@@ -133,12 +144,14 @@ export default function GerenciarPedidos() {
   };
 
   const limparCampos = () => {
-    setCliente('');
+    setClienteNome('');
+    setClienteTelefone('');
+    setCodigoPedido('')
+    setCodigoCliente('')
     setStatus('');
     setProdutosPedido([]);
     setProdutoSelecionado('');
     setQuantidadeSelecionada(1);
-    setEditandoId(null);
     setErro('');
     setSucesso('');
     setExtrasSelecionados([]);
@@ -194,44 +207,118 @@ export default function GerenciarPedidos() {
       const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
       return acc + p.preco * p.quantidade + extrasValor;
     }, 0);
-
+/*
   const salvarPedido = async () => {
     const agora = new Date();
-    const dataLisboa = new Date(agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+    const dataLisboa = new Date(
+      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
+    );
 
-    if (!cliente || produtosPedido.length === 0) return;
+    // Valida se o cliente foi selecionado
+    if (!idCliente || produtosPedido.length === 0) {
+      alert('Informe o cliente e adicione pelo menos um produto');
+      return;
+    }
 
     const dados = {
-      cliente,
+      idCliente,                  // ID do cliente no Firestore
+      nomeCliente: clienteNome,    // Nome do cliente
+      telefoneCliente: clienteTelefone, // Telefone do cliente
+      codigoCliente,              // Código do cliente
       data: dataLisboa.toISOString(),
       status: 'Fila',
       valor: valorTotal,
       produtos: produtosPedido,
-      codigo: codigoPedido,
       extras: extrasSelecionados,
-      categoria:produtosPedido,
-      criadoEm: serverTimestamp()
+      codigoPedido,               // Código do pedido
+      criadoEm: serverTimestamp(),
     };
 
-    if (editandoId) {
-      await updateDoc(doc(db, 'pedidos', editandoId), dados);
-    } else {
-      await addDoc(collection(db, 'pedidos'), dados);
+    try {
+      if (editandoId) {
+        // Atualiza pedido existente
+        await updateDoc(doc(db, 'pedidos', editandoId), dados);
+      } else {
+        // Cria novo pedido
+        await addDoc(collection(db, 'pedidos'), dados);
+      }
+
+      // Opcional: imprime ou loga o pedido
+      imprimir(dados, 2);
+
+      // Limpa campos do formulário
+      limparCampos();
+
+    } catch (error) {
+      console.error('Erro ao salvar pedido:', error);
+      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
+    }
+  };
+*/
+
+  const salvarPedido = async () => {
+    const agora = new Date();
+    const dataLisboa = new Date(
+      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
+    );
+
+    if (!clienteNome || produtosPedido.length === 0) {
+      alert('Informe o cliente e adicione pelo menos um produto');
+      return;
     }
 
-    imprimir(dados, 2);
-    limparCampos();
+    let clienteIdFinal = idCliente;
+    let codigoClienteFinal = codigoCliente;
+
+    // Cliente genérico se não houver telefone
+    if (!clienteTelefone) {
+      const clientesRef = collection(db, 'clientes');
+      const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        clienteIdFinal = snapshot.docs[0].id;
+      } else {
+        const docRef = await addDoc(clientesRef, {
+          nome: 'Cliente Genérico',
+          telefone: null,
+          codigoCliente: 'CLNT123',
+        });
+        clienteIdFinal = docRef.id;
+      }
+
+      codigoClienteFinal = 'CLNT123';
+    }
+
+    const dados = {
+      idCliente: clienteIdFinal,
+      nomeCliente: clienteNome,
+      telefoneCliente: clienteTelefone || null,
+      codigoCliente: codigoClienteFinal,
+      data: dataLisboa.toISOString(),
+      status: 'Fila',
+      valor: valorTotal,
+      produtos: produtosPedido,
+      extras: extrasSelecionados,
+      codigoPedido,
+      criadoEm: serverTimestamp(),
+    };
+
+    try {
+      // Sempre cria novo pedido
+      await addDoc(collection(db, 'pedidos'), dados);
+
+      imprimir(dados, 2);
+      limparCampos();
+
+    } catch (error) {
+      console.error('Erro ao salvar pedido:', error);
+      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
+    }
   };
 
-  const editar = (p: Pedido) => {
-    setCliente(p.cliente);
-    setStatus(p.status);
-    setProdutosPedido(p.produtos.map(prod => ({
-      ...prod,
-      extras: prod.extras || [] // garante array
-    })));
-    setEditandoId(p.id);
-  };
+
+  
 
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -266,6 +353,63 @@ export default function GerenciarPedidos() {
     return `${prefixo}-${codigo}`;
   };
 
+  const gerarCodigoCliente = (nome: string, telefone: string) =>{
+    if(!nome || !telefone) return ''
+    const ultimos3 = telefone.slice(-3)
+    const consoantes = nome
+                          .replace(/[AEIOUaeiouÁÉÍÓÚáéíóúÂÊÎÔÛâêîôûÀàÇç\s]/g, '')
+                          .toUpperCase()
+    return `${consoantes}${ultimos3}`
+  }
+
+
+  async function criarOuBuscarCliente(nome: string, telefone: string): Promise<Cliente | null> {
+    if (!telefone) return null;
+
+    const clienteRef = collection(db, 'clientes');
+    const q = query(clienteRef, where('telefone', '==', telefone));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const clienteDoc = querySnapshot.docs[0];
+      const data = clienteDoc.data();
+      return {
+        id: clienteDoc.id,
+        nome: data.nome,
+        telefone: data.telefone,
+        codigoCliente: data.codigoCliente || gerarCodigoCliente(data.nome, data.telefone)
+      };
+    } else {
+      const codigoCliente = gerarCodigoCliente(nome, telefone);
+      const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
+      return { id: docRef.id, nome, telefone, codigoCliente };
+    }
+  }
+
+  const criarClienteGenerico = async () => {
+    const clientesRef = collection(db, 'clientes');
+
+    // Verifica se já existe
+    const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id; // retorna o id do cliente genérico
+    }
+
+    // Cria cliente genérico
+    const docRef = await addDoc(clientesRef, {
+      nome: 'Cliente',
+      telefone: null,
+      codigoCliente: 'CLNT123',
+    });
+
+    return docRef.id;
+  };
+
+
+
+
   useEffect(() => {
     if (cliente.trim().length >= 2) {
       setCodigoPedido(gerarCodigoPedido(cliente));
@@ -288,35 +432,81 @@ export default function GerenciarPedidos() {
 
    
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 ">
+    <div className="max-w-6xl mx-auto p-6 space-y-6 ">
       {/* Formulário */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Package /> Novo Pedido
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex justify-center items-center bg-gray-200 rounded font-bold text-3xl">
+      <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
+        <div className='flex justify-between items-center'>
+          <h2 className="text-3xl font-bold  flex items-center gap-2">
+            <Package /> Novo Pedido
+          </h2>
+          <div className="flex justify-center items-center rounded font-bold text-3xl">
             <p>{hoje.toLocaleDateString('pt-BR')}</p>
           </div>
+        </div>
+        <hr />
+       
+
+        <div className="flex justify-between">
+          {/* Código do pedido */}
           <input
             type="text"
             className="border p-3 rounded"
-            value={codigoPedido}
-            disabled
-            readOnly
             placeholder="Código do Pedido"
+            value={codigoPedido}
+            readOnly
           />
+
+          {/* Código do cliente */}
           <input
             type="text"
             className="border p-3 rounded"
-            placeholder="Cliente"
-            value={cliente}
-            onChange={e => setCliente(e.target.value)}
+            placeholder="Código do Cliente"
+            value={codigoCliente}
+            readOnly
           />
+
+          {/* Nome do cliente */}
+          <input
+            type="text"
+            className="border p-3 rounded"
+            placeholder="Nome Cliente..."
+            value={clienteNome}
+            onChange={e => {
+              const nome = e.target.value;
+              setClienteNome(nome);
+
+              // Atualiza o código do pedido
+              setCodigoPedido(gerarCodigoPedido(nome));
+            }}
+          />
+
+          {/* Telefone do cliente */}
+          <input
+            type="text"
+            className="border p-3 rounded"
+            placeholder="Telefone Cliente..."
+            value={clienteTelefone}
+            onChange={e => setClienteTelefone(e.target.value)}
+            onBlur={async () => {
+              if (!clienteTelefone) return;
+
+              const cliente = await criarOuBuscarCliente(clienteNome, clienteTelefone);
+              if (cliente) {
+                setClienteNome(cliente.nome);
+                setClienteTelefone(cliente.telefone);
+                setCodigoCliente(cliente.codigoCliente);
+                setIdCliente(cliente.id);
+
+                // Atualiza código do pedido caso o nome seja diferente do digitado
+                setCodigoPedido(gerarCodigoPedido(cliente.nome));
+              }
+            }}
+          />
+
         </div>
 
         {/* Seleção de produto */}
+
         <div className="flex items-center gap-4 mt-4">
           <select
             className="border p-3 rounded w-full"
@@ -344,7 +534,7 @@ export default function GerenciarPedidos() {
             <Plus size={18} /> Adicionar
           </button>
         </div>
-
+            <hr />
         {/* Extras dinâmicos */}
         <div className="grid grid-cols-3 gap-6 mt-4">
           {produtoSelecionado &&
@@ -361,8 +551,9 @@ export default function GerenciarPedidos() {
                 acompanhamento: 1,
               };
 
-              return tiposExtras.map(tipo => (
+              return tiposExtras.map(tipo => (              
                 <div key={tipo} className="bg-gray-100 p-3 rounded shadow">
+                  
                   <h4 className="font-semibold mb-2 capitalize">{tipo}</h4>
                   <div className="flex flex-col gap-1">
                     {extras
@@ -405,11 +596,12 @@ export default function GerenciarPedidos() {
                 </div>
               ));
             })()}
+            
         </div>
-
+            <hr />
 
         {/* Lista de produtos do pedido */}
-        <ul className="mt-4 divide-y">
+        <ul className="divide-y">
           {produtosPedido.map((p,i) => (
             <li key={p.id + i} className="flex justify-between items-center py-2">
               <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
@@ -450,10 +642,10 @@ export default function GerenciarPedidos() {
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
                     <div>
-                      <strong>{p.cliente}</strong>
                       <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                      <strong>{p.nomeCliente}</strong>
                     </div>
-                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigo}</div>
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                     <select
                       value={p.status}
                       onChange={(e) => atualizarStatus(p.id, e.target.value)}
@@ -515,11 +707,11 @@ export default function GerenciarPedidos() {
 
                   </div>
                   
-                  <div className="flex justify-between mt-2 border-t-2 pt-2">
+                  <div className="flex justify-between font-black pt-2 border-t-2 pt-2">
                     <p>Total: € {p.valor.toFixed(2)}</p>
                     <div className="flex gap-2">
                       <button onClick={() => imprimir(p)}>
-                        <Printer size={24} />
+                        <Printer className='cursor-pointer' size={24} />
                       </button>
                     </div>
                   </div>
@@ -543,38 +735,71 @@ export default function GerenciarPedidos() {
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
                     <div>
-                      <strong>{p.cliente}</strong>
                       <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                      <strong>{p.nomeCliente}</strong>
                     </div>
-                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigo}</div>
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                   </div>
 
-                  <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside">
-                    {p.produtos.map(item => (
-                      <div key={item.id} className="flex p-2 gap-10 justify-between bg-gray-200 rounded">
-                        <div className="flex-1">
-                          {item.nome}
-                          {item.extras?.length > 0 && (
-                            <div className="mt-1 text-sm">
-                              Extras:
-                              <ul className="pl-5 list-disc">
-                                {item.extras.map(extra => (
-                                  <li key={extra.id}>
-                                    {extra.nome} (+€ {extra.valor?.toFixed(2)})
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                    {p.produtos.map(item => {
+                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
+
+                      return (
+                        <div
+                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                          >
+                          <div className="flex-1">
+                            <div>{item.nome} - {item.categoria}</div>
+                            {item.extras?.length > 0 && (
+                              <div className="mt-1 text-sm">
+                                <div className='font-semibold border-t-1'>
+                                 - Extras
+                                </div>
+                                <div className="pl-5">
+                                  {item.extras.map(extra => (
+                                    <div className='flex justify-between' key={extra.id}>
+                                      <div>
+                                        {extra.nome} 
+                                      </div>
+                                      <div>
+                                        € {extra.valor?.toFixed(2)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <hr />
+                                <div className='flex justify-between font-bold'>
+                                  <div>Total Extras</div>
+                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div>{item.quantidade}</div>
+                          <div>€ {subtotalProduto.toFixed(2)}</div>
                         </div>
-                        <div>{item.quantidade}</div>
-                        <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
-                      </div>
-                    ))}
+                      );
+                    })}
+
                   </div>
 
-                  <div className="flex justify-between mt-2 border-t-2 pt-2">
-                    <p>Total: € {p.valor.toFixed(2)}</p>
+                  <div className="flex justify-between font-black p-2 border-t-2 pt-2">
+                    <p>Total</p>
+                    <p>€ {p.valor.toFixed(2)}</p>
+                  </div>
+                  <hr className='border-1'/>
+                  <div >
+                    {p.status == 'Cancelado' ? 
+                      <div className='font-semibold text-right' >
+                        <span className='text-blue-600'>Status:</span> <span className='text-red-500'>{p.status}</span>
+                      </div>
+
+                    :<div className='font-semibold text-right' >
+                        <span className='text-blue-600'>Status:</span> <span className='text-green-500'>{p.status}</span>
+                      </div>}
                   </div>
                 </div>
               </div>
