@@ -132,13 +132,13 @@ export default function GerenciarProdutos() {
             onChange={(e) => setCategoria(e.target.value)}
           >
             <option value="">Selecione a Categoria</option>
-            <option value="entradas">Entradas</option>
-            <option value="pratos">Pratos</option>
+            <option value="entrada">Entrada</option>
+            <option value="prato">Prato</option>
             <option value="pizza-tradicional">Pizza Tradicional</option>
             <option value="pizza-individual">Pizza Individual</option>
-            <option value="massas">Massas</option>
-            <option value="bebidas">Bebidas</option>
-            <option value="sobremesas">Sobremesas</option>
+            <option value="massa">Massas</option>
+            <option value="bebida">Bebidas</option>
+            <option value="sobremesa">Sobremesas</option>
           </select>
 
           <select
