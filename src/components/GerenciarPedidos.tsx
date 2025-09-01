@@ -1,5 +1,5 @@
 'use client';
- import { getAuth } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import {
   collection,
@@ -35,12 +35,14 @@ interface Produto {
   id: string;
   nome: string;
   preco: number;
+  classe: string
 }
 
 interface Extra {
   id: string
   nome: string
   tipo: string
+  valor?: number
 }
 
 interface ProdutoPedido {
@@ -48,6 +50,7 @@ interface ProdutoPedido {
   nome: string;
   preco: number;
   quantidade: number;
+  extras: Extra[] // ❌ agora sempre array, não opcional
 }
 
 interface Pedido {
@@ -60,9 +63,6 @@ interface Pedido {
   produtos: ProdutoPedido[];
   extras: Extra[]
 }
-
-
-
 
 export default function GerenciarPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -77,118 +77,105 @@ export default function GerenciarPedidos() {
   const [sucesso, setSucesso] = useState('');
   const [extras, setExtras] = useState<Extra[]>([]);
   const [extrasSelecionados, setExtrasSelecionados] = useState<Extra[]>([]);
-  const [tiposColapsados, setTiposColapsados] = useState<Record<string, boolean>>({});
+  
   const [codigoPedido, setCodigoPedido] = useState('');
 
   
 
-  // Puxa os extras do Firestore
+  // Puxa os pedidos do Firestore
   useEffect(() => {
-    const q = query(collection(db, 'pedidos'));
+    const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snap) => {
-      const lista = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Pedido[];
-
-      // Ordena pelos timestamp (quem foi criado primeiro aparece primeiro)
-      const ordenado = lista.sort((a, b) => {
-        const t1 = (a as any).criadoEm?.seconds || 0;
-        const t2 = (b as any).criadoEm?.seconds || 0;
-        return t1 - t2;
-      });
-
-      setPedidos(ordenado);
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pedido));
+      setPedidos(lista);
     });
 
     return () => unsubscribe();
   }, []);
-
-
-
-  const extrasPorTipo = extras.reduce((acc, extra) => {
-    if (!acc[extra.tipo]) acc[extra.tipo] = [];
-    acc[extra.tipo].push(extra);
-    return acc;
-  }, {} as Record<string, Extra[]>);
-
 
   useEffect(() => {
     carregarProdutos();
-  }, []);
-
-
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'pedidos'),
-      orderBy('criadoEm', 'asc') // ordena do mais antigo para o mais novo
-    );
-
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPedidos(lista as Pedido[]);
-    });
-
-    return () => unsubscribe();
+    carregarExtras();
   }, []);
 
   const carregarProdutos = async () => {
-    const q = query(
-      collection(db, 'produtos'),
-      orderBy('nome', 'asc') // ordena pelo campo 'nome' em ordem crescente
-    );
-
+    const q = query(collection(db, 'produtos'), orderBy('nome', 'asc'));
     const snap = await getDocs(q);
     const lista: Produto[] = snap.docs.map(doc => {
-    const data = doc.data();
+      const data = doc.data();
       return {
         id: doc.id,
-        nome: data.nome || '',    // garante que não seja undefined
-        preco: data.preco || 0,   // padrão 0 se não existir
+        nome: data.nome || '',
+        preco: data.preco || 0,
+        classe: data.classe || ''
       };
     });
-
-
     setProdutos(lista);
   };
 
-  const limparCampos = () => {
-  setCliente('');
-  setStatus('');
-  setProdutosPedido([]);
-  setProdutoSelecionado('');
-  setQuantidadeSelecionada(1);
-  setEditandoId(null);
-  setErro('');
-  setSucesso('');
-  setExtrasSelecionados([]); // 👈 limpa os extras  
-  setTiposColapsados({});
+  const carregarExtras = async () => {
+    const q = query(collection(db, "extras"), orderBy("nome", "asc"));
+    const snap = await getDocs(q);
+    const lista: Extra[] = snap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        nome: data.nome || "",
+        tipo: data.tipo || "",
+        valor: data.valor || 0,
+      };
+    });
+    setExtras(lista);
   };
 
-
-  const adicionarProdutoAoPedido = () => {
-    if (!produtoSelecionado || quantidadeSelecionada <= 0) return;
-    const produto = produtos.find(p => p.id === produtoSelecionado);
-    if (!produto) return;
-
-    const existe = produtosPedido.find(p => p.id === produto.id);
-    if (existe) {
-      setProdutosPedido(produtosPedido.map(p =>
-        p.id === produto.id ? { ...p, quantidade: p.quantidade + quantidadeSelecionada } : p
-      ));
-    } else {
-      setProdutosPedido([...produtosPedido, {
-        id: produto.id,
-        nome: produto.nome,
-        preco: produto.preco,
-        quantidade: quantidadeSelecionada,
-      }]);
-    }
+  const limparCampos = () => {
+    setCliente('');
+    setStatus('');
+    setProdutosPedido([]);
     setProdutoSelecionado('');
     setQuantidadeSelecionada(1);
+    setEditandoId(null);
+    setErro('');
+    setSucesso('');
+    setExtrasSelecionados([]);
   };
+
+  const adicionarProdutoAoPedido = () => {
+  if (!produtoSelecionado || quantidadeSelecionada <= 0) return;
+  const produto = produtos.find(p => p.id === produtoSelecionado);
+  if (!produto) return;
+
+  const novoProduto: ProdutoPedido = {
+    id: produto.id,
+    nome: produto.nome,
+    preco: produto.preco,
+    quantidade: quantidadeSelecionada,
+    extras: extrasSelecionados
+  };
+
+  // Verifica se já existe um produto com mesmo id e MESMOS extras
+  const existeIgual = produtosPedido.find(p => 
+    p.id === produto.id &&
+    JSON.stringify(p.extras || []) === JSON.stringify(extrasSelecionados)
+  );
+
+  if (existeIgual) {
+    // Se for exatamente igual (mesmo extras), aumenta quantidade
+    setProdutosPedido(produtosPedido.map(p =>
+      p === existeIgual ? { ...p, quantidade: p.quantidade + quantidadeSelecionada } : p
+    ));
+  } else {
+    // Caso contrário, adiciona como novo item
+    setProdutosPedido([...produtosPedido, novoProduto]);
+  }
+
+  // Reset campos
+  setProdutoSelecionado('');
+  setQuantidadeSelecionada(1);
+  setExtrasSelecionados([]);
+  };
+
 
   const removerProdutoPedido = (id: string) => {
     setProdutosPedido(produtosPedido.filter(p => p.id !== id));
@@ -198,15 +185,18 @@ export default function GerenciarPedidos() {
     await updateDoc(doc(db, 'pedidos', id), { status: novoStatus });
   };
 
-
-  const valorTotal = produtosPedido.reduce((acc, p) => acc + p.preco * p.quantidade, 0);
+  const valorTotal =
+    produtosPedido.reduce((acc, p) => {
+      const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
+      return acc + p.preco * p.quantidade + extrasValor;
+    }, 0);
 
   const salvarPedido = async () => {
+    const agora = new Date();
+    const dataLisboa = new Date(agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
 
-    const agora = new Date()
-    const dataLisboa = new Date(agora.toLocaleString('en-US',{timeZone:'Europe/Lisbon'}))
-    
     if (!cliente || produtosPedido.length === 0) return;
+
     const dados = {
       cliente,
       data: dataLisboa.toISOString(),
@@ -217,22 +207,24 @@ export default function GerenciarPedidos() {
       extras: extrasSelecionados,
       criadoEm: serverTimestamp()
     };
+
     if (editandoId) {
       await updateDoc(doc(db, 'pedidos', editandoId), dados);
     } else {
       await addDoc(collection(db, 'pedidos'), dados);
     }
 
-      imprimir(dados,2)
-
+    imprimir(dados, 2);
     limparCampos();
   };
-
 
   const editar = (p: Pedido) => {
     setCliente(p.cliente);
     setStatus(p.status);
-    setProdutosPedido(p.produtos);
+    setProdutosPedido(p.produtos.map(prod => ({
+      ...prod,
+      extras: prod.extras || [] // garante array
+    })));
     setEditandoId(p.id);
   };
 
@@ -247,124 +239,166 @@ export default function GerenciarPedidos() {
     }
   };
 
-  const hoje = new Date()
-  const diaHoje = hoje.getDate()
-  const mesHoje = hoje.getMonth()
-  const anoHoje = hoje.getFullYear()
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth();
+  const anoHoje = hoje.getFullYear();
 
-  const pedidosDoDia = pedidos.filter(p=>{
-    const pData = new Date(p.data)
-    return(
-      pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje
-    )
-  })
+  const pedidosDoDia = pedidos.filter(p => {
+    const pData = new Date(p.data);
+    return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
+  });
 
-  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando','pronto'].includes(p.status.toLowerCase()));
-  const pedidosFechados = pedidosDoDia.filter(p => [ 'entregue', 'cancelado'].includes(p.status.toLowerCase()));
-
-  const toggleExtraSelecionado = (extra: Extra) => {
-    setExtrasSelecionados((prevSelecionados) => {
-      const jaExiste = prevSelecionados.some(e => e.id === extra.id);
-      if (jaExiste) {
-        // Remove da lista
-        return prevSelecionados.filter(e => e.id !== extra.id);
-      } else {
-        // Adiciona à lista
-        return [...prevSelecionados, extra];
-      }
-    });
-  };
-
-  const toggleColapso = (tipo: string) => {
-    setTiposColapsados(prev => ({
-      ...prev,
-      [tipo]: !prev[tipo],
-    }));
-  };
+  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase()));
+  const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes(p.status.toLowerCase()));
 
   const gerarCodigoPedido = (nome: string) => {
     const nomeLimpo = nome.trim().toUpperCase();
     if (nomeLimpo.length < 2) return '';
-
     const prefixo = nomeLimpo[0] + nomeLimpo[nomeLimpo.length - 1];
     const numero = Math.floor(Math.random() * 10000);
     const codigo = numero.toString().padStart(4, '0');
-
     return `${prefixo}-${codigo}`;
   };
 
   useEffect(() => {
     if (cliente.trim().length >= 2) {
-      const novoCodigo = gerarCodigoPedido(cliente);
-      setCodigoPedido(novoCodigo);
+      setCodigoPedido(gerarCodigoPedido(cliente));
     } else {
       setCodigoPedido('');
     }
   }, [cliente]);
 
+  const extrasPorClasse: Record<string, string[]> = {
+    acai: ['acai', 'acaiplus'],
+    entrada: [],
+    prato: ['acompanhamento', 'ingredienteplus'],
+    pizza: ['ingredienteplus'],
+    "pizza-escolha": ['ingrediente', 'ingredienteplus'],
+    massa: ['molho', 'ingrediente', 'ingredienteplus'],
+    bebida: [],
+    sobremesa: [],
+    estudante: ['molho', 'ingrediente', 'ingredienteplus']
+  };
 
-
+   
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      
+    <div className="max-w-6xl mx-auto p-6 space-y-8 ">
       {/* Formulário */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Package /> {editandoId ? 'Editar Pedido' : 'Novo Pedido'}</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Package /> {editandoId ? 'Editar Pedido' : 'Novo Pedido'}
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-          <div className='flex justify-center items-center bg-gray-200 rounded font-bold text-3xl'>
-            <p>{diaHoje < 10 ? `0${diaHoje}`:  diaHoje} / {(mesHoje+1) < 10 ? `0${mesHoje+1}`:  mesHoje+1} / {anoHoje}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex justify-center items-center bg-gray-200 rounded font-bold text-3xl">
+            <p>{hoje.toLocaleDateString('pt-BR')}</p>
           </div>
-          <input type="text" className="border p-3 rounded" value={codigoPedido} disabled readOnly placeholder="Código do Pedido"/>
-
-          <input type="text" className="border p-3 rounded" placeholder="Cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
-                    
+          <input
+            type="text"
+            className="border p-3 rounded"
+            value={codigoPedido}
+            disabled
+            readOnly
+            placeholder="Código do Pedido"
+          />
+          <input
+            type="text"
+            className="border p-3 rounded"
+            placeholder="Cliente"
+            value={cliente}
+            onChange={e => setCliente(e.target.value)}
+          />
         </div>
 
+        {/* Seleção de produto */}
         <div className="flex items-center gap-4 mt-4">
-          <select className="border p-3 rounded w-full" value={produtoSelecionado} onChange={e => setProdutoSelecionado(e.target.value)}>
+          <select
+            className="border p-3 rounded w-full"
+            value={produtoSelecionado}
+            onChange={e => setProdutoSelecionado(e.target.value)}
+          >
             <option value="">Selecione um produto</option>
             {produtos.map(p => (
-              <option key={p.id} value={p.id}>{p.nome} - € {p.preco.toFixed(2)}</option>
+              <option key={p.id} value={p.id}>
+                {p.nome} - € {p.preco.toFixed(2)}
+              </option>
             ))}
           </select>
-          <input type="number" className="border p-3 rounded w-24" min={1} value={quantidadeSelecionada} onChange={e => setQuantidadeSelecionada(Number(e.target.value))} />
-          <button onClick={adicionarProdutoAoPedido} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"><Plus size={18} /> Adicionar</button>
-        </div>           
+          <input
+            type="number"
+            className="border p-3 rounded w-24"
+            min={1}
+            value={quantidadeSelecionada}
+            onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
+          />
+          <button
+            onClick={adicionarProdutoAoPedido}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+          >
+            <Plus size={18} /> Adicionar
+          </button>
+        </div>
 
-        <div className='grid grid-cols-3 gap-6'>
-          {Object.entries(extrasPorTipo).map(([tipo, lista]) => {
-            const estaColapsado = tiposColapsados[tipo] ?? false;
-            return (
-              <div key={tipo} className="flex flex-col mt-3 border rounded ">
-                <button
-                  onClick={() => toggleColapso(tipo)}
-                  className="flex justify-center border-b items-center text-gray-600 font-semibold capitalize px-3 py-1 cursor-pointer hover:bg-blue-600 hover:text-white"
-                >
-                  {tipo} {estaColapsado ? <ChevronRight size={18} /> : <ChevronDown size={18} />} 
-                </button>
+        {/* Extras dinâmicos */}
+        <div className="grid grid-cols-3 gap-6 mt-4">
+          {produtoSelecionado &&
+            (() => {
+              const produto = produtos.find(p => p.id === produtoSelecionado);
+              if (!produto) return null;
 
-                {!estaColapsado && (
-                  <div className="flex flex-wrap p-2 gap-4 ">
-                    {lista.map(extra => (
-                      <label
-                        key={extra.id}
-                        className="flex items-center gap-2 border rounded px-3 py-1 cursor-pointer select-none"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={extrasSelecionados.some(e => e.id === extra.id)}
-                          onChange={() => toggleExtraSelecionado(extra)}
-                        />
-                        <span>{extra.nome}</span>
-                      </label>
-                    ))}
+              const tiposExtras = extrasPorClasse[produto.classe || ''] || [];
+
+              const maxSelecionadosPorTipo: Record<string, number> = {
+                molho: 1,
+                ingrediente: 3,
+                acai: 3,
+                acompanhamento: 1,
+              };
+
+              return tiposExtras.map(tipo => (
+                <div key={tipo} className="bg-gray-100 p-3 rounded shadow">
+                  <h4 className="font-semibold mb-2 capitalize">{tipo}</h4>
+                  <div className="flex flex-col gap-1">
+                    {extras
+                      .filter(ex => ex.tipo === tipo)
+                      .map(extra => {
+                        const checked = extrasSelecionados.some(e => e.id === extra.id);
+                        const qtdSelecionadosTipo = extrasSelecionados.filter(e => e.tipo === tipo).length;
+
+                        return (
+                          <label key={extra.id} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!checked && qtdSelecionadosTipo >= (maxSelecionadosPorTipo[tipo] || 10)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setExtrasSelecionados(prev => [...prev, extra]);
+                                } else {
+                                  setExtrasSelecionados(prev =>
+                                    prev.filter(exSel => exSel.id !== extra.id)
+                                  );
+                                }
+                              }}
+                            />
+                            <span>
+                              {extra.nome}
+                              {extra.valor && extra.valor > 0 && (
+                                <span className="text-sm text-gray-600 ml-1">
+                                  (+€ {extra.valor.toFixed(2)})
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div> 
+                </div>
+              ));
+            })()}
+        </div>
+
 
         {/* Lista de produtos do pedido */}
         <ul className="mt-4 divide-y">
@@ -372,169 +406,172 @@ export default function GerenciarPedidos() {
             <li key={p.id} className="flex justify-between items-center py-2">
               <span>{p.nome} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
-              <button onClick={() => removerProdutoPedido(p.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+              <button
+                onClick={() => removerProdutoPedido(p.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 size={16} />
+              </button>
             </li>
           ))}
-        </ul>  
+        </ul>
 
         <div className="flex justify-between items-center mt-4">
           <span className="font-bold text-lg">Total: € {valorTotal.toFixed(2)}</span>
-          <button onClick={salvarPedido} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
+          <button
+            onClick={salvarPedido}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+          >
             {editandoId ? <><Edit size={18} /> Atualizar</> : <><Plus size={18} /> Lançar</>}
           </button>
         </div>
       </div>
-      
-      {/* Listas de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Abertos */}
+
+      {/* Listagem de Pedidos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[50vh] overflow-auto">
+        {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2"><ClipboardList /> Pedidos Abertos</h3>
-          {pedidosAbertos.length === 0 ? <p className="text-gray-500">Nenhum pedido aberto.</p> : pedidosAbertos.map(p => (
-            <div
-                    key={p.id}
-                    className="flex w-[90%] m-auto  border p-3 rounded mb-3"
-                  >
-                    <div className='flex flex-col w-full'>
-                      <div className='flex justify-between items-center'>
-                        <div>
-                          <div className='flex w-full justify-between '>
-                            <div className='w-full'><strong>{p.cliente}</strong></div>                            
-                          </div> 
-                          <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
-                        </div>
-
-                        <div className='flex text-2xl bg-blue-600 text-white rounded font-bold p-1'>{p.codigo}</div> 
- 
-                        <select
-                          value={p.status}
-                          onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                        >
-                          <option value="Fila">Fila</option>
-                          <option value="Preparando">Preparando</option>
-                          <option value="Pronto">Pronto</option>
-                          <option value="Entregue">Entregue</option>
-                          <option value="Cancelado">Cancelado</option>
-                        </select>
-
-                      </div>
-                      <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside ">
-                        <div className='flex justify-between px-2 gap-1 text-md font-bold border-b-2 '>
-                            <div className='flex-1'>Produto</div>
-                            <div>Quant</div>
-                            <div>Sub-Total</div>
-                        </div>
-                        <div className='flex flex-col mb-1 mt-1 gap-1 '>
-                          {p.produtos?.map((item) => (
-                              <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded' key={item.id}>
-                                  <div className='flex-1'>
-                                    <div>{item.nome}</div>
-                                    <div>
-                                      {p.extras?.length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="text-sm font-medium">Extras:</p>
-                                          <ul className="flex flex-col justify-between pl-5 list-disc text-sm text-gray-700">
-                                            {p.extras.map((extra, index) => (
-                                              <p key={index}>- {extra.nome}</p>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
-
-                                    </div>
-                                  </div>
-                                  <div>{item.quantidade}</div>
-                                  <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
-                              </div>
-                          ))}
-
-                        </div>
-                          <div>
-                            <div className='flex justify-between border-t-2'>
-                              <div>Total:</div>
-                              <p className="text-gray-600 text-sm"> € {Number(p.valor).toFixed(2)}</p>
-                            </div>
-                            <div className="flex justify-between">
-                              <button
-                                onClick={() => editar(p)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Editar pedido"
-                              >
-                                <Edit size={24} />
-                              </button>
-
-                              <button
-                                onClick={()=> imprimir(p)}
-                              >
-                                <Printer size={24}/>
-                              </button>
-                              
-                            </div>
-
-                          </div>
-
-                      </div>
-
+          <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
+            <ClipboardList /> Pedidos Abertos
+          </h3>
+          {pedidosAbertos.length === 0 ? (
+            <p className="text-gray-500">Nenhum pedido aberto.</p>
+          ) : (
+            pedidosAbertos.map(p => (
+              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
+                <div className="flex flex-col w-full">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <strong>{p.cliente}</strong>
+                      <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                     </div>
-                    
-            </div>
-          ))}
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigo}</div>
+                    <select
+                      value={p.status}
+                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
+                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                    >
+                      <option value="Fila">Fila</option>
+                      <option value="Preparando">Preparando</option>
+                      <option value="Pronto">Pronto</option>
+                      <option value="Entregue">Entregue</option>
+                      <option value="Cancelado">Cancelado</option>
+                    </select>
+
+                  </div>
+
+                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                    {p.produtos.map(item => {
+                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
+
+                      return (
+                        <div
+                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            className="flex p-2 gap-10 justify-between bg-gray-200 rounded"
+                          >
+                          <div className="flex-1">
+                            <div>{item.nome}</div>
+                            {item.extras?.length > 0 && (
+                              <div className="mt-1 text-sm">
+                                <div className='font-semibold border-t-1'>
+                                 - Extras
+                                </div>
+                                <div className="pl-5">
+                                  {item.extras.map(extra => (
+                                    <div className='flex justify-between' key={extra.id}>
+                                      <div>
+                                        {extra.nome} 
+                                      </div>
+                                      <div>
+                                        € {extra.valor?.toFixed(2)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <hr />
+                                <div className='flex justify-between font-bold'>
+                                  <div>Total Extras</div>
+                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div>{item.quantidade}</div>
+                          <div>€ {subtotalProduto.toFixed(2)}</div>
+                        </div>
+
+                        
+                      );
+                    })}
+
+                  </div>
+                  
+                  <div className="flex justify-between mt-2 border-t-2 pt-2">
+                    <p>Total: € {p.valor.toFixed(2)}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => imprimir(p)}>
+                        <Printer size={24} />
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
-        {/* Finalizados */}
+        {/* Pedidos Finalizados */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2"><CheckCircle2 /> Pedidos Finalizados</h3>
-          {pedidosFechados.length === 0 ? <p className="text-gray-500">Nenhum pedido finalizado.</p> : pedidosFechados.map(p => (
-            <div
-                    key={p.id}
-                    className="flex w-[90%] m-auto  border p-3 rounded mb-3"
-                  >
-                    <div className='flex flex-col w-full'>
-                      <div className='flex justify-between items-center'>
-                        <div>
-                          <strong>{p.cliente}</strong> 
-                          <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
-                        </div>
-
-                        <div className='bg-blue-600 p-2 text-white rounded'>
-                          {p.codigo}
-                        </div>
-
-                      </div>
-                      <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside">
-                        <div className='flex justify-between gap-2 text-lg font-bold '>
-                            <div className='flex-1'>Produto</div>
-                            <div>Quant</div>
-                            <div>Sub-Total</div>
-                        </div>
-                        {p.produtos?.map((item) => (
-                            <div className='flex p-2 gap-10 justify-between bg-gray-200 rounded ' key={item.id}>
-                                <div className='flex-1'>{item.nome}</div>
-                                <div>{item.quantidade}</div>
-                                <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>                                
-                            </div>
-                        ))}
-                          <div>
-                            <div className='flex justify-between border-t-2'>
-                              <div>Total:</div>
-                              <p className="text-gray-600 text-sm"> € {Number(p.valor).toFixed(2)}</p>
-                            </div>
-                            <div className="flex justify-between">
-                              <div>
-                                {p.status}
-                              </div>
-                              
-                            </div>
-
-                          </div>
-
-                        </div>
-
+          <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2">
+            <CheckCircle2 /> Pedidos Finalizados
+          </h3>
+          {pedidosFechados.length === 0 ? (
+            <p className="text-gray-500">Nenhum pedido finalizado.</p>
+          ) : (
+            pedidosFechados.map(p => (
+              <div key={p.id} className="flex w-[90%] m-auto border p-3 rounded mb-3">
+                <div className="flex flex-col w-full">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <strong>{p.cliente}</strong>
+                      <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                     </div>
-                    
-            </div>
-          ))}
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigo}</div>
+                  </div>
+
+                  <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside">
+                    {p.produtos.map(item => (
+                      <div key={item.id} className="flex p-2 gap-10 justify-between bg-gray-200 rounded">
+                        <div className="flex-1">
+                          {item.nome}
+                          {item.extras?.length > 0 && (
+                            <div className="mt-1 text-sm">
+                              Extras:
+                              <ul className="pl-5 list-disc">
+                                {item.extras.map(extra => (
+                                  <li key={extra.id}>
+                                    {extra.nome} (+€ {extra.valor?.toFixed(2)})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                        <div>{item.quantidade}</div>
+                        <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between mt-2 border-t-2 pt-2">
+                    <p>Total: € {p.valor.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
