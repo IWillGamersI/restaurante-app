@@ -292,7 +292,7 @@ export default function GerenciarPedidos() {
       {/* Formulário */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Package /> {editandoId ? 'Editar Pedido' : 'Novo Pedido'}
+          <Package /> Novo Pedido
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -339,7 +339,7 @@ export default function GerenciarPedidos() {
           />
           <button
             onClick={adicionarProdutoAoPedido}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2 cursor-pointer"
           >
             <Plus size={18} /> Adicionar
           </button>
@@ -428,9 +428,9 @@ export default function GerenciarPedidos() {
           <span className="font-bold text-lg">Total: € {valorTotal.toFixed(2)}</span>
           <button
             onClick={salvarPedido}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
           >
-            {editandoId ? <><Edit size={18} /> Atualizar</> : <><Plus size={18} /> Lançar</>}
+            <Plus size={18} /> Lançar
           </button>
         </div>
       </div>
