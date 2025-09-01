@@ -92,6 +92,7 @@ export default function GerenciarPedidos() {
   const [codigoCliente, setCodigoCliente] = useState('');
   const [codigoPedido, setCodigoPedido] = useState('');
   const [idCliente, setIdCliente] = useState<string | null>(null);
+  const [classeSelecionada, setClasseSelecionada] = useState("");
 
  
 
@@ -381,6 +382,14 @@ export default function GerenciarPedidos() {
     estudante: ['molho', 'ingrediente', 'ingredienteplus']
   };
 
+  // Pega todas as classes distintas
+  const classes = [...new Set(produtos.map(p => p.classe))];
+
+  // Filtra produtos pela classe escolhida
+  const produtosFiltrados = classeSelecionada
+    ? produtos.filter(p => p.classe === classeSelecionada)
+    : [];
+
    
   return (
     <div className="w-full mx-auto space-y-6 ">
@@ -454,13 +463,38 @@ export default function GerenciarPedidos() {
             }}
           />
 
-            <select
+          {/* Botões de classe */}
+          <div className="grid grid-cols-3 gap-2 flex-wrap ">
+            {classes.map(c => (
+              <button
+                key={c}
+                onClick={() => {
+                  setClasseSelecionada(c);
+                  setProdutoSelecionado(""); // reset ao trocar classe
+                }}
+                className={`px-2 py-2 rounded cursor-pointer ${
+                  classeSelecionada === c
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+             <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
             onChange={e => setProdutoSelecionado(e.target.value)}
+            disabled={!classeSelecionada} // só habilita depois de escolher classe
           >
-            <option value="">Selecione um produto</option>
-            {produtos.map(p => (
+            <option value="">
+              {classeSelecionada
+                ? "Selecione um produto"
+                : "Escolha uma classe primeiro"}
+            </option>
+            {produtosFiltrados.map(p => (
               <option key={p.id} value={p.id}>
                 {p.nome} - € {p.preco.toFixed(2)}
               </option>

@@ -92,7 +92,7 @@ export default function GerenciarPedidos() {
   const [codigoCliente, setCodigoCliente] = useState('');
   const [codigoPedido, setCodigoPedido] = useState('');
   const [idCliente, setIdCliente] = useState<string | null>(null);
-
+  const [classeSelecionada, setClasseSelecionada] = useState("");
  
 
   // Puxa os pedidos do Firestore
@@ -430,11 +430,18 @@ export default function GerenciarPedidos() {
     estudante: ['molho', 'ingrediente', 'ingredienteplus']
   };
 
+  // Pega todas as classes distintas
+  const classes = [...new Set(produtos.map(p => p.classe))];
+
+  // Filtra produtos pela classe escolhida
+  const produtosFiltrados = classeSelecionada
+    ? produtos.filter(p => p.classe === classeSelecionada)
+    : [];
    
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6 ">
       {/* Formulário */}
-      <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
+      <div className="flex flex-col gap-3 bg-white px-6 rounded-lg shadow">
         <div className='flex justify-between items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
@@ -454,6 +461,7 @@ export default function GerenciarPedidos() {
             placeholder="Código do Pedido"
             value={codigoPedido}
             readOnly
+            disabled
           />
 
           {/* Código do cliente */}
@@ -463,6 +471,7 @@ export default function GerenciarPedidos() {
             placeholder="Código do Cliente"
             value={codigoCliente}
             readOnly
+            disabled
           />
 
           {/* Nome do cliente */}
@@ -471,6 +480,7 @@ export default function GerenciarPedidos() {
             className="border p-3 rounded"
             placeholder="Nome Cliente..."
             value={clienteNome}
+            
             onChange={e => {
               const nome = e.target.value;
               setClienteNome(nome);
@@ -507,14 +517,40 @@ export default function GerenciarPedidos() {
 
         {/* Seleção de produto */}
 
-        <div className="flex items-center gap-4 mt-4">
+         
+        {/* Botões de classe */}
+        <div className="flex justify-between gap-2 flex-wrap">
+          {classes.map(c => (
+            <button
+              key={c}
+              onClick={() => {
+                setClasseSelecionada(c);
+                setProdutoSelecionado(""); // reset ao trocar classe
+              }}
+              className={`px-4 py-2 rounded cursor-pointer ${
+                classeSelecionada === c
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
           <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
             onChange={e => setProdutoSelecionado(e.target.value)}
+            disabled={!classeSelecionada} // só habilita depois de escolher classe
           >
-            <option value="">Selecione um produto</option>
-            {produtos.map(p => (
+            <option value="">
+              {classeSelecionada
+                ? "Selecione um produto"
+                : "Escolha uma classe primeiro"}
+            </option>
+            {produtosFiltrados.map(p => (
               <option key={p.id} value={p.id}>
                 {p.nome} - € {p.preco.toFixed(2)}
               </option>
@@ -522,7 +558,7 @@ export default function GerenciarPedidos() {
           </select>
           <input
             type="number"
-            className="border p-3 rounded w-24"
+            className="border text-center p-2 rounded w-24"
             min={1}
             value={quantidadeSelecionada}
             onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
@@ -535,8 +571,9 @@ export default function GerenciarPedidos() {
           </button>
         </div>
             <hr />
+            <p className='font-semibold text-blue-600'>Extras</p>
         {/* Extras dinâmicos */}
-        <div className="grid grid-cols-3 gap-6 mt-4">
+        <div className="grid grid-cols-3 gap-3 mt-4">
           {produtoSelecionado &&
             (() => {
               const produto = produtos.find(p => p.id === produtoSelecionado);
@@ -550,7 +587,7 @@ export default function GerenciarPedidos() {
                 acai: 3,
                 acompanhamento: 1,
               };
-
+              
               return tiposExtras.map(tipo => (              
                 <div key={tipo} className="bg-gray-100 p-3 rounded shadow">
                   
@@ -598,12 +635,13 @@ export default function GerenciarPedidos() {
             })()}
             
         </div>
-            <hr />
-
+          
+        <hr />
+        
         {/* Lista de produtos do pedido */}
         <ul className="divide-y">
           {produtosPedido.map((p,i) => (
-            <li key={p.id + i} className="flex justify-between items-center py-2">
+            <li key={p.id + i} className="flex justify-between items-center ">
               <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
               <button
