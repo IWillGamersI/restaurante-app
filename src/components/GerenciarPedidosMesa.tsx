@@ -437,7 +437,7 @@ export default function GerenciarPedidos() {
     <div className="max-w-6xl mx-auto space-y-6 ">
       {/* Formulário */}
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
-        <div className='flex justify-between items-center'>
+        <div className='flex flex-col items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
           </h2>
@@ -587,7 +587,7 @@ export default function GerenciarPedidos() {
                 setClasseSelecionada(c);
                 setProdutoSelecionado(""); // reset ao trocar classe
               }}
-              className={`px-4 py-2 rounded cursor-pointer ${
+              className={`px-2 py-2 rounded cursor-pointer ${
                 classeSelecionada === c
                   ? "bg-blue-500 text-white"
                   : "bg-gray-200 text-gray-700"
@@ -598,7 +598,7 @@ export default function GerenciarPedidos() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-2">
           <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
@@ -616,19 +616,22 @@ export default function GerenciarPedidos() {
               </option>
             ))}
           </select>
-          <input
-            type="number"
-            className="border text-center p-2 rounded w-24"
-            min={1}
-            value={quantidadeSelecionada}
-            onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
-          />
-          <button
-            onClick={adicionarProdutoAoPedido}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus size={18} /> Adicionar
-          </button>
+          <div className='flex justify-between'>
+            <input
+              type="number"
+              className="border text-center p-2 rounded w-24"
+              min={1}
+              value={quantidadeSelecionada}
+              onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
+            />
+            <button
+              onClick={adicionarProdutoAoPedido}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2 cursor-pointer"
+            >
+              <Plus size={18} /> Adicionar
+            </button>
+
+          </div>
         </div>
             <hr />
             <p className='font-semibold text-blue-600'>Extras</p>
@@ -714,9 +717,9 @@ export default function GerenciarPedidos() {
           ))}
         </ul>
 
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex flex-col justify-between gap-2 items-center">
           
-          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+          <div className='flex w-full justify-between bg-blue-600 text-white rounded p-2'>
             <label className='flex gap-1 cursor-pointer'>
               <input
                 type='radio' 
@@ -754,18 +757,20 @@ export default function GerenciarPedidos() {
                MbWay
             </label>
           </div>
-          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
-            <span>Total</span>
-            <span>€ {valorTotal.toFixed(2)}</span>
-             
-          
-          </span>
-          <button
-            onClick={salvarPedido}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus size={18} /> Lançar
-          </button>
+          <div className='flex justify-between w-full'>
+              <span className="flex justify-between items-center flex-1 gap-2 px-2  font-bold text-2xl">
+                <span>Total</span>
+                <span className='flex-1 text-right'>€ {valorTotal.toFixed(2)}</span>
+              </span>
+
+              <button
+                onClick={salvarPedido}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
+              >
+                <Plus size={18} /> Lançar
+              </button>
+          </div>
+         
         </div>
       </div>
 
