@@ -436,7 +436,7 @@ export default function GerenciarPedidos() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
       {/* Formulário */}
-      <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
+      <div className="flex flex-col gap-3 bg-white p-3 rounded-lg shadow">
         <div className='flex flex-col items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
