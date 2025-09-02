@@ -314,8 +314,8 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
-      //imprimir(dados, 2);
-      alert('Pedido feito com Sucesso')
+      imprimir(dados, 2);
+      //alert('Pedido feito com Sucesso')
       limparCampos();
 
     } catch (error) {
