@@ -5,6 +5,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",  
+  "orientation": "portrait-primary",
   "description": "Pizzaria localizada em Sesimbra",
   "icons": [
     {
