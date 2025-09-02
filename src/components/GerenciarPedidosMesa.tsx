@@ -793,18 +793,7 @@ export default function GerenciarPedidos() {
                       <strong>{p.nomeCliente}</strong>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                    <select
-                      value={p.status}
-                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                    >
-                      <option value="Fila">Fila</option>
-                      <option value="Preparando">Preparando</option>
-                      <option value="Pronto">Pronto</option>
-                      <option value="Entregue">Entregue</option>
-                      <option value="Cancelado">Cancelado</option>
-                    </select>
-
+                    <div className={` text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 ${statusColor(p.status)}`}>{p.status}</div>
                   </div>
 
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
@@ -855,11 +844,7 @@ export default function GerenciarPedidos() {
                   </div>
                   
                   <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
-                    <div className="flex gap-2">
-                      <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
-                        <Printer className='cursor-pointer' size={24} />
-                      </button>
-                    </div>
+                   
                     <div>
                       Total  
                     </div>
