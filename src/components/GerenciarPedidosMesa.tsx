@@ -636,7 +636,7 @@ export default function GerenciarPedidos() {
             <hr />
             <p className='font-semibold text-blue-600'>Extras</p>
         {/* Extras dinâmicos */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
+        <div className="grid grid-cols-1 gap-3 mt-4">
           {produtoSelecionado &&
             (() => {
               const produto = produtos.find(p => p.id === produtoSelecionado);
