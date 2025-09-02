@@ -18,9 +18,11 @@ export const metadata: Metadata = {
   title: "Top Pizzas",
   description: "Pizzaria localizada em Sesimbra",
   icons: {
-    icon: "/logo.png", // Coloque um PNG aqui em public/
-    shortcut: "/logo.png", // Para garantir compatibilidade com navegadores
+    icon: "/logo-192.png",
+    shortcut: "/logo-192.png",
+    apple: "/logo-512.png",
   },
+  manifest: '/manifest.json'
 };
 
 export default function RootLayout({
