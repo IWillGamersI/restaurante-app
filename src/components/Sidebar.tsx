@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, Users, Utensils, ClipboardList, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Utensils, ClipboardList, CreditCard, Store, TabletSmartphone, PackageCheck } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 
 export function Sidebar() {
@@ -16,16 +16,16 @@ export function Sidebar() {
           <Users size={20} /> Usuários
         </Link>
         <Link href="/pages/admin/loja" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
-          <ClipboardList size={20} /> Loja
+          <Store size={20} /> Loja
         </Link>
-        <Link href="/pages/admin/loja" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
-          <ClipboardList size={20} /> Loja
+        <Link href="/pages/admin/mesa" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+          <TabletSmartphone size={20} /> Mesa
         </Link>
         <Link href="/pages/admin/pedidos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <ClipboardList size={20} /> Pedidos
         </Link>
         <Link href="/pages/admin/cardapio" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
-          <Utensils size={20} /> Cadastro de Produtos
+          <PackageCheck size={20} /> Cadastro de Produtos
         </Link>
         <Link href="/pages/admin/cadastros" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <Utensils size={20} /> Cadastro Extras

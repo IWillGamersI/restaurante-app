@@ -27,6 +27,7 @@ import {
   ChevronDown,
   BookX,
 } from 'lucide-react';
+import { div } from 'framer-motion/client';
 
 
 interface Produto {
@@ -319,69 +320,117 @@ export default function CentralPedidos() {
             
           </div>
           <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2"><CheckCircle2 /> Pedidos Finalizados</h3>
-          {pedidosConcluidosFiltrados.length === 0 ? <p className="text-gray-500">Nenhum pedido finalizado.</p> : pedidosConcluidosFiltrados.map(p => (
-            <div
-                    key={p.id}
-                    className="flex w-full m-auto  border p-3 rounded mb-3"
-                  >
-                    <div className='flex flex-col w-full'>
-                      <div className='flex flex-wrap justify-between items-center'>
-                        <div>
-                          <strong>{p.nomeCliente}</strong> 
-                          <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
-                        </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+        
+            {pedidosConcluidosFiltrados.length === 0 ? (
+              <p className="text-gray-500">Nenhum pedido finalizado.</p>
+            ) : (
+            pedidosConcluidosFiltrados.map(p => (
+              <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
+                <div className="flex flex-col w-full">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                      <strong>{p.nomeCliente}</strong>
+                    </div>
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
+                  </div>
 
-                        <select
-                          value={p.status}
-                          onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                        >
-                          <option value="Fila">Fila</option>
-                          <option value="Preparando">Preparando</option>
-                          <option value="Pronto">Pronto</option>
-                          <option value="Entregue">Entregue</option>
-                          <option value="Cancelado">Cancelado</option>
-                        </select>
+                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                    {p.produtos.map(item => {
+                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
 
-                      </div>
-                      <div className="w-full text-sm mt-1 text-gray-700 list-disc list-inside">
-                        <div className='flex justify-between gap-2 text-lg font-bold '>
-                            <div className='flex-1'>Produto</div>
-                            <div>Quant</div>
-                            <div>Sub-Total</div>
-                        </div>
-                        {p.produtos?.map((item) => (
-                            <div className='flex gap-5 justify-between ' key={item.id}>
-                                <div className='flex-1'>{item.nome}</div>
-                                <div>{item.quantidade}</div>
-                                <div>€ {(item.preco * item.quantidade).toFixed(2)}</div>
-                                
-                            </div>
-                        ))}
-                          <div>
-                            <div className='flex justify-between border-t-2'>
-                              <div>Total:</div>
-                              <p className="text-gray-600 text-sm"> € {Number(p.valor).toFixed(2)}</p>
-                            </div>
-                            <div className="flex justify-between">
-                              <button
-                                onClick={() => remover(p.id)}
-                                className="text-red-600 p-2 cursor-pointer rounded-full hover:bg-red-600 hover:text-white"
-                                title="Remover pedido"
-                              >
-                                <Trash2 size={24} />
-                              </button>
-                              
-                            </div>
-
+                      return (
+                        <div
+                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
+                          >
+                          <div className="flex-1">
+                            <div>{item.nome} - {item.categoria}</div>
+                            {item.extras?.length > 0 && (
+                              <div className="mt-1 text-sm">
+                                <div className='font-semibold border-t-1'>
+                                 - Extras
+                                </div>
+                                <div className="pl-5">
+                                  {item.extras.map(extra => (
+                                    <div className='flex justify-between' key={extra.id}>
+                                      <div>
+                                        {extra.nome} 
+                                      </div>
+                                      <div>
+                                        {extra.valor && extra.valor > 0 ?`€ ${extra.valor?.toFixed(2)}`:''} 
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <hr />
+                                <div className='flex justify-between font-bold'>
+                                  <div>Total Extras</div>
+                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-
+                          <div>{item.quantidade}</div>
+                          <div>€ {subtotalProduto.toFixed(2)}</div>
                         </div>
+                      );
+                    })}
+
+                  </div>
+
+                  <div className="flex justify-between font-black p-2 border-t-2 pt-2">
+                    <p>Total</p>
+                    <p>€ {p.valor.toFixed(2)}</p>
+                  </div>
+                  <hr className='border-1'/>
+                  <div >
+                    {p.status == 'Cancelado' ? 
+                    <div className='flex items-center justify-between'>
+                      <div className='font-semibold text-right' >
+                        <span className='text-blue-600'>Status:</span> <span className='text-red-500'>{p.status}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <button
+                          onClick={() => remover(p.id)}
+                          className="text-red-600 p-2 cursor-pointer rounded-full hover:bg-red-600 hover:text-white"
+                          title="Remover pedido"
+                        >
+                          <Trash2 size={24} />
+                        </button>
+                        
+                      </div>
 
                     </div>
-                    
-            </div>
-          ))}
+
+                    :
+                      <div className='flex items-center justify-between'>
+
+                        <div className='font-semibold text-right' >
+                            <span className='text-blue-600'>Status:</span> <span className='text-green-500'>{p.status}</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <button
+                            onClick={() => remover(p.id)}
+                            className="text-red-600 p-2 cursor-pointer rounded-full hover:bg-red-600 hover:text-white"
+                            title="Remover pedido"
+                          >
+                            <Trash2 size={24} />
+                          </button>
+                          
+                        </div>
+
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         </div>
 
         {/* Cancelados */}

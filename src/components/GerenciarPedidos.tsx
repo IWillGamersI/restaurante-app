@@ -1,5 +1,4 @@
 'use client';
-import { getAuth } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import {
   collection,
@@ -28,6 +27,7 @@ import {
   ChevronDown,
   CheckCheckIcon,
   Printer,
+  Store,
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
@@ -66,6 +66,9 @@ interface Pedido {
   valor: number;
   produtos: ProdutoPedido[];
   extras: Extra[]
+  tipoVenda: string
+  tipoFatura: string
+  tipoPagamento:string
 }
 
 interface Cliente {
@@ -93,6 +96,9 @@ export default function GerenciarPedidos() {
   const [codigoPedido, setCodigoPedido] = useState('');
   const [idCliente, setIdCliente] = useState<string | null>(null);
   const [classeSelecionada, setClasseSelecionada] = useState("");
+  const [tipoVenda, setTipoVenda] = useState("");
+  const [tipoFatura, setTipoFatura] = useState('')
+  const [tipoPagamento, setTipoPagamento] = useState('')
  
 
   // Puxa os pedidos do Firestore
@@ -155,6 +161,10 @@ export default function GerenciarPedidos() {
     setErro('');
     setSucesso('');
     setExtrasSelecionados([]);
+    setClasseSelecionada('')
+    setTipoVenda('')
+    setTipoFatura('')
+    setTipoPagamento('')
   };
 
   const adicionarProdutoAoPedido = () => {
@@ -207,54 +217,6 @@ export default function GerenciarPedidos() {
       const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
       return acc + p.preco * p.quantidade + extrasValor;
     }, 0);
-/*
-  const salvarPedido = async () => {
-    const agora = new Date();
-    const dataLisboa = new Date(
-      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
-    );
-
-    // Valida se o cliente foi selecionado
-    if (!idCliente || produtosPedido.length === 0) {
-      alert('Informe o cliente e adicione pelo menos um produto');
-      return;
-    }
-
-    const dados = {
-      idCliente,                  // ID do cliente no Firestore
-      nomeCliente: clienteNome,    // Nome do cliente
-      telefoneCliente: clienteTelefone, // Telefone do cliente
-      codigoCliente,              // Código do cliente
-      data: dataLisboa.toISOString(),
-      status: 'Fila',
-      valor: valorTotal,
-      produtos: produtosPedido,
-      extras: extrasSelecionados,
-      codigoPedido,               // Código do pedido
-      criadoEm: serverTimestamp(),
-    };
-
-    try {
-      if (editandoId) {
-        // Atualiza pedido existente
-        await updateDoc(doc(db, 'pedidos', editandoId), dados);
-      } else {
-        // Cria novo pedido
-        await addDoc(collection(db, 'pedidos'), dados);
-      }
-
-      // Opcional: imprime ou loga o pedido
-      imprimir(dados, 2);
-
-      // Limpa campos do formulário
-      limparCampos();
-
-    } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
-    }
-  };
-*/
 
   const salvarPedido = async () => {
     const agora = new Date();
@@ -262,16 +224,57 @@ export default function GerenciarPedidos() {
       agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
     );
 
-    if (!clienteNome || produtosPedido.length === 0) {
-      alert('Informe o cliente e adicione pelo menos um produto');
+    if(!tipoFatura){
+      alert('Informe se é CF ou SF!')
+      return
+    }
+
+    if(!tipoVenda){
+      alert('Informe qual o tipo de VENDA!')
+      return
+    }
+
+    if (!clienteNome) {
+      alert('Informe o NOME do cliente!');
       return;
+    }
+    if (produtosPedido.length === 0) {
+      alert('Adicione pelo menos um PRODUTO!');
+      return;
+    }
+
+    if(!tipoPagamento){
+      alert('Informe o tipo de PAGAMENTO!')
+      return
     }
 
     let clienteIdFinal = idCliente;
     let codigoClienteFinal = codigoCliente;
 
-    // Cliente genérico se não houver telefone
-    if (!clienteTelefone) {
+    // Se cliente tem telefone → buscar ou criar no banco
+    if (clienteTelefone) {
+      const clientesRef = collection(db, 'clientes');
+      const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        // Cliente já existe
+        const clienteDoc = snapshot.docs[0];
+        clienteIdFinal = clienteDoc.id;
+        codigoClienteFinal = clienteDoc.data().codigoCliente;
+      } else {
+        // Criar cliente só agora (não no blur)
+        const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+        const docRef = await addDoc(clientesRef, {
+          nome: clienteNome,
+          telefone: clienteTelefone,
+          codigoCliente: novoCodigo,
+        });
+        clienteIdFinal = docRef.id;
+        codigoClienteFinal = novoCodigo;
+      }
+    } else {
+      // Cliente genérico
       const clientesRef = collection(db, 'clientes');
       const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
       const snapshot = await getDocs(q);
@@ -295,8 +298,11 @@ export default function GerenciarPedidos() {
       nomeCliente: clienteNome,
       telefoneCliente: clienteTelefone || null,
       codigoCliente: codigoClienteFinal,
+      tipoFatura,
+      tipoPagamento,
       data: dataLisboa.toISOString(),
       status: 'Fila',
+      tipoVenda,
       valor: valorTotal,
       produtos: produtosPedido,
       extras: extrasSelecionados,
@@ -308,7 +314,8 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
-      imprimir(dados, 2);
+      //imprimir(dados, 2);
+      alert('Pedido feito com Sucesso')
       limparCampos();
 
     } catch (error) {
@@ -316,6 +323,7 @@ export default function GerenciarPedidos() {
       alert('Erro ao salvar pedido. Verifique se você tem permissão.');
     }
   };
+
 
 
   
@@ -363,7 +371,7 @@ export default function GerenciarPedidos() {
   }
 
 
-  async function criarOuBuscarCliente(nome: string, telefone: string): Promise<Cliente | null> {
+  async function buscarCliente(telefone: string): Promise<Cliente | null> {
     if (!telefone) return null;
 
     const clienteRef = collection(db, 'clientes');
@@ -379,33 +387,18 @@ export default function GerenciarPedidos() {
         telefone: data.telefone,
         codigoCliente: data.codigoCliente || gerarCodigoCliente(data.nome, data.telefone)
       };
-    } else {
-      const codigoCliente = gerarCodigoCliente(nome, telefone);
-      const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
-      return { id: docRef.id, nome, telefone, codigoCliente };
     }
+      return null
   }
 
-  const criarClienteGenerico = async () => {
-    const clientesRef = collection(db, 'clientes');
-
-    // Verifica se já existe
-    const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id; // retorna o id do cliente genérico
-    }
-
-    // Cria cliente genérico
-    const docRef = await addDoc(clientesRef, {
-      nome: 'Cliente',
-      telefone: null,
-      codigoCliente: 'CLNT123',
-    });
-
-    return docRef.id;
-  };
+  async function criarCliente(nome: string, telefone: string): Promise<Cliente | null>{
+    
+    const clienteRef = collection(db, 'clientes');
+    const codigoCliente = gerarCodigoCliente(nome, telefone);
+    const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
+    return { id: docRef.id, nome, telefone, codigoCliente };
+   
+  }
 
 
 
@@ -437,11 +430,13 @@ export default function GerenciarPedidos() {
   const produtosFiltrados = classeSelecionada
     ? produtos.filter(p => p.classe === classeSelecionada)
     : [];
+
+
    
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6 ">
+    <div className="max-w-6xl mx-auto space-y-6 ">
       {/* Formulário */}
-      <div className="flex flex-col gap-3 bg-white px-6 rounded-lg shadow">
+      <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
         <div className='flex justify-between items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
@@ -457,8 +452,8 @@ export default function GerenciarPedidos() {
           {/* Código do pedido */}
           <input
             type="text"
-            className="border p-3 rounded"
-            placeholder="Código do Pedido"
+            className="border p-3 rounded max-w-[130px]"
+            placeholder="Código Pedido"
             value={codigoPedido}
             readOnly
             disabled
@@ -467,14 +462,100 @@ export default function GerenciarPedidos() {
           {/* Código do cliente */}
           <input
             type="text"
-            className="border p-3 rounded"
+            className="border p-3 rounded max-w-[130px]"
             placeholder="Código do Cliente"
             value={codigoCliente}
             readOnly
             disabled
           />
 
-          {/* Nome do cliente */}
+          <div className='flex flex-col justify-around bg-blue-600 px-4 rounded text-white'>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='fatura'
+                value={'CF'}
+                checked={tipoFatura === 'cf'}
+                onChange={()=> setTipoFatura('cf')}
+                className='cursor-pointer' 
+                required        
+              />
+               CF
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='fatura'
+                value={'SF'}
+                checked={tipoFatura === 'sf'}
+                onChange={()=> setTipoFatura('sf')}  
+                className='cursor-pointer'
+                required       
+              />
+               SF
+            </label>
+          </div>
+          <select
+            className="border p-3 rounded"
+            value={tipoVenda}
+            onChange={e=> setTipoVenda(e.target.value)}
+            required
+          >
+            <option value="">Tipo de Venda</option>
+            <option value="balcao">Balcao</option>
+            <option value="mesa">Mesa</option>
+            <option value="glovo">Glovo</option>
+            <option value="uber">Uber</option>
+            <option value="bolt">Bolt</option>
+            <option value="app">App Top pizzas</option>
+          </select>
+
+          
+
+          {/* Telefone do cliente */}
+          <input
+            type="text"
+            className="border p-3 rounded"
+            placeholder="Telefone Cliente..."
+            value={clienteTelefone}
+            onChange={e => {
+              const telefone = e.target.value
+              setClienteTelefone(telefone)
+
+              if (!telefone) {
+                setClienteNome("");
+                setCodigoCliente("");
+                setIdCliente(null);
+                setCodigoPedido("");
+              }
+            }}
+            onBlur={async () => {
+              if (!clienteTelefone) return              
+
+              // 🔹 Só busca cliente existente
+              const clientesRef = collection(db, 'clientes');
+              const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+              const snapshot = await getDocs(q);
+
+              if (!snapshot.empty) {
+                const clienteDoc = snapshot.docs[0];
+                const data = clienteDoc.data();
+
+                setClienteNome(data.nome);
+                setClienteTelefone(data.telefone);
+                setCodigoCliente(data.codigoCliente);
+                setIdCliente(clienteDoc.id);
+
+                // Atualiza código do pedido caso o nome seja diferente
+                setCodigoPedido(gerarCodigoPedido(data.nome));
+              } else {
+                // 🔹 Se não achar, não cria aqui. Só cria no salvarPedido.
+                console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
+              }
+            }}
+          />
+
+        {/* Nome do cliente */}
           <input
             type="text"
             className="border p-3 rounded"
@@ -487,33 +568,12 @@ export default function GerenciarPedidos() {
 
               // Atualiza o código do pedido
               setCodigoPedido(gerarCodigoPedido(nome));
+
             }}
+            disabled={!!idCliente}
           />
-
-          {/* Telefone do cliente */}
-          <input
-            type="text"
-            className="border p-3 rounded"
-            placeholder="Telefone Cliente..."
-            value={clienteTelefone}
-            onChange={e => setClienteTelefone(e.target.value)}
-            onBlur={async () => {
-              if (!clienteTelefone) return;
-
-              const cliente = await criarOuBuscarCliente(clienteNome, clienteTelefone);
-              if (cliente) {
-                setClienteNome(cliente.nome);
-                setClienteTelefone(cliente.telefone);
-                setCodigoCliente(cliente.codigoCliente);
-                setIdCliente(cliente.id);
-
-                // Atualiza código do pedido caso o nome seja diferente do digitado
-                setCodigoPedido(gerarCodigoPedido(cliente.nome));
-              }
-            }}
-          />
-
         </div>
+
 
         {/* Seleção de produto */}
 
@@ -655,7 +715,51 @@ export default function GerenciarPedidos() {
         </ul>
 
         <div className="flex justify-between items-center mt-4">
-          <span className="font-bold text-lg">Total: € {valorTotal.toFixed(2)}</span>
+          
+          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'dinheiro'}
+                checked={tipoPagamento === 'dinheiro'}
+                onChange={()=> setTipoPagamento('dinheiro')} 
+                className='cursor-pointer'
+                required        
+              />
+               Dinheiro
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'cartao'}
+                checked={tipoPagamento === 'cartao'}
+                onChange={()=> setTipoPagamento('cartao')} 
+                className='cursor-pointer' 
+                required       
+              />
+               Cartão
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'mbway'}
+                checked={tipoPagamento === 'mbway'}
+                onChange={()=> setTipoPagamento('mbway')} 
+                className='cursor-pointer' 
+                required       
+              />
+               MbWay
+            </label>
+          </div>
+          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>€ {valorTotal.toFixed(2)}</span>
+             
+          
+          </span>
           <button
             onClick={salvarPedido}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
@@ -666,7 +770,7 @@ export default function GerenciarPedidos() {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[55vh] overflow-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
         {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">

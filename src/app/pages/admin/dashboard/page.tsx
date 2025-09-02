@@ -1,7 +1,7 @@
-import PainelAdmin from "@/components/PainelAdmin";
+import DashBoard from "@/components/DashBoard";
 
 export default function DashboardPage() {
   return (
-    <PainelAdmin/>
+    <DashBoard/>
    );
 }

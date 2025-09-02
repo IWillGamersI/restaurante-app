@@ -1,5 +1,4 @@
 'use client';
-import { getAuth } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import {
   collection,
@@ -28,6 +27,7 @@ import {
   ChevronDown,
   CheckCheckIcon,
   Printer,
+  Store,
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
@@ -66,6 +66,9 @@ interface Pedido {
   valor: number;
   produtos: ProdutoPedido[];
   extras: Extra[]
+  tipoVenda: string
+  tipoFatura: string
+  tipoPagamento:string
 }
 
 interface Cliente {
@@ -93,7 +96,9 @@ export default function GerenciarPedidos() {
   const [codigoPedido, setCodigoPedido] = useState('');
   const [idCliente, setIdCliente] = useState<string | null>(null);
   const [classeSelecionada, setClasseSelecionada] = useState("");
-
+  const [tipoVenda, setTipoVenda] = useState("");
+  const [tipoFatura, setTipoFatura] = useState('')
+  const [tipoPagamento, setTipoPagamento] = useState('')
  
 
   // Puxa os pedidos do Firestore
@@ -156,6 +161,10 @@ export default function GerenciarPedidos() {
     setErro('');
     setSucesso('');
     setExtrasSelecionados([]);
+    setClasseSelecionada('')
+    setTipoVenda('')
+    setTipoFatura('')
+    setTipoPagamento('')
   };
 
   const adicionarProdutoAoPedido = () => {
@@ -215,16 +224,57 @@ export default function GerenciarPedidos() {
       agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
     );
 
-    if (!clienteNome || produtosPedido.length === 0) {
-      alert('Informe o cliente e adicione pelo menos um produto');
+    if(!tipoFatura){
+      alert('Informe se é CF ou SF!')
+      return
+    }
+
+    if(!tipoVenda){
+      alert('Informe qual o tipo de VENDA!')
+      return
+    }
+
+    if (!clienteNome) {
+      alert('Informe o NOME do cliente!');
       return;
+    }
+    if (produtosPedido.length === 0) {
+      alert('Adicione pelo menos um PRODUTO!');
+      return;
+    }
+
+    if(!tipoPagamento){
+      alert('Informe o tipo de PAGAMENTO!')
+      return
     }
 
     let clienteIdFinal = idCliente;
     let codigoClienteFinal = codigoCliente;
 
-    // Cliente genérico se não houver telefone
-    if (!clienteTelefone) {
+    // Se cliente tem telefone → buscar ou criar no banco
+    if (clienteTelefone) {
+      const clientesRef = collection(db, 'clientes');
+      const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        // Cliente já existe
+        const clienteDoc = snapshot.docs[0];
+        clienteIdFinal = clienteDoc.id;
+        codigoClienteFinal = clienteDoc.data().codigoCliente;
+      } else {
+        // Criar cliente só agora (não no blur)
+        const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+        const docRef = await addDoc(clientesRef, {
+          nome: clienteNome,
+          telefone: clienteTelefone,
+          codigoCliente: novoCodigo,
+        });
+        clienteIdFinal = docRef.id;
+        codigoClienteFinal = novoCodigo;
+      }
+    } else {
+      // Cliente genérico
       const clientesRef = collection(db, 'clientes');
       const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
       const snapshot = await getDocs(q);
@@ -248,8 +298,11 @@ export default function GerenciarPedidos() {
       nomeCliente: clienteNome,
       telefoneCliente: clienteTelefone || null,
       codigoCliente: codigoClienteFinal,
+      tipoFatura,
+      tipoPagamento,
       data: dataLisboa.toISOString(),
       status: 'Fila',
+      tipoVenda,
       valor: valorTotal,
       produtos: produtosPedido,
       extras: extrasSelecionados,
@@ -261,6 +314,8 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
+      
+      alert('✅ Pedido realizado com Sucesso!!!')
       limparCampos();
 
     } catch (error) {
@@ -268,6 +323,7 @@ export default function GerenciarPedidos() {
       alert('Erro ao salvar pedido. Verifique se você tem permissão.');
     }
   };
+
 
 
   
@@ -315,7 +371,7 @@ export default function GerenciarPedidos() {
   }
 
 
-  async function criarOuBuscarCliente(nome: string, telefone: string): Promise<Cliente | null> {
+  async function buscarCliente(telefone: string): Promise<Cliente | null> {
     if (!telefone) return null;
 
     const clienteRef = collection(db, 'clientes');
@@ -331,33 +387,18 @@ export default function GerenciarPedidos() {
         telefone: data.telefone,
         codigoCliente: data.codigoCliente || gerarCodigoCliente(data.nome, data.telefone)
       };
-    } else {
-      const codigoCliente = gerarCodigoCliente(nome, telefone);
-      const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
-      return { id: docRef.id, nome, telefone, codigoCliente };
     }
+      return null
   }
 
-  const criarClienteGenerico = async () => {
-    const clientesRef = collection(db, 'clientes');
-
-    // Verifica se já existe
-    const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id; // retorna o id do cliente genérico
-    }
-
-    // Cria cliente genérico
-    const docRef = await addDoc(clientesRef, {
-      nome: 'Cliente',
-      telefone: null,
-      codigoCliente: 'CLNT123',
-    });
-
-    return docRef.id;
-  };
+  async function criarCliente(nome: string, telefone: string): Promise<Cliente | null>{
+    
+    const clienteRef = collection(db, 'clientes');
+    const codigoCliente = gerarCodigoCliente(nome, telefone);
+    const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
+    return { id: docRef.id, nome, telefone, codigoCliente };
+   
+  }
 
 
 
@@ -390,12 +431,13 @@ export default function GerenciarPedidos() {
     ? produtos.filter(p => p.classe === classeSelecionada)
     : [];
 
+
    
   return (
-    <div className="w-full mx-auto space-y-6 ">
+    <div className="max-w-6xl mx-auto space-y-6 ">
       {/* Formulário */}
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
-        <div className='flex flex-col items-center'>
+        <div className='flex justify-between items-center'>
           <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
           </h2>
@@ -406,39 +448,69 @@ export default function GerenciarPedidos() {
         <hr />
        
 
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-3 gap-2 justify-between">
           {/* Código do pedido */}
           <input
             type="text"
-            className="border p-3 rounded"
-            placeholder="Código do Pedido"
+            className="border p-3 rounded "
+            placeholder="Código Pedido"
             value={codigoPedido}
             readOnly
+            disabled
           />
 
           {/* Código do cliente */}
           <input
             type="text"
-            className="border p-3 rounded"
+            className="border p-3 rounded "
             placeholder="Código do Cliente"
             value={codigoCliente}
             readOnly
+            disabled
           />
 
-          {/* Nome do cliente */}
-          <input
-            type="text"
+          <div className='flex flex-col justify-around bg-blue-600 px-4 rounded text-white'>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='fatura'
+                value={'CF'}
+                checked={tipoFatura === 'cf'}
+                onChange={()=> setTipoFatura('cf')}
+                className='cursor-pointer' 
+                required        
+              />
+               CF
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='fatura'
+                value={'SF'}
+                checked={tipoFatura === 'sf'}
+                onChange={()=> setTipoFatura('sf')}  
+                className='cursor-pointer'
+                required       
+              />
+               SF
+            </label>
+          </div>
+          <select
             className="border p-3 rounded"
-            placeholder="Nome Cliente..."
-            value={clienteNome}
-            onChange={e => {
-              const nome = e.target.value;
-              setClienteNome(nome);
+            value={tipoVenda}
+            onChange={e=> setTipoVenda(e.target.value)}
+            required
+          >
+            <option value="">Tipo de Venda</option>
+            <option value="balcao">Balcao</option>
+            <option value="mesa">Mesa</option>
+            <option value="glovo">Glovo</option>
+            <option value="uber">Uber</option>
+            <option value="bolt">Bolt</option>
+            <option value="app">App Top pizzas</option>
+          </select>
 
-              // Atualiza o código do pedido
-              setCodigoPedido(gerarCodigoPedido(nome));
-            }}
-          />
+          
 
           {/* Telefone do cliente */}
           <input
@@ -446,44 +518,88 @@ export default function GerenciarPedidos() {
             className="border p-3 rounded"
             placeholder="Telefone Cliente..."
             value={clienteTelefone}
-            onChange={e => setClienteTelefone(e.target.value)}
+            onChange={e => {
+              const telefone = e.target.value
+              setClienteTelefone(telefone)
+
+              if (!telefone) {
+                setClienteNome("");
+                setCodigoCliente("");
+                setIdCliente(null);
+                setCodigoPedido("");
+              }
+            }}
             onBlur={async () => {
-              if (!clienteTelefone) return;
+              if (!clienteTelefone) return              
 
-              const cliente = await criarOuBuscarCliente(clienteNome, clienteTelefone);
-              if (cliente) {
-                setClienteNome(cliente.nome);
-                setClienteTelefone(cliente.telefone);
-                setCodigoCliente(cliente.codigoCliente);
-                setIdCliente(cliente.id);
+              // 🔹 Só busca cliente existente
+              const clientesRef = collection(db, 'clientes');
+              const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+              const snapshot = await getDocs(q);
 
-                // Atualiza código do pedido caso o nome seja diferente do digitado
-                setCodigoPedido(gerarCodigoPedido(cliente.nome));
+              if (!snapshot.empty) {
+                const clienteDoc = snapshot.docs[0];
+                const data = clienteDoc.data();
+
+                setClienteNome(data.nome);
+                setClienteTelefone(data.telefone);
+                setCodigoCliente(data.codigoCliente);
+                setIdCliente(clienteDoc.id);
+
+                // Atualiza código do pedido caso o nome seja diferente
+                setCodigoPedido(gerarCodigoPedido(data.nome));
+              } else {
+                // 🔹 Se não achar, não cria aqui. Só cria no salvarPedido.
+                console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
               }
             }}
           />
 
-          {/* Botões de classe */}
-          <div className="grid grid-cols-3 gap-2 flex-wrap ">
-            {classes.map(c => (
-              <button
-                key={c}
-                onClick={() => {
-                  setClasseSelecionada(c);
-                  setProdutoSelecionado(""); // reset ao trocar classe
-                }}
-                className={`px-2 py-2 rounded cursor-pointer ${
-                  classeSelecionada === c
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+        {/* Nome do cliente */}
+          <input
+            type="text"
+            className="border p-3 rounded"
+            placeholder="Nome Cliente..."
+            value={clienteNome}
+            
+            onChange={e => {
+              const nome = e.target.value;
+              setClienteNome(nome);
 
-             <select
+              // Atualiza o código do pedido
+              setCodigoPedido(gerarCodigoPedido(nome));
+
+            }}
+            disabled={!!idCliente}
+          />
+        </div>
+
+
+        {/* Seleção de produto */}
+
+         
+        {/* Botões de classe */}
+        <div className=" grid grid-cols-3 gap-2 flex-wrap">
+          {classes.map(c => (
+            <button
+              key={c}
+              onClick={() => {
+                setClasseSelecionada(c);
+                setProdutoSelecionado(""); // reset ao trocar classe
+              }}
+              className={`px-4 py-2 rounded cursor-pointer ${
+                classeSelecionada === c
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
             onChange={e => setProdutoSelecionado(e.target.value)}
@@ -500,15 +616,9 @@ export default function GerenciarPedidos() {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Seleção de produto */}
-
-        <div className="flex justify-between items-center gap-4 mt-4">
-          
           <input
             type="number"
-            className="border p-3 rounded w-24"
+            className="border text-center p-2 rounded w-24"
             min={1}
             value={quantidadeSelecionada}
             onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
@@ -521,8 +631,9 @@ export default function GerenciarPedidos() {
           </button>
         </div>
             <hr />
+            <p className='font-semibold text-blue-600'>Extras</p>
         {/* Extras dinâmicos */}
-        <div className="flex flex-col gap-2 mt-4">
+        <div className="grid grid-cols-3 gap-3 mt-4">
           {produtoSelecionado &&
             (() => {
               const produto = produtos.find(p => p.id === produtoSelecionado);
@@ -536,7 +647,7 @@ export default function GerenciarPedidos() {
                 acai: 3,
                 acompanhamento: 1,
               };
-
+              
               return tiposExtras.map(tipo => (              
                 <div key={tipo} className="bg-gray-100 p-3 rounded shadow">
                   
@@ -584,12 +695,13 @@ export default function GerenciarPedidos() {
             })()}
             
         </div>
-            <hr />
-
+          
+        <hr />
+        
         {/* Lista de produtos do pedido */}
         <ul className="divide-y">
           {produtosPedido.map((p,i) => (
-            <li key={p.id + i} className="flex justify-between items-center py-2">
+            <li key={p.id + i} className="flex justify-between items-center ">
               <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
               <button
@@ -603,7 +715,51 @@ export default function GerenciarPedidos() {
         </ul>
 
         <div className="flex justify-between items-center mt-4">
-          <span className="font-bold text-lg">Total: € {valorTotal.toFixed(2)}</span>
+          
+          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'dinheiro'}
+                checked={tipoPagamento === 'dinheiro'}
+                onChange={()=> setTipoPagamento('dinheiro')} 
+                className='cursor-pointer'
+                required        
+              />
+               Dinheiro
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'cartao'}
+                checked={tipoPagamento === 'cartao'}
+                onChange={()=> setTipoPagamento('cartao')} 
+                className='cursor-pointer' 
+                required       
+              />
+               Cartão
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'mbway'}
+                checked={tipoPagamento === 'mbway'}
+                onChange={()=> setTipoPagamento('mbway')} 
+                className='cursor-pointer' 
+                required       
+              />
+               MbWay
+            </label>
+          </div>
+          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>€ {valorTotal.toFixed(2)}</span>
+             
+          
+          </span>
           <button
             onClick={salvarPedido}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
@@ -614,9 +770,9 @@ export default function GerenciarPedidos() {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
         {/* Pedidos Abertos */}
-        <div className="bg-white p-2 rounded-lg shadow">
+        <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
             <ClipboardList /> Pedidos Abertos
           </h3>
@@ -632,12 +788,21 @@ export default function GerenciarPedidos() {
                       <strong>{p.nomeCliente}</strong>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                    
+                    <select
+                      value={p.status}
+                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
+                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                    >
+                      <option value="Fila">Fila</option>
+                      <option value="Preparando">Preparando</option>
+                      <option value="Pronto">Pronto</option>
+                      <option value="Entregue">Entregue</option>
+                      <option value="Cancelado">Cancelado</option>
+                    </select>
 
                   </div>
 
-                  <div className="flex flex-col w-full text-sm border-t-2  text-gray-700"> 
-                                      
+                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
                     {p.produtos.map(item => {
                       const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                       const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
@@ -645,7 +810,7 @@ export default function GerenciarPedidos() {
                       return (
                         <div
                             key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
-                            className="flex mt-2 p-2 gap-5 justify-between bg-gray-200 rounded"
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
                             <div>{item.nome} - {item.categoria}</div>
@@ -676,20 +841,111 @@ export default function GerenciarPedidos() {
                           </div>
                           <div>{item.quantidade}</div>
                           <div>€ {subtotalProduto.toFixed(2)}</div>
-                        </div>                        
+                        </div>
+
+                        
                       );
                     })}
 
                   </div>
                   
-                  <div className="flex justify-between font-black mt-2 border-t-2 pt-2 gap-6 items-center">
-                    
+                  <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
+                    <div className="flex gap-2">
+                      <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
+                        <Printer className='cursor-pointer' size={24} />
+                      </button>
+                    </div>
                     <div>
-                      Total
+                      Total  
                     </div>
                     <p className='flex-1 text-right text-xl'>€ {p.valor.toFixed(2)}</p>
                   </div>
 
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Pedidos Finalizados */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 flex items-center text-green-600 gap-2">
+            <CheckCircle2 /> Pedidos Finalizados
+          </h3>
+          {pedidosFechados.length === 0 ? (
+            <p className="text-gray-500">Nenhum pedido finalizado.</p>
+          ) : (
+            pedidosFechados.map(p => (
+              <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
+                <div className="flex flex-col w-full">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                      <strong>{p.nomeCliente}</strong>
+                    </div>
+                    <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
+                    {p.produtos.map(item => {
+                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
+
+                      return (
+                        <div
+                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
+                          >
+                          <div className="flex-1">
+                            <div>{item.nome} - {item.categoria}</div>
+                            {item.extras?.length > 0 && (
+                              <div className="mt-1 text-sm">
+                                <div className='font-semibold border-t-1'>
+                                 - Extras
+                                </div>
+                                <div className="pl-5">
+                                  {item.extras.map(extra => (
+                                    <div className='flex justify-between' key={extra.id}>
+                                      <div>
+                                        {extra.nome} 
+                                      </div>
+                                      <div>
+                                        {extra.valor && extra.valor > 0 ?`€ ${extra.valor?.toFixed(2)}`:''} 
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <hr />
+                                <div className='flex justify-between font-bold'>
+                                  <div>Total Extras</div>
+                                  <div>€ {totalExtrasProduto.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div>{item.quantidade}</div>
+                          <div>€ {subtotalProduto.toFixed(2)}</div>
+                        </div>
+                      );
+                    })}
+
+                  </div>
+
+                  <div className="flex justify-between font-black p-2 border-t-2 pt-2">
+                    <p>Total</p>
+                    <p>€ {p.valor.toFixed(2)}</p>
+                  </div>
+                  <hr className='border-1'/>
+                  <div >
+                    {p.status == 'Cancelado' ? 
+                      <div className='font-semibold text-right' >
+                        <span className='text-blue-600'>Status:</span> <span className='text-red-500'>{p.status}</span>
+                      </div>
+
+                    :<div className='font-semibold text-right' >
+                        <span className='text-blue-600'>Status:</span> <span className='text-green-500'>{p.status}</span>
+                      </div>}
+                  </div>
                 </div>
               </div>
             ))

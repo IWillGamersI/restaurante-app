@@ -48,7 +48,7 @@ const cards = [
   },
 ];
 
-export default function PainelAdmin() {
+export default function DashBoard() {
   return (
     <div className="text-gray-800">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
