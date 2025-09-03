@@ -99,6 +99,7 @@ export default function GerenciarPedidos() {
   const [tipoVenda, setTipoVenda] = useState("");
   const [tipoFatura, setTipoFatura] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
+  const [querImprimir, setQuerImprimir] = useState(false)
  
 
   // Puxa os pedidos do Firestore
@@ -165,6 +166,7 @@ export default function GerenciarPedidos() {
     setTipoVenda('')
     setTipoFatura('')
     setTipoPagamento('')
+    setQuerImprimir(false)
   };
 
   const adicionarProdutoAoPedido = () => {
@@ -314,8 +316,13 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
-      imprimir(dados, 2);
-      //alert('Pedido feito com Sucesso')
+      if(querImprimir){
+        imprimir(dados, 2);
+
+      }else{
+        alert('Pedido salvo com Sucesso!!!')
+      }
+
       limparCampos();
 
     } catch (error) {
@@ -323,10 +330,6 @@ export default function GerenciarPedidos() {
       alert('Erro ao salvar pedido. Verifique se você tem permissão.');
     }
   };
-
-
-
-  
 
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -406,6 +409,7 @@ export default function GerenciarPedidos() {
   useEffect(() => {
     if (cliente.trim().length >= 2) {
       setCodigoPedido(gerarCodigoPedido(cliente));
+
     } else {
       setCodigoPedido('');
     }
@@ -431,8 +435,6 @@ export default function GerenciarPedidos() {
     ? produtos.filter(p => p.classe === classeSelecionada)
     : [];
 
-
-   
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
       {/* Formulário */}
@@ -446,10 +448,38 @@ export default function GerenciarPedidos() {
           </div>
         </div>
         <hr />
-       
+
+     
 
         <div className="flex justify-between">
-          {/* Código do pedido */}
+
+
+          <div className='flex flex-col justify-around bg-blue-600 px-4 rounded text-white'>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='imprimir'
+                checked={querImprimir === false}
+                onChange={()=> setQuerImprimir(false)}
+                className='cursor-pointer' 
+                required        
+              />
+               Não Imprimir
+            </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='imprimir'
+                checked={querImprimir === true}
+                onChange={()=> setQuerImprimir(true)}  
+                className='cursor-pointer'
+                required       
+              />
+               Imprimir
+            </label>
+          </div>
+
+          {/* Código do pedido */} 
           <input
             type="text"
             className="border p-3 rounded max-w-[130px]"
@@ -495,6 +525,7 @@ export default function GerenciarPedidos() {
                SF
             </label>
           </div>
+
           <select
             className="border p-3 rounded"
             value={tipoVenda}
@@ -518,6 +549,7 @@ export default function GerenciarPedidos() {
             className="border p-3 rounded"
             placeholder="Telefone Cliente..."
             value={clienteTelefone}
+            disabled = {tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt' }
             onChange={e => {
               const telefone = e.target.value
               setClienteTelefone(telefone)
