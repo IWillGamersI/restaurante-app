@@ -1,0 +1,35 @@
+{
+  // Desativa validação CSS nativa que não reconhece Tailwind
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+
+  // Habilita IntelliSense do Tailwind
+  "tailwindCSS.includeLanguages": {
+  "plaintext": "tailwindcss",
+  "javascript": "javascript",
+  "javascriptreact": "javascript",
+  "typescript": "javascript",
+  "typescriptreact": "javascript",
+  "html": "html",
+  "css": "tailwindcss",
+  "css.lint.unknownAtRules": "ignore"
+}
+
+
+,
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+
+  // Sugestões de classe automática do Tailwind
+  "tailwindCSS.experimental.classRegex": [
+    "tw`([^`]*)",
+    "tw\\(([^)]*)\\)"
+  ],
+
+  // Opcional: habilita linting de Tailwind se tiver configurado via plugin
+  "tailwindCSS.lint.validates": true
+
+  
+}

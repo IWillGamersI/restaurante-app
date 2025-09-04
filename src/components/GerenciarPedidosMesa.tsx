@@ -99,6 +99,7 @@ export default function GerenciarPedidos() {
   const [tipoVenda, setTipoVenda] = useState("");
   const [tipoFatura, setTipoFatura] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
+  const [querImprimir, setQuerImprimir] = useState(false)
  
 
   // Puxa os pedidos do Firestore
@@ -165,6 +166,7 @@ export default function GerenciarPedidos() {
     setTipoVenda('')
     setTipoFatura('')
     setTipoPagamento('')
+    setQuerImprimir(false)
   };
 
   const adicionarProdutoAoPedido = () => {
@@ -314,8 +316,13 @@ export default function GerenciarPedidos() {
       // Sempre cria novo pedido
       await addDoc(collection(db, 'pedidos'), dados);
 
-      
-      alert('✅ Pedido realizado com Sucesso!!!')
+      if(querImprimir){
+        imprimir(dados, 2);
+
+      }else{
+        alert('Pedido salvo com Sucesso!!!')
+      }
+
       limparCampos();
 
     } catch (error) {
@@ -323,10 +330,6 @@ export default function GerenciarPedidos() {
       alert('Erro ao salvar pedido. Verifique se você tem permissão.');
     }
   };
-
-
-
-  
 
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -406,6 +409,7 @@ export default function GerenciarPedidos() {
   useEffect(() => {
     if (cliente.trim().length >= 2) {
       setCodigoPedido(gerarCodigoPedido(cliente));
+
     } else {
       setCodigoPedido('');
     }
@@ -431,10 +435,8 @@ export default function GerenciarPedidos() {
     ? produtos.filter(p => p.classe === classeSelecionada)
     : [];
 
-
-   
   return (
-    <div className="max-w-6xl mx-auto space-y-6 ">
+    <div className="p-3">
       {/* Formulário */}
       <div className="flex flex-col gap-3 bg-white p-3 rounded-lg shadow">
         <div className='flex flex-col items-center'>
@@ -446,13 +448,14 @@ export default function GerenciarPedidos() {
           </div>
         </div>
         <hr />
-       
 
-        <div className="grid grid-cols-3 gap-2 justify-between">
-          {/* Código do pedido */}
+     
+
+        <div className="flex flex-col gap-2">
+          {/* Código do pedido */} 
           <input
             type="text"
-            className="border p-3 rounded "
+            className="border p-3 rounded"
             placeholder="Código Pedido"
             value={codigoPedido}
             readOnly
@@ -462,7 +465,7 @@ export default function GerenciarPedidos() {
           {/* Código do cliente */}
           <input
             type="text"
-            className="border p-3 rounded "
+            className="border p-3 rounded"
             placeholder="Código do Cliente"
             value={codigoCliente}
             readOnly
@@ -495,6 +498,7 @@ export default function GerenciarPedidos() {
                SF
             </label>
           </div>
+
           <select
             className="border p-3 rounded"
             value={tipoVenda}
@@ -518,6 +522,7 @@ export default function GerenciarPedidos() {
             className="border p-3 rounded"
             placeholder="Telefone Cliente..."
             value={clienteTelefone}
+            disabled = {tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt' }
             onChange={e => {
               const telefone = e.target.value
               setClienteTelefone(telefone)
@@ -573,13 +578,9 @@ export default function GerenciarPedidos() {
             disabled={!!idCliente}
           />
         </div>
-
-
-        {/* Seleção de produto */}
-
          
         {/* Botões de classe */}
-        <div className=" grid grid-cols-3 gap-2 flex-wrap">
+        <div className="grid grid-cols-3 gap-2 flex-wrap">
           {classes.map(c => (
             <button
               key={c}
@@ -587,7 +588,7 @@ export default function GerenciarPedidos() {
                 setClasseSelecionada(c);
                 setProdutoSelecionado(""); // reset ao trocar classe
               }}
-              className={`px-2 py-2 rounded cursor-pointer ${
+              className={`px-4 py-2 rounded cursor-pointer ${
                 classeSelecionada === c
                   ? "bg-blue-500 text-white"
                   : "bg-gray-200 text-gray-700"
@@ -598,7 +599,7 @@ export default function GerenciarPedidos() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <select
             className="border p-3 rounded w-full"
             value={produtoSelecionado}
@@ -630,11 +631,12 @@ export default function GerenciarPedidos() {
             >
               <Plus size={18} /> Adicionar
             </button>
-
           </div>
+          
         </div>
             <hr />
             <p className='font-semibold text-blue-600'>Extras</p>
+
         {/* Extras dinâmicos */}
         <div className="grid grid-cols-1 gap-3 mt-4">
           {produtoSelecionado &&
@@ -704,7 +706,7 @@ export default function GerenciarPedidos() {
         {/* Lista de produtos do pedido */}
         <ul className="divide-y">
           {produtosPedido.map((p,i) => (
-            <li key={p.id + i} className="flex justify-between items-center ">
+            <li key={p.id + i} className="flex flex-col items-center ">
               <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
               <button
@@ -717,9 +719,9 @@ export default function GerenciarPedidos() {
           ))}
         </ul>
 
-        <div className="flex flex-col justify-between gap-2 items-center">
+        <div className="flex justify-between items-center mt-4">
           
-          <div className='flex w-full justify-between bg-blue-600 text-white rounded p-2'>
+          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
             <label className='flex gap-1 cursor-pointer'>
               <input
                 type='radio' 
@@ -757,25 +759,23 @@ export default function GerenciarPedidos() {
                MbWay
             </label>
           </div>
-          <div className='flex justify-between w-full'>
-              <span className="flex justify-between items-center flex-1 gap-2 px-2  font-bold text-2xl">
-                <span>Total</span>
-                <span className='flex-1 text-right'>€ {valorTotal.toFixed(2)}</span>
-              </span>
-
-              <button
-                onClick={salvarPedido}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
-              >
-                <Plus size={18} /> Lançar
-              </button>
-          </div>
-         
+          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>€ {valorTotal.toFixed(2)}</span>
+             
+          
+          </span>
+          <button
+            onClick={salvarPedido}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
+          >
+            <Plus size={18} /> Lançar
+          </button>
         </div>
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
+      <div className="grid grid-cols-1  gap-6 max-h-[100vh] overflow-auto">
         {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -793,7 +793,18 @@ export default function GerenciarPedidos() {
                       <strong>{p.nomeCliente}</strong>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                    <div className={` text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 ${statusColor(p.status)}`}>{p.status}</div>
+                    <select
+                      value={p.status}
+                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
+                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                    >
+                      <option value="Fila">Fila</option>
+                      <option value="Preparando">Preparando</option>
+                      <option value="Pronto">Pronto</option>
+                      <option value="Entregue">Entregue</option>
+                      <option value="Cancelado">Cancelado</option>
+                    </select>
+
                   </div>
 
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
@@ -843,8 +854,8 @@ export default function GerenciarPedidos() {
 
                   </div>
                   
-                  <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
-                   
+                  <div className="flex justify-between font-black pt-2 border-t-2 gap-6 items-center">
+                    
                     <div>
                       Total  
                     </div>

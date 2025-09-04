@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 
+// Fontes Google
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,15 +23,17 @@ export const metadata: Metadata = {
     shortcut: "/logo-192.png",
     apple: "/logo-512.png",
   },
-  manifest: '/manifest.json'
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="pt-BR" className="scroll-smooth">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen`}
+      >
         {children}
         <SpeedInsights />
       </body>
