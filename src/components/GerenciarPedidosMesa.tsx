@@ -4,9 +4,6 @@ import {
   collection,
   getDocs,
   addDoc,
-  deleteDoc,
-  doc,
-  updateDoc,
   query,
   onSnapshot,
   serverTimestamp,
@@ -17,17 +14,9 @@ import { db } from '@/lib/firebase';
 import {
   Plus,
   Trash2,
-  Edit,
   Package,
-  Calendar,
   CheckCircle2,
-  Hourglass,
   ClipboardList,
-  ChevronRight,
-  ChevronDown,
-  CheckCheckIcon,
-  Printer,
-  Store,
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
@@ -210,10 +199,6 @@ export default function GerenciarPedidos() {
     setProdutosPedido(produtosPedido.filter(p => p.id !== id));
   };
 
-  const atualizarStatus = async (id: string, novoStatus: string) => {
-    await updateDoc(doc(db, 'pedidos', id), { status: novoStatus });
-  };
-
   const valorTotal =
     produtosPedido.reduce((acc, p) => {
       const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
@@ -331,17 +316,6 @@ export default function GerenciarPedidos() {
     }
   };
 
-  const statusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'fila': return 'bg-gray-300 text-gray-800';
-      case 'preparando': return 'bg-yellow-200 text-blue-700';
-      case 'pronto': return 'bg-blue-100 text-blue-700';
-      case 'entregue': return 'bg-green-100 text-green-800';
-      case 'cancelado': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-200 text-gray-800';
-    }
-  };
-
   const hoje = new Date();
   const diaHoje = hoje.getDate();
   const mesHoje = hoje.getMonth();
@@ -393,16 +367,6 @@ export default function GerenciarPedidos() {
     }
       return null
   }
-
-  async function criarCliente(nome: string, telefone: string): Promise<Cliente | null>{
-    
-    const clienteRef = collection(db, 'clientes');
-    const codigoCliente = gerarCodigoCliente(nome, telefone);
-    const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
-    return { id: docRef.id, nome, telefone, codigoCliente };
-   
-  }
-
 
 
 
@@ -778,9 +742,9 @@ export default function GerenciarPedidos() {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1  gap-6 max-h-[100vh] overflow-auto">
+      <div className="grid grid-cols-1 gap-4 max-h-[100vh] overflow-auto">
         {/* Pedidos Abertos */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-4 rounded-lg shadow mt-4">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
             <ClipboardList /> Pedidos Abertos
           </h3>
@@ -796,18 +760,6 @@ export default function GerenciarPedidos() {
                       <strong>{p.nomeCliente}</strong>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
-                    <select
-                      value={p.status}
-                      onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                      className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
-                    >
-                      <option value="Fila">Fila</option>
-                      <option value="Preparando">Preparando</option>
-                      <option value="Pronto">Pronto</option>
-                      <option value="Entregue">Entregue</option>
-                      <option value="Cancelado">Cancelado</option>
-                    </select>
-
                   </div>
 
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
