@@ -964,6 +964,11 @@ export default function GerenciarPedidos() {
                   </div>
 
                   <div className="flex justify-between font-black p-2 border-t-2 pt-2">
+                    <div className="flex gap-2">
+                      <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
+                        <Printer className='cursor-pointer' size={24} />
+                      </button>
+                    </div>
                     <p>Total</p>
                     <p>€ {p.valor.toFixed(2)}</p>
                   </div>
