@@ -472,7 +472,7 @@ export default function GerenciarPedidos() {
             disabled
           />
 
-          <div className='flex flex-col justify-around bg-blue-600 px-4 rounded text-white'>
+          <div className='flex  justify-around bg-blue-600 p-4 rounded text-white'>
             <label className='flex gap-1 cursor-pointer'>
               <input
                 type='radio' 
@@ -588,7 +588,7 @@ export default function GerenciarPedidos() {
                 setClasseSelecionada(c);
                 setProdutoSelecionado(""); // reset ao trocar classe
               }}
-              className={`px-4 py-2 rounded cursor-pointer ${
+              className={`p-2 rounded cursor-pointer ${
                 classeSelecionada === c
                   ? "bg-blue-500 text-white"
                   : "bg-gray-200 text-gray-700"
@@ -719,9 +719,9 @@ export default function GerenciarPedidos() {
           ))}
         </ul>
 
-        <div className="flex justify-between items-center mt-4">
+        <div className="w-full flex flex-col justify-between items-center gap-2">
           
-          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+          <div className='w-full flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
             <label className='flex gap-1 cursor-pointer'>
               <input
                 type='radio' 
@@ -759,18 +759,21 @@ export default function GerenciarPedidos() {
                MbWay
             </label>
           </div>
-          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
-            <span>Total</span>
-            <span>€ {valorTotal.toFixed(2)}</span>
-             
-          
-          </span>
-          <button
-            onClick={salvarPedido}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus size={18} /> Lançar
-          </button>
+
+          <div className='w-full gap-2 flex justify-between items-center'>
+
+            <span className="w-full flex gap-2 justify-between font-bold text-lg">
+              <span>Total</span>
+              <span>€ {valorTotal.toFixed(2)}</span>
+            </span>
+            <button
+              onClick={salvarPedido}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
+            >
+              <Plus size={18} /> Lançar
+            </button>
+          </div>
+
         </div>
       </div>
 
