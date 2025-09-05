@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
-import { hr } from 'framer-motion/client';
 
 interface Produto {
   id: string;
@@ -100,6 +99,10 @@ export default function GerenciarPedidos() {
   const [tipoFatura, setTipoFatura] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
   const [querImprimir, setQuerImprimir] = useState(false)
+  const [ajuste, setAjuste] = useState(0)
+
+  const aumentar = () => setAjuste((prev)=> parseFloat((prev + 0.10).toFixed(2)))
+  const diminuir = () => setAjuste((prev)=> parseFloat((prev - 0.10).toFixed(2)))
  
 
   // Puxa os pedidos do Firestore
@@ -785,10 +788,47 @@ export default function GerenciarPedidos() {
               />
                MbWay
             </label>
+            <label className='flex gap-1 cursor-pointer'>
+              <input
+                type='radio' 
+                name='pagamento'
+                value={'aplicativo'}
+                checked={tipoPagamento === 'aplicativo'}
+                onChange={()=> setTipoPagamento('aplicativo')} 
+                className='cursor-pointer' 
+                required       
+              />
+               Aplicativos
+            </label>
           </div>
-          <span className="flex gap-2 px-30 justify-between font-bold text-lg">
+          <div className=" flex justify-center items-center px-4">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={diminuir} 
+                className="px-3 py-1 bg-red-500 text-white rounded cursor-pointer font-black"
+              >
+                -
+              </button>
+
+              <input
+                type="text"
+                value={`€ ${ajuste.toFixed(2)}`}
+                readOnly
+                className="text-center w-24 border rounded p-1"
+              />
+
+              <button 
+                onClick={aumentar} 
+                className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
+              >
+                +
+              </button>
+            </div>
+
+          </div>
+          <span className="flex gap-2 px-15 justify-between font-bold text-lg">
             <span>Total</span>
-            <span>€ {valorTotal.toFixed(2)}</span>
+            <span>€ {(valorTotal + ajuste).toFixed(2) }</span>
              
           
           </span>
@@ -864,6 +904,7 @@ export default function GerenciarPedidos() {
                                   ))}
                                 </div>
                                 <hr />
+                                
                                 <div className='flex justify-between font-bold'>
                                   <div>Total Extras</div>
                                   <div>€ {totalExtrasProduto.toFixed(2)}</div>
@@ -881,7 +922,7 @@ export default function GerenciarPedidos() {
 
                   </div>
                   
-                  <div className="flex justify-between font-black pt-2 border-t-2 pt-2 gap-6 items-center">
+                  <div className="flex justify-between font-black pt-2 border-t-2 gap-6 items-center">
                     <div className="flex gap-2">
                       <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
                         <Printer className='cursor-pointer' size={24} />
