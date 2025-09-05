@@ -183,7 +183,8 @@ export default function DespesasPage() {
             onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: parseFloat(e.target.value) })}
           />
 
-          {novaDespesa.tipo === 'recorrente' && (
+          {/* Campo vencimento (recorrente ou parcelado) */}
+          {(novaDespesa.tipo === 'recorrente' || novaDespesa.tipo === 'parcelado') && (
             <Input
               type="number"
               placeholder="Dia vencimento (1-31)"
@@ -192,6 +193,7 @@ export default function DespesasPage() {
             />
           )}
 
+          {/* Campo parcelas (apenas parcelado) */}
           {novaDespesa.tipo === 'parcelado' && (
             <Input
               type="number"
@@ -200,6 +202,7 @@ export default function DespesasPage() {
               onChange={(e) => setNovaDespesa({ ...novaDespesa, parcelas: parseInt(e.target.value) })}
             />
           )}
+
 
           <Button className="md:col-span-4" onClick={adicionarDespesa}>+ Adicionar</Button>
         </CardContent>
@@ -218,41 +221,50 @@ export default function DespesasPage() {
       </div>
 
       {/* Listas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-200 p-6 rounded-2xl">
         {/* Pendentes */}
-        <div>
+        <div className='bg-white p-4 rounded-3xl'>
           <h2 className="text-xl font-bold mb-4">Despesas Pendentes</h2>
-          {despesasPendentes.map(d => (
-            <Card key={d.id} className="shadow-md rounded-2xl border border-gray-100 hover:shadow-xl transition-all mb-4">
-              <CardHeader className="flex justify-between items-center">
-                <CardTitle className="text-lg font-semibold">{d.nome}</CardTitle>
-                <span className="px-3 py-1 text-sm rounded-full bg-red-100 text-red-700">{calcularStatus(d)}</span>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p><span className="font-semibold">Tipo:</span> {d.tipo}</p>
-                <div className="flex gap-2 items-center">
-                  <span className="font-semibold">Valor:</span>
-                  <Input
-                    type="number"
-                    value={d.valor}
-                    onChange={(e) => atualizarValor(d.id!, parseFloat(e.target.value))}
-                    className="w-24"
-                  />
-                  <Button size="sm" onClick={() => atualizarValor(d.id!, d.valor)}>Atualizar</Button>
-                </div>
-                {d.tipo === 'recorrente' && <p><span className="font-semibold">Vencimento:</span> dia {d.vencimentoDia}</p>}
-                {d.tipo === 'parcelado' && <p><span className="font-semibold">Parcela:</span> {d.parcelaAtual ?? 0} / {d.parcelas}</p>}
-                <div className="flex gap-2 mt-4">
-                  <Button size="sm" onClick={() => registrarPagamento(d)}>💰 Pagar</Button>
-                  <Button size="sm" variant="destructive" onClick={() => excluirDespesa(d.id!)}>Excluir</Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div className='grid grid-cols-1 gap-3'>
+            {despesasPendentes.map(d => (
+              <Card key={d.id} className="shadow-md rounded-2xl border border-gray-100 hover:shadow-xl transition-all">
+                <CardHeader className="flex justify-between items-center">
+                  <div className='flex flex-col w-full'>
+                      <CardTitle className="text-xl font-semibold">{d.nome}</CardTitle>
+                    <div className='flex justify-between'>
+                      <div className="px-2 text-sm rounded bg-red-100 text-red-700">{calcularStatus(d)}</div>
+                      {d.tipo === 'recorrente' && <p ><span className="font-semibold">Venc: </span><span className='bg-blue-200 px-2 py-1 text-blue-600 rounded-xl'>{d.vencimentoDia}</span></p>}
+                      {d.tipo === 'parcelado' && <p ><span className="font-semibold">Venc: </span><span className='bg-blue-200 px-2 py-1 text-blue-600 rounded-xl'>{d.vencimentoDia}</span></p>}
+                      {d.tipo === 'parcelado' && <p><span className="font-semibold">Parcela:</span><span className='bg-blue-200 px-2 py-1 text-blue-600 rounded-xl'>{d.parcelaAtual ?? 0} / {d.parcelas}</span></p>}
+                      <p><span className="font-semibold">Tipo:</span> {d.tipo}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex gap-2 items-center justify-between">
+                    <span className="font-semibold">Valor:</span>
+                    <Input
+                      type="number"
+                      value={d.valor.toFixed(2)}
+                      onChange={(e) => atualizarValor(d.id!, parseFloat(e.target.value))}
+                      className="w-24 border-none border-b-2 text-center"
+                    />
+                    <Button size="sm" onClick={() => atualizarValor(d.id!, d.valor)}>Atualizar</Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => registrarPagamento(d)}>💰 Pagar</Button>
+                      <Button size="sm" variant="destructive" onClick={() => excluirDespesa(d.id!)}>Excluir</Button>
+                    </div>
+                  </div>
+                  
+                </CardContent>
+              </Card>
+            ))}
+
+          </div>
         </div>
 
         {/* Pagas/Quitadas */}
-        <div>
+        <div className='bg-white p-4 rounded-3xl'>
           <h2 className="text-xl font-bold mb-4">Despesas Pagas/Quitadas</h2>
           {despesasPagasList.map(d => (
             <Card key={d.id} className="shadow-md rounded-2xl border border-gray-100 hover:shadow-xl transition-all mb-4">

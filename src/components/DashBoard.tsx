@@ -99,7 +99,7 @@ export default function DashBoard() {
       case 'semana':
         inicio = new Date(hoje);
         const diaSemana = hoje.getDay() === 0 ? 7 : hoje.getDay();
-        inicio.setDate(hoje.getDate() - diaSemana + 1);
+        inicio.setDate(hoje.getDate() - diaSemana );
         break;
       case 'mes':
         inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -133,7 +133,6 @@ export default function DashBoard() {
     if (totalOntem === 0) return 100;
     return ((totalHoje - totalOntem) / totalOntem) * 100;
   };
-  const crescimentoDiario = calcularCrescimentoDiario();
 
   const calcularCrescimentoSemanal = () => {
     const hoje = new Date();
