@@ -79,7 +79,7 @@ export default function Login() {
 
         <button
           onClick={login}
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white p-2 rounded cursor-pointer hover:bg-blue-700"
         >
           Entrar
         </button>

@@ -219,51 +219,72 @@ export default function DespesasPage() {
       <h1 className="text-3xl font-bold mb-6">💸 Gestão de Despesas</h1>
 
       {/* Formulário */}
-      <Card className="mb-8 shadow-lg rounded-2xl border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold">Cadastrar Nova Despesa</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Input
-            placeholder="Nome da despesa"
-            value={novaDespesa.nome ?? ''}
-            onChange={(e) => setNovaDespesa({ ...novaDespesa, nome: e.target.value })}
-          />
-          <Select
-            value={novaDespesa.tipo ?? 'pontual'}
-            onValueChange={(v) => setNovaDespesa({ ...novaDespesa, tipo: v as 'pontual'|'recorrente'|'parcelado' })}
-          >
-            <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent className='bg-white'>
-              <SelectItem value="pontual">Pontual</SelectItem>
-              <SelectItem value="recorrente">Recorrente</SelectItem>
-              <SelectItem value="parcelado">Parcelado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            type="number"
-            placeholder="Valor"
-            value={novaDespesa.valor ?? ''}
-            onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: parseFloat(e.target.value) })}
-          />
-          {(novaDespesa.tipo === 'recorrente' || novaDespesa.tipo === 'parcelado') && (
-            <Input
-              type="number"
-              placeholder="Dia vencimento"
-              value={novaDespesa.vencimentoDia ?? ''}
-              onChange={(e) => setNovaDespesa({ ...novaDespesa, vencimentoDia: parseInt(e.target.value) })}
-            />
-          )}
-          {novaDespesa.tipo === 'parcelado' && (
-            <Input
-              type="number"
-              placeholder="Nº de parcelas"
-              value={novaDespesa.parcelas ?? ''}
-              onChange={(e) => setNovaDespesa({ ...novaDespesa, parcelas: parseInt(e.target.value) })}
-            />
-          )}
-          <Button className="md:col-span-4" onClick={adicionarDespesa}>+ Adicionar</Button>
-        </CardContent>
+      <Card className="flex flex-col gap-2 mb-8 shadow-lg rounded-2xl border p-4 border-gray-200">
+        
+          <CardTitle className="text-xl text-blue-600 font-semibold">Cadastrar Nova Despesa</CardTitle>
+        
+        <div className='flex gap-4'>
+          <div className="w-full flex flex-wrap justify-between gap-4">
+            <div className='flex-1 min-w-60'>
+              <label>Despesa</label>
+              <Input
+                placeholder="Nome da despesa"
+                value={novaDespesa.nome ?? ''}
+                onChange={(e) => setNovaDespesa({ ...novaDespesa, nome: e.target.value })}
+              />
+            </div>
+            <div className='w-40'>
+              <label>Tipo despesa</label>
+              <Select
+                value={novaDespesa.tipo ?? 'pontual'}
+                onValueChange={(v) => setNovaDespesa({ ...novaDespesa, tipo: v as 'pontual'|'recorrente'|'parcelado' })}
+              >
+                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent className='bg-white'>
+                  <SelectItem value="pontual">Pontual</SelectItem>
+                  <SelectItem value="recorrente">Recorrente</SelectItem>
+                  <SelectItem value="parcelado">Parcelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label>Valor</label>
+              <Input
+                type="number"
+                placeholder="Valor"
+                value={novaDespesa.valor ?? ''}
+                onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: parseFloat(e.target.value) })}
+                className='w-30 text-center'
+              />
+            </div>
+            
+            <div className='text-center'>
+              <label>Vencimento</label>
+              <Input
+                type="number"
+                placeholder='0'
+                value={novaDespesa.vencimentoDia ?? ''}
+                onChange={(e) => setNovaDespesa({ ...novaDespesa, vencimentoDia: parseInt(e.target.value) })}
+                className='w-25 text-center'
+              />
+            </div>
+            <div className='w-30'>
+              <label>Nº Parcelas</label>
+                <Input
+                  type="number"
+                  value={novaDespesa.parcelas ?? ''}
+                  onChange={(e) => setNovaDespesa({ ...novaDespesa, parcelas: parseInt(e.target.value) })}
+                  disabled = {novaDespesa.tipo !== 'parcelado'}
+                />
+              
+            </div>
+          </div>
+          <div>
+            <label className='text-transparent'>.</label>
+            <Button className="flex items-baseline bg-blue-600 text-white md:col-span-4 cursor-pointer hover:bg-blue-800 hover:text-white" onClick={adicionarDespesa}>+ Adicionar</Button>
+          </div>
+        </div>
       </Card>
 
       {/* Cards */}
@@ -308,7 +329,11 @@ export default function DespesasPage() {
               <CardTitle className={corDespesa(d) || corDespesaPaga(d)}>{d.nome}</CardTitle>
               <div className="flex gap-2 items-center">
 
-                <div>Venc.: {d.vencimentoDia} - € {d.valor.toFixed(2)} ({d.tipo})</div>
+                <div>
+                  <div>
+                    Venc.: {d.vencimentoDia} - € {d.valor.toFixed(2)}
+                  </div>
+                  {d.tipo.toLocaleUpperCase()} {d.tipo === 'parcelado' ? `- ${(Number(d.parcelaAtual) + 1)}/${d.parcelas}`:''}  </div>
                 <Button size="sm" onClick={() => registrarPagamento(d)}>💰 Pagar</Button>
                 <Button size="sm" variant="destructive" onClick={() => excluirDespesa(d.id!)}>Excluir</Button>
               </div>
