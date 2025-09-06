@@ -49,6 +49,7 @@ export default function DespesasPage() {
   // Seletores para histórico
   const [mesHistorico, setMesHistorico] = useState(new Date().getMonth());
   const [anoHistorico, setAnoHistorico] = useState(new Date().getFullYear());
+  
 
   useEffect(() => {
     async function carregar() {
@@ -104,44 +105,54 @@ export default function DespesasPage() {
     setNovaDespesa({ nome: '', tipo: 'pontual', valor: 0 });
   }
 
-  async function atualizarValor(id: string, novoValor: number) {
-    const despesaRef = doc(db, 'despesas', id);
-    await updateDoc(despesaRef, { valor: novoValor });
-    setDespesas(despesas.map(d => d.id === id ? { ...d, valor: novoValor } : d));
-  }
 
   async function registrarPagamento(despesa: Despesa) {
-    const valorPago = parseFloat(prompt(`Valor pago para ${despesa.nome}?`, despesa.valor.toString()) || '0');
-    if (valorPago <= 0) return;
+  const valorPago = parseFloat(prompt(`Valor pago para ${despesa.nome}?`, despesa.valor.toString()) || '0');
+  if (valorPago <= 0) return;
 
-    const formaPagamento = prompt(`Forma de pagamento: ${formasPagamento.join(', ')}`, 'debito-direto');
-    if (!formasPagamento.includes(formaPagamento!)) {
-      return alert('Forma de pagamento inválida');
-    }
+  const formaPagamento = prompt(`Forma de pagamento: ${formasPagamento.join(', ')}`, 'debito-direto');
+  if (!formasPagamento.includes(formaPagamento!)) {
+    return alert('Forma de pagamento inválida');
+  }
 
-    // Guardar o nome da despesa no pagamento
-    const novoPagamento: Partial<DespesaPaga> = {
-      despesaId: despesa.id!,
-      nome: despesa.nome,
-      dataPagamento: new Date(),
-      valorPago,
-      formaPagamento: formaPagamento as DespesaPaga['formaPagamento'],
-    };
+  // Guardar o nome da despesa no pagamento
+  const novoPagamento: Partial<DespesaPaga> = {
+    despesaId: despesa.id!,
+    nome: despesa.nome,
+    dataPagamento: new Date(),
+    valorPago,
+    formaPagamento: formaPagamento as DespesaPaga['formaPagamento'],
+  };
 
-    if (despesa.tipo === 'parcelado') {
-      novoPagamento.parcelaAtual = despesa.parcelaAtual ?? 1;
-      novoPagamento.parcelas = despesa.parcelas;
-    }
+  if (despesa.tipo === 'parcelado') {
+    novoPagamento.parcelaAtual = (despesa.parcelaAtual ?? 0) + 1;
+    novoPagamento.parcelas = despesa.parcelas;
+  }
 
-    const docRef = await addDoc(collection(db, 'despesaspagas'), novoPagamento);
-    setDespesasPagas([...despesasPagas, { ...novoPagamento, id: docRef.id } as DespesaPaga]);
+  const docRef = await addDoc(collection(db, 'despesaspagas'), novoPagamento);
+  setDespesasPagas([...despesasPagas, { ...novoPagamento, id: docRef.id } as DespesaPaga]);
 
-    // Remove pontual da lista de despesas mensais
-    if (despesa.tipo === 'pontual') {
+  if (despesa.tipo === 'pontual') {
+    // Remove despesa pontual da lista após pagamento
+    setDespesas(despesas.filter(d => d.id !== despesa.id));
+    await deleteDoc(doc(db, 'despesas', despesa.id!));
+  } else if (despesa.tipo === 'parcelado') {
+    const novaParcelaAtual = (despesa.parcelaAtual ?? 0) + 1;
+    const despesaRef = doc(db, 'despesas', despesa.id!);
+
+    if (novaParcelaAtual >= (despesa.parcelas ?? 0)) {
+      // Última parcela → remove despesa
+      await deleteDoc(despesaRef);
       setDespesas(despesas.filter(d => d.id !== despesa.id));
-      await deleteDoc(doc(db, 'despesas', despesa.id!));
+    } else {
+      // Atualiza a parcela atual no Firestore
+      await updateDoc(despesaRef, { parcelaAtual: novaParcelaAtual });
+      setDespesas(despesas.map(d =>
+        d.id === despesa.id ? { ...d, parcelaAtual: novaParcelaAtual } : d
+      ));
     }
   }
+}
 
   async function excluirDespesa(id: string) {
     if (!confirm('Tem certeza que deseja excluir esta despesa?')) return;
@@ -203,6 +214,10 @@ export default function DespesasPage() {
     const anoValido = anoHistorico === -1 || data.getFullYear() === anoHistorico;
     return mesValido && anoValido;
   });
+
+  const totalHistoricoFiltrado = pagamentosHistorico.reduce((acc, p) => acc + p.valorPago, 0);
+
+  
 
   const getDespesaNome = (id: string) => {
     // Pega nome do pagamento, senão despesa
@@ -361,6 +376,15 @@ export default function DespesasPage() {
         {/* Histórico */}
         <div className="bg-white p-4 rounded-3xl">
           <h2 className="text-xl font-bold mb-4 text-green-600">📚 Histórico de Pagamentos</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-700">
+              Total do período:
+            </h3>
+            <span className="text-xl font-bold text-green-700">
+              € {totalHistoricoFiltrado.toFixed(2)}
+            </span>
+          </div>
+
           <div className="flex gap-2 mb-4">
             <Select value={mesHistorico.toString()} onValueChange={(v) => setMesHistorico(parseInt(v))}>
               <SelectTrigger><SelectValue placeholder="Mês" /></SelectTrigger>
