@@ -39,6 +39,7 @@ export default function DespesasPage() {
     tipo: 'pontual',
     valor: 0,
   });
+  
   const [formasPagamento] = useState(['transferencia', 'dinheiro', 'debito-direto', 'cartao']);
   const meses = [
     'Janeiro','Fevereiro','Março','Abril','Maio','Junho',

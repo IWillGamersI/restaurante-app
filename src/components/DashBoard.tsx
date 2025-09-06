@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
