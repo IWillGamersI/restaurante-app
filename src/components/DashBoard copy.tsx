@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown, BarChart } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
@@ -8,12 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
-import { div, h2 } from 'framer-motion/client';
+
+
 
 
 interface Produto {
-  id: string
-  imagemUrl: string;
   nome: string;
   preco: number;
   custo?: number;
@@ -28,7 +27,6 @@ interface Pedido {
   canal?: string;
   pagamento?: string;
   faturado?: string;  
-  imagemUrl?: string 
 }
 
 interface Despesa {
@@ -78,7 +76,6 @@ export default function DashBoard() {
   const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
   const [mesSelecionado, setMesSelecionado] = useState<number>(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
-  const [produtos, setProdutos] = useState<Produto[]>([]);
 
 
   useEffect(() => {
@@ -381,7 +378,7 @@ const cardsPrincipais = [
       .reduce((acc, p) => acc + p.valor, 0);
     return { dia, faturamento };
   });
-  
+
   // Produtos
   const produtosMap = pedidosFiltrados.reduce((acc: Record<string, { qtd: number; valor: number; lucro: number }>, p) => {
     if (Array.isArray(p.produto)) {
@@ -405,11 +402,9 @@ const cardsPrincipais = [
     .sort((a, b) => b.qtd - a.qtd)
     .slice(0, 10);
 
-
   const produtoMaisLucrativo = Object.entries(produtosMap)
-    .map(([nome, dados]) => ({ nome, ...dados }))
-    .sort((a, b) => b.lucro - a.lucro)
-    .slice(0, 10);
+    .map(([produto, dados]) => ({ produto, lucro: dados.lucro }))
+    .sort((a, b) => b.lucro - a.lucro)[0];
 
   // Pedidos por canal
   const canaisMap = pedidosFiltrados.reduce((acc: Record<string, { qtd: number; valor: number }>, p) => {
@@ -461,264 +456,267 @@ const cardsPrincipais = [
   return (
     <div className="text-gray-800 p-4">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+
+      {/* Cards principais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {cardsPrincipais.map((card, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+          >
+            <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
+              {card.icon}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-gray-500 text-sm font-medium">{card.title}</span>
+              <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className='grid grid-cols-4 gap-4 mb-8'>
+          
+            {/* Próximas */}
+              <Card className="bg-yellow-100 border-yellow-300 text-yellow-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t  to-yellow-200">
+                <CardTitle className="text-lg font-semibold mb-2">📅 Próximos 7 dias</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  {despesasProximas.length === 0 ? (
+                    <div className="text-sm text-gray-600">Nenhum vencimento próximo</div>
+                  ) : (
+                    despesasProximas.map(d => (
+                      <div key={d.id} className="text-sm flex justify-between border-b-1 gap-2">
+                        <div>Dia: {d.vencimentoDia < 10 ? `0${d.vencimentoDia}`: d.vencimentoDia}</div>
+                        <div className='flex-1'> - {d.nome}</div>
+                        <div className='flex gap-1 justify-between'>
+                          <div>{moeda}</div>
+                          <div>{d.valor.toFixed(2)}</div>
+                          
+                        </div>
+                          
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+            {/* Atrasadas */}
+            <Card className="bg-red-100 border-red-300 text-red-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t to-red-200">
+              <CardTitle className="text-lg font-semibold mb-2">⚠️ Atrasadas</CardTitle>
+              <CardContent className=" p-0">
+                {despesasAtrasadas.length === 0 ? (
+                  <div className="text-sm text-gray-600">Nenhuma despesa atrasada 🎉</div>
+                ) : (
+                  despesasAtrasadas.map(d => (
+                    <div key={d.id} className="text-sm">
+                      {d.nome} - venc. dia {d.vencimentoDia} - {moeda} {d.valor.toFixed(2)}
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Próximo vencimento */}
+            <Card className="bg-blue-100 border-blue-300 text-blue-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg  bg-gradient-to-t to-blue-200">
+              <CardTitle className="text-lg font-semibold mb-2">⏳ Próximo Vencimento</CardTitle>
+              <CardContent className="p-0">
+                {proximoVencimento ? (
+                  <div className="text-sm">
+                    {proximoVencimento.nome} - dia {proximoVencimento.vencimentoDia} - {moeda} {proximoVencimento.valor.toFixed(2)}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-600">Nenhuma despesa pendente</div>
+                )}
+              </CardContent>
+            </Card>
+        
+
+            <div className='flex flex-col gap-2'>
+              <Card className="bg-blue-100 border-blue-300 text-blue-800 p-4 rounded-2xl shadow">
+                <CardTitle className="text-lg font-semibold mb-2">💳 Despesas do Mês</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  <div className='text-2xl flex justify-between font-bold'>
+                    <div>{moeda}</div>
+                    <div>{totalDasDespesas.toFixed(2)}</div>                     
+                  </div>
+                </CardContent>
+              </Card>
+            
+              <Card className="bg-red-100 border-red-300 text-red-800 p-4 rounded-2xl shadow">
+                <CardTitle className="text-lg font-semibold mb-2">💳 Despesas à Pagar</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  <div className='text-2xl flex justify-between font-bold'>
+                    <div>{moeda}</div>
+                    <div>{saldoDespesas.toFixed(2)}</div>                     
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+      </div>
+
+       {/* Cards por canal */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {cardsPorCanal.map((card, i) => {
+          // Define a imagem dinamicamente
+          let imgSrc = imagensPorCanal[card.title] || '/images/logo.png';
+          
+          return (
+            <div
+              key={i}
+              className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
+                  <img src={imgSrc} alt={card.title} className=" rounded-full w-10 h-10 object-cover" />
+                </div>
+                <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
+              </div>
+              <div className="flex flex-col gap-1 mt-2">
+                <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                  <span className='text-blue-600 font-semibold'>Faturamento</span> <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
+                </span>
+                <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                  <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
+                </span>
+                <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                  <span className='text-blue-600 font-semibold'>Quantidade de pedidos</span> <span className="font-bold">{card.quantidade}</span>
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className='mb-6'>
+      {/* Card Faturamento Diário */}
+
+      <Card className=''>
+        <CardHeader>
+          <CardTitle>📅 Faturamento Diário</CardTitle>
+          <div className="flex gap-2">
+            <div className='w-full flex justify-between gap-3'>
+              {/* Relatório do mês */}
+              <div className="flex-1 flex flex-col border-2 border-gray-400 p-4 rounded-lg bg-gray-50">
+                <div className="text-lg font-bold text-gray-800 mb-2">📊 Relatório do Mês</div>
+                <div className="flex justify-between">
+                  <span>Faturamento Almoço:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Almoço')?.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Faturamento Jantar:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Jantar')?.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold mt-2">
+                  <span>Total do Mês:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.reduce((acc, r) => acc + r.total, 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className='w-80 flex flex-col gap-3 justify-center items-center'>
+                <h2>Escolha Mês e Ano</h2>
+                <div className='w-80 flex gap-3 items-center text-center '>
+                  <Select onValueChange={(v) => setMesSelecionado(Number(v))} defaultValue={mesSelecionado.toString()}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white text-center'>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>{i + 1}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select onValueChange={(v) => setAnoSelecionado(Number(v))} defaultValue={anoSelecionado.toString()}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ano" />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white text-center'>
+                      {Array.from({ length:5 }, (_, i) => {
+                        const ano = new Date().getFullYear() - i;
+                        return <SelectItem key={ano} value={ano.toString()}>{ano}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+              </div>
+            </div>
+
+            </div>
+          </CardHeader>
+          <CardContent className="w-full grid grid-cols-9 gap-2">
+            {gerarFaturamentoDiario(mesSelecionado, anoSelecionado).map((f, idx) => {
+              const isSemana = f.diaSemana === 'Faturamento Semanal';
+              return (
+                <div
+                  key={idx}
+                  className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
+                >
+                  <div className='flex justify-between font-bold text-blue-600'>
+                    <div>{f.diaSemana}</div>
+                    <div>{f.dia ?? ''}</div>
+                  </div>
+
+                  <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
+                    <div className='flex justify-between'>
+                      Almoço
+                      <div>
+                        {moeda} {f.valorAlmoco.toFixed(2)}
+
+                      </div>
+                    </div>
+                    <div className='flex justify-between border-b-1'>
+                      Jantar 
+                      <div>
+                        {moeda} {f.valorJantar.toFixed(2)}
+
+                      </div>
+                    </div>
+                    <div className='flex justify-between text-blue-600 font-bold'>
+                      Total 
+                      <div>
+                        {moeda} {f.valor.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            
+          </CardContent>
+
+        </Card>
+      </div>
+
+     
+
+      {/* Filtro */}
+      <div className="mb-6 w-64">
+        <Select onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodo)} defaultValue="semana">
+          <SelectTrigger className="cursor-pointer">
+            <SelectValue placeholder="Selecione o período" />
+          </SelectTrigger>
+          <SelectContent className="bg-white cursor-pointer">
+            <SelectItem className="cursor-pointer" value="hoje">Hoje</SelectItem>
+            <SelectItem className="cursor-pointer" value="semana">Semana</SelectItem>
+            <SelectItem className="cursor-pointer" value="mes">Mês</SelectItem>
+            <SelectItem className="cursor-pointer" value="ano">Ano</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Tabs */}
-      <Tabs defaultValue="inicio">
+      <Tabs defaultValue="semana">
         <TabsList className="mb-4 flex flex-wrap gap-2">
-          <TabsTrigger className='cursor-pointer' value="inicio">🏠 Início</TabsTrigger>
-          <TabsTrigger className='cursor-pointer' value="faturamento">📅 Faturamento</TabsTrigger>
-          <TabsTrigger className="cursor-pointer" value="semana">📊 Semana</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="semana">📅 Semana</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="produtos">🍕 Produtos</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="canal">📡 Canais</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="horario">⏰ Horários</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="financas">💰 Finanças</TabsTrigger>
         </TabsList>
 
-        {/*Inicio*/}
-        <TabsContent value='inicio'>
-          {/* Cards principais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {cardsPrincipais.map((card, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
-              >
-                <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
-                  {card.icon}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-sm font-medium">{card.title}</span>
-                  <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Cards Despesas */}
-          <div className='grid grid-cols-4 gap-4 mb-8'>          
-                {/* Próximas */}
-                  <Card className="bg-yellow-100 border-yellow-300 text-yellow-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t  to-yellow-200">
-                    <CardTitle className="text-lg font-semibold mb-2">📅 Próximos 7 dias</CardTitle>
-                    <CardContent className="space-y-1 p-0">
-                      {despesasProximas.length === 0 ? (
-                        <div className="text-sm text-gray-600">Nenhum vencimento próximo</div>
-                      ) : (
-                        despesasProximas.map(d => (
-                          <div key={d.id} className="text-sm flex justify-between border-b-1 gap-2">
-                            <div>Dia: {d.vencimentoDia < 10 ? `0${d.vencimentoDia}`: d.vencimentoDia}</div>
-                            <div className='flex-1'> - {d.nome}</div>
-                            <div className='flex gap-1 justify-between'>
-                              <div>{moeda}</div>
-                              <div>{d.valor.toFixed(2)}</div>
-                              
-                            </div>
-                              
-                          </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-
-                {/* Atrasadas */}
-                <Card className="bg-red-100 border-red-300 text-red-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t to-red-200">
-                  <CardTitle className="text-lg font-semibold mb-2">⚠️ Atrasadas</CardTitle>
-                  <CardContent className=" p-0">
-                    {despesasAtrasadas.length === 0 ? (
-                      <div className="text-sm text-gray-600">Nenhuma despesa atrasada 🎉</div>
-                    ) : (
-                      despesasAtrasadas.map(d => (
-                        <div key={d.id} className="text-sm">
-                          {d.nome} - venc. dia {d.vencimentoDia} - {moeda} {d.valor.toFixed(2)}
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Próximo vencimento */}
-                <Card className="bg-blue-100 border-blue-300 text-blue-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg  bg-gradient-to-t to-blue-200">
-                  <CardTitle className="text-lg font-semibold mb-2">⏳ Próximo Vencimento</CardTitle>
-                  <CardContent className="p-0">
-                    {proximoVencimento ? (
-                      <div className="text-sm">
-                        {proximoVencimento.nome} - dia {proximoVencimento.vencimentoDia} - {moeda} {proximoVencimento.valor.toFixed(2)}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-600">Nenhuma despesa pendente</div>
-                    )}
-                  </CardContent>
-                </Card>       
-
-                <div className='flex flex-col gap-2'>
-                  <Card className="bg-blue-100 border-blue-300 text-blue-800 p-4 rounded-2xl shadow">
-                    <CardTitle className="text-lg font-semibold mb-2">💳 Despesas do Mês</CardTitle>
-                    <CardContent className="space-y-1 p-0">
-                      <div className='text-2xl flex justify-between font-bold'>
-                        <div>{moeda}</div>
-                        <div>{totalDasDespesas.toFixed(2)}</div>                     
-                      </div>
-                    </CardContent>
-                  </Card>
-                
-                  <Card className="bg-red-100 border-red-300 text-red-800 p-4 rounded-2xl shadow">
-                    <CardTitle className="text-lg font-semibold mb-2">💳 Despesas à Pagar</CardTitle>
-                    <CardContent className="space-y-1 p-0">
-                      <div className='text-2xl flex justify-between font-bold'>
-                        <div>{moeda}</div>
-                        <div>{saldoDespesas.toFixed(2)}</div>                     
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-          </div>
-
-          {/* Cards por canal */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {cardsPorCanal.map((card, i) => {
-              // Define a imagem dinamicamente
-              let imgSrc = imagensPorCanal[card.title] || '/images/logo.png';
-              
-              return (
-                <div
-                  key={i}
-                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
-                      <img src={imgSrc} alt={card.title} className=" rounded-full w-10 h-10 object-cover" />
-                    </div>
-                    <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2">
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
-                      <span className='text-blue-600 font-semibold'>Faturamento</span> <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
-                    </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
-                      <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
-                    </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
-                      <span className='text-blue-600 font-semibold'>Quantidade de pedidos</span> <span className="font-bold">{card.quantidade}</span>
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* Card Faturamento Diário */}
-        <TabsContent value='faturamento'>
-          <Card className=''>
-            <CardHeader>
-              <CardTitle>📅 Faturamento Diário</CardTitle>
-              <div className="flex gap-2">
-                <div className='w-full flex justify-between gap-3'>
-                  {/* Relatório do mês */}
-                  <div className="flex-1 flex flex-col border-2 border-gray-400 p-4 rounded-lg bg-gray-50">
-                    <div className="text-lg font-bold text-gray-800 mb-2">📊 Relatório do Mês</div>
-                    <div className="flex justify-between">
-                      <span>Faturamento Almoço:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Almoço')?.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Faturamento Jantar:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Jantar')?.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold mt-2">
-                      <span>Total do Mês:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.reduce((acc, r) => acc + r.total, 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className='w-80 flex flex-col gap-3 justify-center items-center'>
-                    <h2>Escolha Mês e Ano</h2>
-                    <div className='w-80 flex gap-3 items-center text-center '>
-                      <Select onValueChange={(v) => setMesSelecionado(Number(v))} defaultValue={mesSelecionado.toString()}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o mês" />
-                        </SelectTrigger>
-                        <SelectContent className='bg-white text-center'>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>{i + 1}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <Select onValueChange={(v) => setAnoSelecionado(Number(v))} defaultValue={anoSelecionado.toString()}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o ano" />
-                        </SelectTrigger>
-                        <SelectContent className='bg-white text-center'>
-                          {Array.from({ length:5 }, (_, i) => {
-                            const ano = new Date().getFullYear() - i;
-                            return <SelectItem key={ano} value={ano.toString()}>{ano}</SelectItem>;
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                  </div>
-                </div>
-
-                </div>
-              </CardHeader>
-              <CardContent className="w-full grid grid-cols-9 gap-2">
-                {gerarFaturamentoDiario(mesSelecionado, anoSelecionado).map((f, idx) => {
-                  const isSemana = f.diaSemana === 'Faturamento Semanal';
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
-                    >
-                      <div className='flex justify-between font-bold text-blue-600'>
-                        <div>{f.diaSemana}</div>
-                        <div>{f.dia ?? ''}</div>
-                      </div>
-
-                      <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
-                        <div className='flex justify-between'>
-                          Almoço
-                          <div>
-                            {moeda} {f.valorAlmoco.toFixed(2)}
-
-                          </div>
-                        </div>
-                        <div className='flex justify-between border-b-1'>
-                          Jantar 
-                          <div>
-                            {moeda} {f.valorJantar.toFixed(2)}
-
-                          </div>
-                        </div>
-                        <div className='flex justify-between text-blue-600 font-bold'>
-                          Total 
-                          <div>
-                            {moeda} {f.valor.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-              </CardContent>
-
-            </Card>
-        </TabsContent>
-
         {/* Semana */}
         <TabsContent value="semana">
-          {/* Filtro */}
-          <div className="mb-6 w-64">
-            <Select onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodo)} defaultValue="semana">
-              <SelectTrigger className="cursor-pointer">
-                <SelectValue placeholder="Selecione o período" />
-              </SelectTrigger>
-              <SelectContent className="bg-white cursor-pointer">
-                <SelectItem className="cursor-pointer" value="hoje">Hoje</SelectItem>
-                <SelectItem className="cursor-pointer" value="semana">Semana</SelectItem>
-                <SelectItem className="cursor-pointer" value="mes">Mês</SelectItem>
-                <SelectItem className="cursor-pointer" value="ano">Ano</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <Card>
             <CardHeader><CardTitle>Faturamento por dia da semana</CardTitle></CardHeader>
             <CardContent>
@@ -736,88 +734,23 @@ const cardsPrincipais = [
           </Card>
         </TabsContent>
 
-       
         {/* Produtos */}
-          <TabsContent value="produtos">
-            <div className='flex flex-col gap-3'>  
-              <div className='flex flex-col gap-2 bg-blue-100 p-4 rounded-2xl'>
-                <h2 className='text-2xl text-blue-600 font-extrabold'>Produtos mais vendidos</h2>           
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {topProdutos.map((produto, i) => (                
-                      <div key={i}>
-                        <div className='flex flex-col justify-between border-1 border-blue-400 h-35 rounded p-2'>                  
-                            <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Lucro
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.lucro.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Valor total
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.valor.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Quantidade vendida
-                                </div>
-                                <div className="font-bold text-center w-1/4">{produto.qtd}</div>
-                            </div>          
-                        </div>
-                      </div>
-                  ))}
-                </div> 
-              </div>
-              <div className='bg-green-100 p-4 rounded-2xl'>
-                <h2 className='text-2xl'>Produtos mais Lucrativos</h2>  
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {produtoMaisLucrativo.map((produto, i) => (                
-                      <div key={i}>
-                        <div className='flex flex-col justify-between border-1 border-blue-400 h-35 rounded p-2'>                  
-                            <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Lucro
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.lucro.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Valor total
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.valor.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Quantidade vendida
-                                </div>
-                                <div className="font-bold text-center w-1/4">{produto.qtd}</div>
-                            </div>          
-                        </div>
-                      </div>
-                  ))}
-                </div> 
-              </div>
-            </div>
-          </TabsContent>
+        <TabsContent value="produtos">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {topProdutos.map((produto, i) => (
+              <Card key={i} className="p-4">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold">{produto.nome}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>Quantidade vendida: <span className="font-bold">{produto.qtd}</span></p>
+                  <p>Valor total: <span className="font-bold">{moeda} {produto.valor.toFixed(2)}</span></p>
+                  <p>Lucro: <span className="font-bold">{moeda} {produto.lucro.toFixed(2)}</span></p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
 
         {/* Canais */}
         <TabsContent value="canal">
