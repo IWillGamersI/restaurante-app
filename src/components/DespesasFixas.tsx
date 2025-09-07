@@ -181,6 +181,11 @@ export default function DespesasPage() {
     if(estaPagaNoMesAtual(d)) return ''
     return d.vencimentoDia - hojeDia <= 2 ? 'text-red-600' : ''
   }
+
+  const corDespesaPaga = (d: Despesa) =>{
+    if(!d.vencimentoDia) return ''
+    return estaPagaNoMesAtual(d) ? 'text-green-600':''
+  }
   
   const pagamentosMesAtual = despesasPagas.filter(p => {
     const data = new Date(p.dataPagamento);
@@ -228,7 +233,7 @@ export default function DespesasPage() {
             onValueChange={(v) => setNovaDespesa({ ...novaDespesa, tipo: v as 'pontual'|'recorrente'|'parcelado' })}
           >
             <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className='bg-white'>
               <SelectItem value="pontual">Pontual</SelectItem>
               <SelectItem value="recorrente">Recorrente</SelectItem>
               <SelectItem value="parcelado">Parcelado</SelectItem>
@@ -299,7 +304,7 @@ export default function DespesasPage() {
           <h2 className="text-xl font-bold mb-4 text-red-600">📌 Despesas Mensais</h2>
           {despesasMensaisOrdenadas.map(d => (
             <Card key={d.id} className="p-3 shadow-md rounded-2xl border border-gray-100 hover:shadow-xl transition-all">
-              <CardTitle className={corDespesa(d)}>{d.nome}</CardTitle>
+              <CardTitle className={corDespesa(d) || corDespesaPaga(d)}>{d.nome}</CardTitle>
               <div className="flex gap-2 items-center">
 
                 <div>Venc.: {d.vencimentoDia} - € {d.valor.toFixed(2)} ({d.tipo})</div>
@@ -333,14 +338,14 @@ export default function DespesasPage() {
           <div className="flex gap-2 mb-4">
             <Select value={mesHistorico.toString()} onValueChange={(v) => setMesHistorico(parseInt(v))}>
               <SelectTrigger><SelectValue placeholder="Mês" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className='bg-white'>
                 <SelectItem value={-1 + ''}>Todos os meses</SelectItem>
                 {meses.map((m,i)=><SelectItem key={i} value={i + ''}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={anoHistorico.toString()} onValueChange={(v) => setAnoHistorico(parseInt(v))}>
               <SelectTrigger><SelectValue placeholder="Ano" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className='bg-white'>
                 <SelectItem value={-1 + ''}>Todos os anos</SelectItem>
                 {anosDisponiveis.map((a,i)=><SelectItem key={i} value={a + ''}>{a}</SelectItem>)}
               </SelectContent>
