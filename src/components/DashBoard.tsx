@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown, BarChart } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
+import { div } from 'framer-motion/client';
+
+
 
 interface Produto {
   nome: string;
@@ -25,6 +28,25 @@ interface Pedido {
   pagamento?: string;
   faturado?: string;  
 }
+
+interface Despesa {
+  id: string
+  nome: string
+  valor: number
+  vencimentoDia: number
+  pago?: boolean
+}
+
+interface DespesasPaga {
+  id: string
+  despesaId: string
+  nome: string
+  valorPago: number
+  dataPagamento: Date | Timestamp
+  formaPagamento: string
+}
+
+
 
 type FiltroPeriodo = 'hoje' | 'semana' | 'mes' | 'ano';
 
@@ -50,6 +72,11 @@ export default function DashBoard() {
   const [loading, setLoading] = useState(true);
   const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>('semana');
   const [moeda, setMoeda] = useState('€'); // pode trocar para 'R$' etc.
+  const [despesas, setDespesas] = useState<Despesa[]>([])
+  const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
+  const [mesSelecionado, setMesSelecionado] = useState<number>(new Date().getMonth());
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
+
 
   useEffect(() => {
     async function carregarPedidos() {
@@ -87,7 +114,184 @@ export default function DashBoard() {
     carregarPedidos();
   }, []);
 
+  useEffect(()=>{    
+    async function carregarDespesas(){
+      try{
+        const despesasRef = collection(db,'despesas')
+        const snapshot = await getDocs(despesasRef)
+        const dados = snapshot.docs.map(doc =>{
+        const d = doc.data()
+          return{
+            id: doc.id,
+            nome: d.nome,
+            valor: d.valor,
+            vencimentoDia: d.vencimentoDia,
+          } as Despesa
+        })
+        setDespesas(dados)
+      }catch(err){
+        console.error('Erro ao carregar despesas: ',err)
+      }
+    }
+
+    carregarDespesas()
+    carregarDespesasPagas() // 👈 adicionado aqui
+  }, [])
+
+  async function carregarDespesasPagas(){
+    try{
+      const pagasRef = collection(db,'despesaspagas')
+      const snapshot = await getDocs(pagasRef)
+      const dados = snapshot.docs.map(doc =>{
+        const d = doc.data()
+        return{
+          id: doc.id,
+          despesaId: d.despesaId,
+          nome: d.nome || '', // opcional, se já salvar no Firestore
+          valorPago: d.valorPago || 0,
+          dataPagamento: d.dataPagamento instanceof Timestamp ? d.dataPagamento.toDate() : new Date(d.dataPagamento),
+          formaPagamento: d.formaPagamento || ''
+        } as DespesasPaga
+      })
+      setDespesasPagas(dados)
+    }catch(err){
+      console.error('Erro ao carregar despesas pagas: ',err)
+    }
+  }
   if (loading) return <p>Carregando...</p>;
+
+ const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+
+    // Agrupa quanto já foi pago **no mês atual** por despesaId
+    const pagamentosNoMes: Record<string, number> = despesasPagas.reduce((acc, dp) => {
+      if (!dp.despesaId) return acc; // ignora registros sem despesaId
+      const data = dp.dataPagamento instanceof Timestamp ? dp.dataPagamento.toDate() : dp.dataPagamento;
+      if (data.getMonth() === mesAtual && data.getFullYear() === anoAtual) {
+        acc[dp.despesaId] = (acc[dp.despesaId] || 0) + (dp.valorPago ?? 0);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Função para verificar se despesa foi **totalmente** paga no mês atual
+    const foiPagaNoMesAtual = (d: Despesa) => {
+      const pago = pagamentosNoMes[d.id] || 0;
+      return pago >= d.valor;
+    };
+
+    // Total de despesas (soma dos valores cadastrados)
+    const totalDasDespesas = despesas.reduce((acc, d) => acc + d.valor, 0);
+
+    // Saldo: para cada despesa subtrai o que já foi pago no mês (tratando parciais)
+    const saldoDespesas = despesas.reduce((acc, d) => {
+      const pago = pagamentosNoMes[d.id] || 0;
+      const restante = Math.max(0, d.valor - pago); // se pagamento maior que valor, zero
+      return acc + restante;
+    }, 0);
+
+
+   
+
+
+    // Função para criar a data completa de vencimento da despesa
+    const getDataVencimento = (d: Despesa) => {
+    const vencimento = new Date(hoje.getFullYear(), hoje.getMonth(), d.vencimentoDia);
+    if (vencimento < hoje && !foiPagaNoMesAtual(d)) {
+      // se já passou no mês atual, avança para o próximo mês
+      vencimento.setMonth(vencimento.getMonth() + 1);
+    }
+    return vencimento;
+  };
+
+  // Despesas atrasadas
+  const despesasAtrasadas = despesas.filter(d => {
+    const venc = getDataVencimento(d);
+    return venc < hoje && !foiPagaNoMesAtual(d);
+  });
+
+  // Próximas 7 dias
+  const despesasProximas = despesas.filter(d => {
+    const venc = getDataVencimento(d);
+    const diffDias = (venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDias >= 0 && diffDias <= 7 && !foiPagaNoMesAtual(d);
+  });
+
+  // Próximo vencimento
+  const proximoVencimento = despesas
+    .filter(d => !foiPagaNoMesAtual(d))
+    .sort((a, b) => getDataVencimento(a).getTime() - getDataVencimento(b).getTime())[0];
+
+
+  const gerarFaturamentoDiario = (mes: number, ano: number) => {
+    const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+    const totalDias = new Date(ano, mes + 1, 0).getDate();
+    const primeiraData = new Date(ano, mes, 1);
+    const primeiraSemanaDia = primeiraData.getDay() === 0 ? 7 : primeiraData.getDay(); // Domingo=0 -> 7
+
+    const dias: { dia: number | null; valor: number; valorAlmoco: number; valorJantar: number }[] = [];
+
+    // Preenche dias vazios antes do dia 1
+    for (let i = 1; i < primeiraSemanaDia; i++) {
+      dias.push({ dia: null, valor: 0, valorAlmoco: 0, valorJantar: 0 });
+    }
+
+    // Preenche os dias do mês
+    for (let i = 1; i <= totalDias; i++) {
+      const data = new Date(ano, mes, i);
+      const pedidosDoDia = pedidos
+        .filter(p => p.data.getFullYear() === ano && p.data.getMonth() === mes && p.data.getDate() === i);
+
+      const valorAlmoco = pedidosDoDia
+        .filter(p => p.data.getHours() >= 10 && p.data.getHours() < 16)
+        .reduce((acc, p) => acc + p.valor, 0);
+
+      const valorJantar = pedidosDoDia
+        .filter(p => p.data.getHours() >= 16 && p.data.getHours() < 23)
+        .reduce((acc, p) => acc + p.valor, 0);
+
+      dias.push({ dia: i, valor: valorAlmoco + valorJantar, valorAlmoco, valorJantar });
+    }
+
+    // Quebra em semanas e adiciona a soma semanal
+    const semanas: { dia: number | null; valor: number; valorAlmoco: number; valorJantar: number; diaSemana: string | 'Faturamento Semanal' }[] = [];
+    let somaSemana = 0;
+    let somaAlmocoSemana = 0;
+    let somaJantarSemana = 0;
+
+    for (let i = 0; i < dias.length; i++) {
+      const diaIndexSemana = i % 7;
+      somaSemana += dias[i].valor;
+      somaAlmocoSemana += dias[i].valorAlmoco;
+      somaJantarSemana += dias[i].valorJantar;
+
+      semanas.push({
+        dia: dias[i].dia,
+        valor: dias[i].valor,
+        valorAlmoco: dias[i].valorAlmoco,
+        valorJantar: dias[i].valorJantar,
+        diaSemana: diasSemana[diaIndexSemana],
+      });
+
+      // Se for domingo ou último dia, adiciona soma da semana
+      if (diaIndexSemana === 6 || i === dias.length - 1) {
+        semanas.push({
+          dia: null,
+          valor: somaSemana,
+          valorAlmoco: somaAlmocoSemana,
+          valorJantar: somaJantarSemana,
+          diaSemana: 'Faturamento Semanal',
+        });
+        somaSemana = 0;
+        somaAlmocoSemana = 0;
+        somaJantarSemana = 0;
+      }
+    }
+
+    return semanas;
+  };
+
+  
 
   const filtrarPedidos = (periodo: FiltroPeriodo) => {
     const hoje = new Date();
@@ -120,41 +324,6 @@ export default function DashBoard() {
   const totalPedidos = pedidosFiltrados.length;
   const ticketMedio = totalPedidos > 0 ? (faturamentoTotal / totalPedidos).toFixed(2) : '0.00';
 
-  const calcularCrescimentoDiario = () => {
-    const hoje = new Date();
-    const ontem = new Date();
-    ontem.setDate(hoje.getDate() - 1);
-    const totalHoje = pedidosFiltrados
-      .filter((p) => p.data.toDateString() === hoje.toDateString())
-      .reduce((acc, p) => acc + p.valor, 0);
-    const totalOntem = pedidosFiltrados
-      .filter((p) => p.data.toDateString() === ontem.toDateString())
-      .reduce((acc, p) => acc + p.valor, 0);
-    if (totalOntem === 0) return 100;
-    return ((totalHoje - totalOntem) / totalOntem) * 100;
-  };
-
-  const calcularCrescimentoSemanal = () => {
-    const hoje = new Date();
-    const inicioSemana = new Date(hoje);
-    const diaSemana = hoje.getDay() === 0 ? 7 : hoje.getDay();
-    inicioSemana.setDate(hoje.getDate() - diaSemana + 1);
-    const inicioSemanaPassada = new Date(inicioSemana);
-    inicioSemanaPassada.setDate(inicioSemana.getDate() - 7);
-    const fimSemanaPassada = new Date(inicioSemana);
-    fimSemanaPassada.setDate(inicioSemana.getDate() - 1);
-    const totalSemanaAtual = pedidosFiltrados
-      .filter((p) => p.data >= inicioSemana)
-      .reduce((acc, p) => acc + p.valor, 0);
-    const totalSemanaPassada = pedidosFiltrados
-      .filter((p) => p.data >= inicioSemanaPassada && p.data <= fimSemanaPassada)
-      .reduce((acc, p) => acc + p.valor, 0);
-    if (totalSemanaPassada === 0) return 100;
-    return ((totalSemanaAtual - totalSemanaPassada) / totalSemanaPassada) * 100;
-  };
-  const crescimentoSemanal = calcularCrescimentoSemanal();
-
-  
   // Calcular métricas por canal
   const canais = [
     { nome: 'Uber', filtro: (p: Pedido) => p.canal?.toLowerCase() === 'uber' },
@@ -198,7 +367,7 @@ const cardsPrincipais = [
 
 
   // Faturamento por dia da semana
-  const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const pedidosPorDia = diasSemana.map((dia, i) => {
     const hoje = new Date();
     const inicioSemana = new Date(hoje);
@@ -250,10 +419,8 @@ const cardsPrincipais = [
 
   // Horários
   const refeicoes = [
-    { nome: 'Café da manhã', inicio: 7, fim: 11 },
-    { nome: 'Almoço', inicio: 11, fim: 15 },
-    { nome: 'Tarde', inicio: 15, fim: 18 },
-    { nome: 'Jantar', inicio: 18, fim: 23 },
+    { nome: 'Almoço', inicio: 10, fim: 16 },
+    { nome: 'Jantar', inicio: 16, fim: 23 },
   ];
   const faturamentoPorRefeicao = refeicoes.map((r) => {
     const total = pedidosFiltrados
@@ -270,6 +437,21 @@ const cardsPrincipais = [
     return acc;
   }, {});
   const vendasPorPagamento = Object.entries(pagamentosMap).map(([pagamento, total]) => ({ pagamento, total }));
+
+  // Dentro do componente DashBoard, antes do return:
+
+  const faturamentoPorRefeicaoMesSelecionado = refeicoes.map((r) => {
+    const total = pedidos
+      .filter(p => 
+        p.data.getMonth() === mesSelecionado && 
+        p.data.getFullYear() === anoSelecionado && 
+        p.data.getHours() >= r.inicio && 
+        p.data.getHours() < r.fim
+      )
+      .reduce((acc, p) => acc + p.valor, 0);
+    return { refeicao: r.nome, total };
+  });
+
 
   return (
     <div className="text-gray-800 p-4">
@@ -293,7 +475,86 @@ const cardsPrincipais = [
         ))}
       </div>
 
-      {/* Cards por canal */}
+      <div className='grid grid-cols-4 gap-4 mb-8'>
+          
+            {/* Próximas */}
+              <Card className="bg-yellow-100 border-yellow-300 text-yellow-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t  to-yellow-200">
+                <CardTitle className="text-lg font-semibold mb-2">📅 Próximos 7 dias</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  {despesasProximas.length === 0 ? (
+                    <div className="text-sm text-gray-600">Nenhum vencimento próximo</div>
+                  ) : (
+                    despesasProximas.map(d => (
+                      <div key={d.id} className="text-sm flex justify-between border-b-1 gap-2">
+                        <div>Dia: {d.vencimentoDia < 10 ? `0${d.vencimentoDia}`: d.vencimentoDia}</div>
+                        <div className='flex-1'> - {d.nome}</div>
+                        <div className='flex gap-1 justify-between'>
+                          <div>{moeda}</div>
+                          <div>{d.valor.toFixed(2)}</div>
+                          
+                        </div>
+                          
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+            {/* Atrasadas */}
+            <Card className="bg-red-100 border-red-300 text-red-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t to-red-200">
+              <CardTitle className="text-lg font-semibold mb-2">⚠️ Atrasadas</CardTitle>
+              <CardContent className=" p-0">
+                {despesasAtrasadas.length === 0 ? (
+                  <div className="text-sm text-gray-600">Nenhuma despesa atrasada 🎉</div>
+                ) : (
+                  despesasAtrasadas.map(d => (
+                    <div key={d.id} className="text-sm">
+                      {d.nome} - venc. dia {d.vencimentoDia} - {moeda} {d.valor.toFixed(2)}
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Próximo vencimento */}
+            <Card className="bg-blue-100 border-blue-300 text-blue-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg  bg-gradient-to-t to-blue-200">
+              <CardTitle className="text-lg font-semibold mb-2">⏳ Próximo Vencimento</CardTitle>
+              <CardContent className="p-0">
+                {proximoVencimento ? (
+                  <div className="text-sm">
+                    {proximoVencimento.nome} - dia {proximoVencimento.vencimentoDia} - {moeda} {proximoVencimento.valor.toFixed(2)}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-600">Nenhuma despesa pendente</div>
+                )}
+              </CardContent>
+            </Card>
+        
+
+            <div className='flex flex-col gap-2'>
+              <Card className="bg-blue-100 border-blue-300 text-blue-800 p-4 rounded-2xl shadow">
+                <CardTitle className="text-lg font-semibold mb-2">💳 Despesas do Mês</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  <div className='text-2xl flex justify-between font-bold'>
+                    <div>{moeda}</div>
+                    <div>{totalDasDespesas.toFixed(2)}</div>                     
+                  </div>
+                </CardContent>
+              </Card>
+            
+              <Card className="bg-red-100 border-red-300 text-red-800 p-4 rounded-2xl shadow">
+                <CardTitle className="text-lg font-semibold mb-2">💳 Despesas à Pagar</CardTitle>
+                <CardContent className="space-y-1 p-0">
+                  <div className='text-2xl flex justify-between font-bold'>
+                    <div>{moeda}</div>
+                    <div>{saldoDespesas.toFixed(2)}</div>                     
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+      </div>
+
+       {/* Cards por canal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {cardsPorCanal.map((card, i) => {
           // Define a imagem dinamicamente
@@ -302,7 +563,7 @@ const cardsPrincipais = [
           return (
             <div
               key={i}
-              className="flex flex-col p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+              className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
             >
               <div className="flex items-center gap-4">
                 <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
@@ -325,6 +586,109 @@ const cardsPrincipais = [
           );
         })}
       </div>
+
+      <div className='mb-6'>
+      {/* Card Faturamento Diário */}
+
+      <Card className=''>
+        <CardHeader>
+          <CardTitle>📅 Faturamento Diário</CardTitle>
+          <div className="flex gap-2">
+            <div className='w-full flex justify-between gap-3'>
+              {/* Relatório do mês */}
+              <div className="flex-1 flex flex-col border-2 border-gray-400 p-4 rounded-lg bg-gray-50">
+                <div className="text-lg font-bold text-gray-800 mb-2">📊 Relatório do Mês</div>
+                <div className="flex justify-between">
+                  <span>Faturamento Almoço:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Almoço')?.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Faturamento Jantar:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Jantar')?.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold mt-2">
+                  <span>Total do Mês:</span>
+                  <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.reduce((acc, r) => acc + r.total, 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className='w-80 flex flex-col gap-3 justify-center items-center'>
+                <h2>Escolha Mês e Ano</h2>
+                <div className='w-80 flex gap-3 items-center text-center '>
+                  <Select onValueChange={(v) => setMesSelecionado(Number(v))} defaultValue={mesSelecionado.toString()}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white text-center'>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>{i + 1}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select onValueChange={(v) => setAnoSelecionado(Number(v))} defaultValue={anoSelecionado.toString()}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ano" />
+                    </SelectTrigger>
+                    <SelectContent className='bg-white text-center'>
+                      {Array.from({ length:5 }, (_, i) => {
+                        const ano = new Date().getFullYear() - i;
+                        return <SelectItem key={ano} value={ano.toString()}>{ano}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+              </div>
+            </div>
+
+            </div>
+          </CardHeader>
+          <CardContent className="w-full grid grid-cols-9 gap-2">
+            {gerarFaturamentoDiario(mesSelecionado, anoSelecionado).map((f, idx) => {
+              const isSemana = f.diaSemana === 'Faturamento Semanal';
+              return (
+                <div
+                  key={idx}
+                  className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
+                >
+                  <div className='flex justify-between font-bold text-blue-600'>
+                    <div>{f.diaSemana}</div>
+                    <div>{f.dia ?? ''}</div>
+                  </div>
+
+                  <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
+                    <div className='flex justify-between'>
+                      Almoço
+                      <div>
+                        {moeda} {f.valorAlmoco.toFixed(2)}
+
+                      </div>
+                    </div>
+                    <div className='flex justify-between border-b-1'>
+                      Jantar 
+                      <div>
+                        {moeda} {f.valorJantar.toFixed(2)}
+
+                      </div>
+                    </div>
+                    <div className='flex justify-between text-blue-600 font-bold'>
+                      Total 
+                      <div>
+                        {moeda} {f.valor.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            
+          </CardContent>
+
+        </Card>
+      </div>
+
+     
 
       {/* Filtro */}
       <div className="mb-6 w-64">
