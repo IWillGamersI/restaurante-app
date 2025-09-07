@@ -606,6 +606,7 @@ const cardsPrincipais = [
 
         {/* Card Faturamento Diário */}
         <TabsContent value='faturamento'>
+          
           <Card className=''>
             <CardHeader>
               <CardTitle>📅 Faturamento Diário</CardTitle>
@@ -705,6 +706,23 @@ const cardsPrincipais = [
 
         {/* Semana */}
         <TabsContent value="semana">
+          {/* Cards principais */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {cardsPrincipais.map((card, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+              >
+                <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
+                  {card.icon}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-sm font-medium">{card.title}</span>
+                  <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
           {/* Filtro */}
           <div className="mb-6 w-64">
             <Select onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodo)} defaultValue="semana">
@@ -735,7 +753,6 @@ const cardsPrincipais = [
             </CardContent>
           </Card>
         </TabsContent>
-
        
         {/* Produtos */}
           <TabsContent value="produtos">
@@ -821,6 +838,38 @@ const cardsPrincipais = [
 
         {/* Canais */}
         <TabsContent value="canal">
+          {/* Cards por canal */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {cardsPorCanal.map((card, i) => {
+              // Define a imagem dinamicamente
+              let imgSrc = imagensPorCanal[card.title] || '/images/logo.png';
+              
+              return (
+                <div
+                  key={i}
+                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
+                      <img src={imgSrc} alt={card.title} className=" rounded-full w-10 h-10 object-cover" />
+                    </div>
+                    <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 mt-2">
+                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Faturamento</span> <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
+                    </span>
+                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
+                    </span>
+                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Quantidade de pedidos</span> <span className="font-bold">{card.quantidade}</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
           <Card>
             <CardHeader><CardTitle>Pedidos por Canal</CardTitle></CardHeader>
             <CardContent>
