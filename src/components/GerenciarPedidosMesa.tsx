@@ -8,7 +8,10 @@ import {
   onSnapshot,
   serverTimestamp,
   orderBy,
-  where
+  where,
+  doc,
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -20,7 +23,6 @@ import {
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
-import { hr } from 'framer-motion/client';
 
 interface Produto {
   id: string;
@@ -42,7 +44,7 @@ interface ProdutoPedido {
   nome: string;
   preco: number;
   quantidade: number;
-  extras: Extra[] // ❌ agora sempre array, não opcional
+  extras: Extra[]
   categoria: string
 }
 
@@ -54,10 +56,15 @@ interface Pedido {
   status: string;
   valor: number;
   produtos: ProdutoPedido[];
-  extras: Extra[]
+  extras?: Extra[]
   tipoVenda: string
   tipoFatura: string
   tipoPagamento:string
+  numeroMesa?: string | null;
+  pago?: boolean;
+  criadoEm?: any;
+  idCliente: string
+  codigoCliente: string
 }
 
 interface Cliente {
@@ -88,8 +95,28 @@ export default function GerenciarPedidos() {
   const [tipoVenda, setTipoVenda] = useState("");
   const [tipoFatura, setTipoFatura] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
-  const [querImprimir, setQuerImprimir] = useState(false)
- 
+  const [numeroMesa, setNumeroMesa] = useState('')
+  const [clientes, setClientes] = useState<Record<string, Cliente>>({});
+  const [pedidoEditando, setPedidoEditando] = useState<string | null>(null);
+
+
+
+  useEffect(() => {
+    const q = collection(db, "clientes");
+    getDocs(q).then(snapshot => {
+      const mapa: Record<string, Cliente> = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        mapa[doc.id] = {
+          id: doc.id,
+          nome: data.nome,
+          telefone: data.telefone,
+          codigoCliente: data.codigoCliente,
+        };
+      });
+      setClientes(mapa);
+    });
+  }, []);
 
   // Puxa os pedidos do Firestore
   useEffect(() => {
@@ -155,48 +182,47 @@ export default function GerenciarPedidos() {
     setTipoVenda('')
     setTipoFatura('')
     setTipoPagamento('')
-    setQuerImprimir(false)
+    setNumeroMesa('')
   };
 
   const adicionarProdutoAoPedido = () => {
-  if (!produtoSelecionado || quantidadeSelecionada <= 0) return;
-  const produto = produtos.find(p => p.id === produtoSelecionado);
-  if (!produto) return;
+    if (!produtoSelecionado || quantidadeSelecionada <= 0) return;
+    const produto = produtos.find(p => p.id === produtoSelecionado);
+    if (!produto) return;
 
-  const novoProduto: ProdutoPedido = {
-    id: produto.id,
-    nome: produto.nome,
-    preco: produto.preco,
-    quantidade: quantidadeSelecionada,
-    extras: extrasSelecionados,
-    categoria: produto.categoria
+    const novoProduto: ProdutoPedido = {
+      id: produto.id,
+      nome: produto.nome,
+      preco: produto.preco,
+      quantidade: quantidadeSelecionada,
+      extras: extrasSelecionados,
+      categoria: produto.categoria
+    };
+
+    // Verifica se já existe um produto com mesmo id e MESMOS extras
+    const existeIgual = produtosPedido.find(p => 
+      p.id === produto.id &&
+      JSON.stringify(p.extras || []) === JSON.stringify(extrasSelecionados)
+    );
+
+    if (existeIgual) {
+      // Se for exatamente igual (mesmo extras), aumenta quantidade
+      setProdutosPedido(produtosPedido.map(p =>
+        p === existeIgual ? { ...p, quantidade: p.quantidade + quantidadeSelecionada } : p
+      ));
+    } else {
+      // Caso contrário, adiciona como novo item
+      setProdutosPedido([...produtosPedido, novoProduto]);
+    }
+
+    // Reset campos
+    setProdutoSelecionado('');
+    setQuantidadeSelecionada(1);
+    setExtrasSelecionados([]);
   };
 
-  // Verifica se já existe um produto com mesmo id e MESMOS extras
-  const existeIgual = produtosPedido.find(p => 
-    p.id === produto.id &&
-    JSON.stringify(p.extras || []) === JSON.stringify(extrasSelecionados)
-  );
-
-  if (existeIgual) {
-    // Se for exatamente igual (mesmo extras), aumenta quantidade
-    setProdutosPedido(produtosPedido.map(p =>
-      p === existeIgual ? { ...p, quantidade: p.quantidade + quantidadeSelecionada } : p
-    ));
-  } else {
-    // Caso contrário, adiciona como novo item
-    setProdutosPedido([...produtosPedido, novoProduto]);
-  }
-
-  // Reset campos
-  setProdutoSelecionado('');
-  setQuantidadeSelecionada(1);
-  setExtrasSelecionados([]);
-  };
-
-
-  const removerProdutoPedido = (id: string) => {
-    setProdutosPedido(produtosPedido.filter(p => p.id !== id));
+  const removerProdutoPedido = (index: number) => {
+    setProdutosPedido(produtosPedido.filter((_, i) => i !== index));
   };
 
   const valorTotal =
@@ -204,130 +230,6 @@ export default function GerenciarPedidos() {
       const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
       return acc + p.preco * p.quantidade + extrasValor;
     }, 0);
-
-  const salvarPedido = async () => {
-    const agora = new Date();
-    const dataLisboa = new Date(
-      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
-    );
-
-    if(!tipoFatura){
-      alert('Informe se é CF ou SF!')
-      return
-    }
-
-    if(!tipoVenda){
-      alert('Informe qual o tipo de VENDA!')
-      return
-    }
-
-    if (!clienteNome) {
-      alert('Informe o NOME do cliente!');
-      return;
-    }
-    if (produtosPedido.length === 0) {
-      alert('Adicione pelo menos um PRODUTO!');
-      return;
-    }
-
-    if(!tipoPagamento){
-      alert('Informe o tipo de PAGAMENTO!')
-      return
-    }
-
-    let clienteIdFinal = idCliente;
-    let codigoClienteFinal = codigoCliente;
-
-    // Se cliente tem telefone → buscar ou criar no banco
-    if (clienteTelefone) {
-      const clientesRef = collection(db, 'clientes');
-      const q = query(clientesRef, where('telefone', '==', clienteTelefone));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        // Cliente já existe
-        const clienteDoc = snapshot.docs[0];
-        clienteIdFinal = clienteDoc.id;
-        codigoClienteFinal = clienteDoc.data().codigoCliente;
-      } else {
-        // Criar cliente só agora (não no blur)
-        const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
-        const docRef = await addDoc(clientesRef, {
-          nome: clienteNome,
-          telefone: clienteTelefone,
-          codigoCliente: novoCodigo,
-        });
-        clienteIdFinal = docRef.id;
-        codigoClienteFinal = novoCodigo;
-      }
-    } else {
-      // Cliente genérico
-      const clientesRef = collection(db, 'clientes');
-      const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        clienteIdFinal = snapshot.docs[0].id;
-      } else {
-        const docRef = await addDoc(clientesRef, {
-          nome: 'Cliente Genérico',
-          telefone: null,
-          codigoCliente: 'CLNT123',
-        });
-        clienteIdFinal = docRef.id;
-      }
-
-      codigoClienteFinal = 'CLNT123';
-    }
-
-    const dados = {
-      idCliente: clienteIdFinal,
-      nomeCliente: clienteNome,
-      telefoneCliente: clienteTelefone || null,
-      codigoCliente: codigoClienteFinal,
-      tipoFatura,
-      tipoPagamento,
-      data: dataLisboa.toISOString(),
-      status: 'Fila',
-      tipoVenda,
-      valor: valorTotal,
-      produtos: produtosPedido,
-      extras: extrasSelecionados,
-      codigoPedido,
-      criadoEm: serverTimestamp(),
-    };
-
-    try {
-      // Sempre cria novo pedido
-      await addDoc(collection(db, 'pedidos'), dados);
-
-      if(querImprimir){
-        imprimir(dados, 2);
-
-      }else{
-        alert('Pedido salvo com Sucesso!!!')
-      }
-
-      limparCampos();
-
-    } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
-    }
-  };
-
-  const hoje = new Date();
-  const diaHoje = hoje.getDate();
-  const mesHoje = hoje.getMonth();
-  const anoHoje = hoje.getFullYear();
-
-  const pedidosDoDia = pedidos.filter(p => {
-    const pData = new Date(p.data);
-    return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
-  });
-
-  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase()));
-  const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes(p.status.toLowerCase()));
 
   const gerarCodigoPedido = (nome: string) => {
     const nomeLimpo = nome.trim().toUpperCase();
@@ -346,7 +248,6 @@ export default function GerenciarPedidos() {
                           .toUpperCase()
     return `${consoantes}${ultimos3}`
   }
-
 
   async function buscarCliente(telefone: string): Promise<Cliente | null> {
     if (!telefone) return null;
@@ -367,8 +268,6 @@ export default function GerenciarPedidos() {
     }
       return null
   }
-
-
 
   useEffect(() => {
     if (cliente.trim().length >= 2) {
@@ -399,6 +298,253 @@ export default function GerenciarPedidos() {
     ? produtos.filter(p => p.classe === classeSelecionada)
     : [];
 
+  // -- NOVA LÓGICA: salvarPedido agora trata 3 casos de impressão:
+  // 1) Novo pedido: cria doc + imprime pedido inteiro (cozinha)
+  // 2) Mesa já aberta: atualiza doc (anexa produtos) + imprime APENAS os produtos novos
+  // 3) Finalizar (pagar/entregar): função separada fará impressão completa ao marcar pago
+
+const salvarPedido = async () => {
+  const agora = new Date();
+  const dataLisboa = new Date(
+    agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
+  );
+
+  if (!tipoFatura) {
+    alert('Informe se é CF ou SF!');
+    return;
+  }
+
+  if (!tipoVenda) {
+    alert('Informe qual o tipo de VENDA!');
+    return;
+  }
+
+  if (tipoVenda === 'mesa' && !numeroMesa) {
+    alert('Informe o NÚMERO DA MESA!');
+    return;
+  }
+
+  if (produtosPedido.length === 0) {
+    alert('Adicione pelo menos um PRODUTO!');
+    return;
+  }
+
+  if (!tipoPagamento) {
+    alert('Informe o tipo de PAGAMENTO!');
+    return;
+  }
+
+  // ===== Cliente =====
+  let clienteIdFinal = idCliente;
+  let codigoClienteFinal = codigoCliente;
+
+  if (clienteTelefone) {
+    const clientesRef = collection(db, 'clientes');
+    const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const clienteDoc = snapshot.docs[0];
+      clienteIdFinal = clienteDoc.id;
+      codigoClienteFinal = clienteDoc.data().codigoCliente;
+    } else {
+      const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+      const docRef = await addDoc(clientesRef, {
+        nome: clienteNome,
+        telefone: clienteTelefone,
+        codigoCliente: novoCodigo,
+      });
+      clienteIdFinal = docRef.id;
+      codigoClienteFinal = novoCodigo;
+    }
+  } else {
+    // Cliente genérico
+    const clientesRef = collection(db, 'clientes');
+    const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      clienteIdFinal = snapshot.docs[0].id;
+    } else {
+      const docRef = await addDoc(clientesRef, {
+        nome: 'Cliente Genérico',
+        telefone: null,
+        codigoCliente: 'CLNT123',
+      });
+      clienteIdFinal = docRef.id;
+    }
+
+    codigoClienteFinal = 'CLNT123';
+  }
+
+  // ===== Pedido mesa existente =====
+  try {
+    if (tipoVenda === 'mesa') {
+      const pedidosRef = collection(db, 'pedidos');
+      const q = query(
+        pedidosRef,
+        where('tipoVenda', '==', 'mesa'),
+        where('numeroMesa', '==', numeroMesa),
+        where('status', 'in', ['Fila', 'Preparando', 'Pronto'])
+      );
+
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const pedidoDoc = snap.docs[0];
+        const pedidoAtual = pedidoDoc.data() as Pedido;
+
+        // Apenas anexar produtos novos
+        const novosProdutos = produtosPedido;
+
+        const novoValor = (pedidoAtual.valor || 0) +
+          novosProdutos.reduce((acc, p) => {
+            const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+            return acc + p.preco * p.quantidade + extras;
+          }, 0);
+
+        await updateDoc(doc(db, 'pedidos', pedidoDoc.id), {
+          produtos: [...pedidoAtual.produtos, ...novosProdutos],
+          valor: novoValor,
+          atualizadoEm: serverTimestamp(),
+        });
+
+        // Imprimir apenas os novos produtos para a cozinha
+        const dadosParciais = {
+          codigo: pedidoAtual.codigoPedido || codigoPedido || '',
+          cliente: `Mesa ${numeroMesa}`,          
+          data: new Date().toISOString(),
+          produtos: novosProdutos,
+          valor: novosProdutos.reduce((acc, p) => {
+            const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+            return acc + p.preco * p.quantidade + extras;
+          }, 0)
+        };
+
+        await imprimir(dadosParciais, 1);
+
+        limparCampos();
+        alert(`Produtos adicionados à Mesa ${numeroMesa} e enviados para cozinha.`);
+        return;
+      }
+    }
+
+    // ===== Criar novo pedido =====
+    const dados: any = {
+      idCliente: clienteIdFinal,
+      cliente: clienteNome || (tipoVenda === 'mesa' ? `Mesa ${numeroMesa}` : 'Cliente'),
+      telefoneCliente: clienteTelefone || null,
+      codigoCliente: codigoClienteFinal,
+      tipoFatura,
+      tipoPagamento,
+      data: dataLisboa.toISOString(),
+      status: 'Fila',
+      tipoVenda,
+      numeroMesa: tipoVenda === 'mesa' ? numeroMesa : null,
+      valor: valorTotal,
+      produtos: produtosPedido,
+      extras: extrasSelecionados,
+      codigo: codigoClienteFinal,
+      pago: false,
+      criadoEm: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(collection(db, 'pedidos'), dados);
+
+    // Imprime pedido completo para cozinha
+    const dadosCompleto = {
+      ...dados,
+      id: docRef.id,
+      data: dataLisboa.toISOString(),
+    };
+
+    await imprimir(dadosCompleto, 1);
+
+    limparCampos();
+    alert('Pedido criado e enviado para cozinha!');
+  } catch (error) {
+    console.error('Erro ao salvar pedido:', error);
+    alert('Erro ao salvar pedido. Verifique se você tem permissão ou índices no Firestore.');
+  }
+};
+
+
+
+
+  // Função para finalizar/pagar e imprimir o comprovante final (pedido completo)
+  const finalizarEPagar = async (pedido: Pedido) => {
+    try {
+      const ref = doc(db, 'pedidos', pedido.id!);
+
+      // Atualiza status e marca como pago
+      await updateDoc(ref, {
+        status: 'Entregue',
+        pago: true,
+        atualizadoEm: serverTimestamp(),
+      });
+
+      // Buscar pedido atualizado para garantir que imprimimos o pedido completo mais recente
+      const pedidoAtualizadoSnap = await getDoc(ref);
+      const pedidoAtualizado = pedidoAtualizadoSnap.data() as Pedido;
+
+      // Imprimir o pedido completo (com todos os produtos)
+      try {
+        const dadosParaImpressao = {
+          ...pedidoAtualizado,
+          id: pedido.id,
+        } as any;
+
+        imprimir(dadosParaImpressao, 1);
+      } catch (impErr) {
+        console.error('Erro ao imprimir comprovante final:', impErr);
+      }
+
+      alert(`Pedido ${pedido.codigoPedido} finalizado e impresso.`);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao finalizar/pagar pedido.');
+    }
+  };
+
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth();
+  const anoHoje = hoje.getFullYear();
+
+  const pedidosDoDia = pedidos.filter(p => {
+    const pData = new Date(p.data);
+    return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
+  });
+
+  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes((p.status || '').toLowerCase()));
+  const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes((p.status || '').toLowerCase()));
+
+
+  const editarPedido = (pedido: Pedido) => {
+    setPedidoEditando(pedido.id);
+
+    setClienteNome(pedido.nomeCliente || "");
+    setCodigoCliente(pedido.codigoCliente || "");
+    setIdCliente(pedido.idCliente || null);
+
+    setTipoVenda(pedido.tipoVenda);
+    setTipoFatura(pedido.tipoFatura);
+    setTipoPagamento(pedido.tipoPagamento);
+
+    setProdutosPedido([]);
+    setExtrasSelecionados([]);
+
+    setNumeroMesa(pedido.numeroMesa || "");
+    setCodigoPedido(pedido.codigoPedido || "");
+    setStatus(pedido.status || "Fila");
+  };
+
+  const cancelarEdicao = () => {
+    limparCampos();
+    setPedidoEditando(null);
+  };
+
+
   return (
     <div className="p-3">
       {/* Formulário */}
@@ -412,8 +558,6 @@ export default function GerenciarPedidos() {
           </div>
         </div>
         <hr />
-
-     
 
         <div className="flex flex-col gap-2">
           {/* Código do pedido */} 
@@ -478,7 +622,16 @@ export default function GerenciarPedidos() {
             <option value="app">App Top pizzas</option>
           </select>
 
-          
+          {/* Número da mesa (só se for mesa) */}
+          {tipoVenda === 'mesa' && (
+            <input
+              type="text"
+              className="border p-3 rounded"
+              placeholder="Número da Mesa"
+              value={numeroMesa}
+              onChange={e => setNumeroMesa(e.target.value)}
+            />
+          )}
 
           {/* Telefone do cliente */}
           <input
@@ -501,7 +654,6 @@ export default function GerenciarPedidos() {
             onBlur={async () => {
               if (!clienteTelefone) return              
 
-              // 🔹 Só busca cliente existente
               const clientesRef = collection(db, 'clientes');
               const q = query(clientesRef, where('telefone', '==', clienteTelefone));
               const snapshot = await getDocs(q);
@@ -515,10 +667,8 @@ export default function GerenciarPedidos() {
                 setCodigoCliente(data.codigoCliente);
                 setIdCliente(clienteDoc.id);
 
-                // Atualiza código do pedido caso o nome seja diferente
                 setCodigoPedido(gerarCodigoPedido(data.nome));
               } else {
-                // 🔹 Se não achar, não cria aqui. Só cria no salvarPedido.
                 console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
               }
             }}
@@ -674,7 +824,7 @@ export default function GerenciarPedidos() {
               <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
               <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
               <button
-                onClick={() => removerProdutoPedido(p.id)}
+                onClick={() => removerProdutoPedido(i)}
                 className="text-red-500 hover:text-red-700"
               >
                 <Trash2 size={16} />
@@ -762,6 +912,11 @@ export default function GerenciarPedidos() {
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                   </div>
 
+                  {/* Mostrar número da mesa se existir */}
+                  {p.tipoVenda === 'mesa' && (
+                    <div className="text-sm font-semibold">Mesa {p.numeroMesa}</div>
+                  )}
+
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
                     {p.produtos.map(item => {
                       const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
@@ -817,6 +972,30 @@ export default function GerenciarPedidos() {
                     <p className='flex-1 text-right text-xl'>€ {p.valor.toFixed(2)}</p>
                   </div>
 
+                  <div className="flex gap-2 justify-end mt-2">
+                    <button
+                      onClick={() => finalizarEPagar(p)}
+                      className="bg-green-600 text-white px-4 py-2 rounded"
+                    >
+                      Finalizar / Pagar e Imprimir
+                    </button>
+
+                    <button
+                      onClick={() => editarPedido(p)}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded"
+                    >
+                      Editar
+                    </button>
+
+                    {pedidoEditando === p.id && (
+                      <button
+                        onClick={cancelarEdicao}
+                        className="bg-gray-400 text-white px-4 py-2 rounded"
+                      >
+                        Cancelar Edição
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))

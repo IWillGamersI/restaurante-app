@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown, BarChart } from 'lucide-react';
+import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown, BarChart, DollarSignIcon, ShoppingCartIcon } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
 import { div, h2 } from 'framer-motion/client';
+import { Underdog } from 'next/font/google';
 
 
 interface Produto {
@@ -50,7 +51,7 @@ interface DespesasPaga {
 
 
 
-type FiltroPeriodo = 'hoje' | 'semana' | 'mes' | 'ano';
+type FiltroPeriodo = 'hoje' | 'semana' | 'semana-passada' |'quinzenal'|'mes' | 'ano';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
 
@@ -63,16 +64,16 @@ const imagensPorCanal: Record<string, string> = {
 };
 
 const taxasPorCanal: Record<string, number> = {
-  Uber: 0.3,   // 25% de taxa
-  Glovo: 0.3,  // 20% de taxa
-  Bolt: 0.3,   // 22% de taxa
+  Uber: 0.33,   // 25% de taxa
+  Glovo: 0.33,  // 20% de taxa
+  Bolt: 0.33,   // 22% de taxa
   Restaurante: 0, // sem taxa
 };
 
 export default function DashBoard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>('semana');
+  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>('hoje');
   const [moeda, setMoeda] = useState('€'); // pode trocar para 'R$' etc.
   const [despesas, setDespesas] = useState<Despesa[]>([])
   const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
@@ -292,40 +293,171 @@ export default function DashBoard() {
     }
 
     return semanas;
-  };
+  }; 
 
-  
+  interface Pedido {
+  valor: number;
+  custo?: number;
+  data: Date;
+  produto?: Produto[];
+  canal?: string;
+  pagamento?: string;
+  faturado?: string;
+  imagemUrl?: string;
+}
 
-  const filtrarPedidos = (periodo: FiltroPeriodo) => {
-    const hoje = new Date();
-    let inicio: Date;
+type FiltroPeriodo = 'hoje' | 'semana' | 'semana-passada' | 'quinzenal' | 'mes' | 'ano';
+
+// Função para filtrar pedidos de acordo com o período
+const filtrarPedidos = (periodo: FiltroPeriodo, pedidos: Pedido[]): Pedido[] => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const diaSemanaHoje = hoje.getDay() || 7; // domingo = 7
+  const inicioSemanaAtual = new Date(hoje);
+  inicioSemanaAtual.setDate(hoje.getDate() - diaSemanaHoje + 1);
+  inicioSemanaAtual.setHours(0, 0, 0, 0);
+
+  const fimSemanaAtual = new Date(inicioSemanaAtual);
+  fimSemanaAtual.setDate(inicioSemanaAtual.getDate() + 6);
+  fimSemanaAtual.setHours(23, 59, 59, 999);
+
+  const inicioSemanaPassada = new Date(inicioSemanaAtual);
+  inicioSemanaPassada.setDate(inicioSemanaAtual.getDate() - 7);
+
+  const fimSemanaPassada = new Date(fimSemanaAtual);
+  fimSemanaPassada.setDate(fimSemanaAtual.getDate() - 7);
+
+  const inicioQuinzenal = new Date();
+  inicioQuinzenal.setDate(hoje.getDate() - 14);
+  inicioQuinzenal.setHours(0, 0, 0, 0);
+
+  return pedidos.filter(p => {
+    const dataPedido = new Date(p.data);
+    dataPedido.setHours(0, 0, 0, 0);
+
     switch (periodo) {
       case 'hoje':
-        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        break;
+        return dataPedido.getTime() === hoje.getTime();
+
       case 'semana':
-        inicio = new Date(hoje);
-        const diaSemana = hoje.getDay() === 0 ? 7 : hoje.getDay();
-        inicio.setDate(hoje.getDate() - diaSemana );
-        break;
+        return dataPedido >= inicioSemanaAtual && dataPedido <= fimSemanaAtual;
+
+      case 'semana-passada':
+        return dataPedido >= inicioSemanaPassada && dataPedido <= fimSemanaPassada;
+
+      case 'quinzenal':
+        return dataPedido >= inicioQuinzenal && dataPedido < hoje;
+
       case 'mes':
-        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-        break;
+        return (
+          dataPedido.getMonth() === hoje.getMonth() &&
+          dataPedido.getFullYear() === hoje.getFullYear()
+        );
+
       case 'ano':
-        inicio = new Date(hoje.getFullYear(), 0, 1);
-        break;
+        return dataPedido.getFullYear() === hoje.getFullYear();
+
       default:
-        inicio = new Date(hoje);
+        return true;
     }
-    return pedidos.filter((p) => p.data >= inicio);
-  };
+  });
+};
 
-  const pedidosFiltrados = filtrarPedidos(filtroPeriodo);
+// Função para gerar dados do gráfico por dia
+const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
+  const pedidosFiltrados = filtrarPedidos(periodo, pedidos);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
-  // Cards principais
+  let inicio: Date;
+  let diasCount = 7;
+
+  switch (periodo) {
+    case 'hoje':
+      inicio = hoje;
+      diasCount = 1;
+      break;
+
+    case 'semana':
+      const diaSemana = hoje.getDay() || 7;
+      inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - diaSemana + 1);
+      break;
+
+    case 'semana-passada':
+      const diaSemana2 = hoje.getDay() || 7;
+      inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - diaSemana2 - 6); // segunda da semana passada
+      break;
+
+    case 'quinzenal':
+      inicio = new Date(hoje);
+      inicio.setDate(hoje.getDate() - 14);
+      diasCount = 14;
+      break;
+
+    case 'mes':
+      inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      diasCount = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate(); // total de dias no mês
+      break;
+
+    case 'ano':
+      inicio = new Date(hoje.getFullYear(), 0, 1);
+      diasCount = 365; // para simplificação, pode ajustar para ano bissexto
+      break;
+
+    default:
+      inicio = hoje;
+      diasCount = 7;
+  }
+
+  const dias: { dia: string; faturamento: number }[] = [];
+
+  for (let i = 0; i < diasCount; i++) {
+    const diaAtual = new Date(inicio);
+    diaAtual.setDate(inicio.getDate() + i);
+    diaAtual.setHours(0, 0, 0, 0);
+
+    // Somar valores do dia
+    const faturamentoDia = pedidosFiltrados
+      .filter(p => new Date(p.data).getTime() === diaAtual.getTime())
+      .reduce((sum, p) => sum + p.valor, 0);
+
+    dias.push({
+      dia:
+        periodo === 'ano'
+          ? diaAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+          : diaAtual.toLocaleDateString('pt-BR', { weekday: 'short' }),
+      faturamento: faturamentoDia,
+    });
+  }
+
+  return dias;
+};
+
+
+
+
+
+  
+  // Cards DashBoard
+  const faturamento = pedidos.reduce((acc, p) => acc + p.valor, 0);
+  const qtdPedidos = pedidos.length;
+  const ticketMedioTotal = qtdPedidos > 0 ? (faturamento / qtdPedidos).toFixed(2) : '0.00';  
+  const custoPedidos = (faturamento * 0.30)
+  const lucroLiquidoPedidos = faturamento - custoPedidos
+
+
+  const pedidosFiltrados =  filtrarPedidos(filtroPeriodo,pedidos);
+
   const faturamentoTotal = pedidosFiltrados.reduce((acc, p) => acc + p.valor, 0);
   const totalPedidos = pedidosFiltrados.length;
   const ticketMedio = totalPedidos > 0 ? (faturamentoTotal / totalPedidos).toFixed(2) : '0.00';
+  const custoTotal = faturamentoTotal * 0.3;
+  const lucroLiquido = faturamentoTotal - custoTotal;
+
+   
 
   // Calcular métricas por canal
   const canais = [
@@ -336,38 +468,49 @@ export default function DashBoard() {
   ];
 
   const cardsPorCanal = canais.map(canal => {
-  const pedidosCanal = pedidosFiltrados.filter(canal.filtro);
-  const quantidade = pedidosCanal.length;
-  const valorBruto = pedidosCanal.reduce((acc, p) => acc + p.valor, 0);
-  const custo = 0.35
-  
+    const pedidosCanal = pedidosFiltrados.filter(canal.filtro);
+    const quantidade = pedidosCanal.length;
+    const valorBruto = pedidosCanal.reduce((acc, p) => acc + p.valor, 0);
+    const custo = 0.3
+    
 
-  const taxa = taxasPorCanal[canal.nome] || 0;
+    const taxa = taxasPorCanal[canal.nome] || 0;
 
-  const valorLiquido = pedidosCanal.reduce((acc, p) => {
-    // aplica taxa se tiver
-    const desconto = taxa > 0 ? (p.valor * taxa) + (p.valor * custo) : p.valor * custo || 0;
-    return acc + (p.valor - desconto);
-  }, 0);
+    const valorTaxaCanal = pedidosCanal.reduce((acc, p) => {
+      // aplica taxa se tiver
+      const desconto = taxa > 0 ? (p.valor * taxa) : 0;
+      return acc + (desconto);
+    }, 0);
 
-  return {
-    title: canal.nome,
-    quantidade,
-    valorBruto,
-    valorLiquido,
-  };
+    const valorCusto = pedidosCanal.reduce((acc, p) => {
+      // aplica taxa se tiver      
+      const desconto = p.valor * custo;
+      return acc + (desconto);
+    }, 0);
+
+    const valorLiquido = pedidosCanal.reduce((acc, p) => {
+      // aplica taxa se tiver
+      const desconto = taxa > 0 ? (p.valor * taxa) + (p.valor * custo) : p.valor * custo || 0;
+      return acc + (p.valor - desconto);
+    }, 0);
+
+    return {
+      title: canal.nome,
+      quantidade,
+      valorBruto,
+      valorLiquido,
+      valorTaxaCanal,
+      valorCusto
+    };
 });
 
-const lucroLiquido = cardsPorCanal.reduce((acc, card) => acc + card.valorLiquido, 0);
 
 const cardsPrincipais = [
-    { icon: <DollarSign size={28} className="text-green-600" />, title: 'Faturamento', value: `${moeda} ${faturamentoTotal.toFixed(2)}` },
-    { icon: <CalendarCheck size={28} className="text-blue-600" />, title: 'Pedidos', value: totalPedidos.toString() },
-    { icon: <TrendingUp size={28} className="text-purple-600" />, title: 'Ticket Médio', value: `${moeda} ${ticketMedio}` },
-    { icon: <DollarSign size={28} className="text-yellow-600" />, title: 'Lucro Líquido', value: `${moeda} ${lucroLiquido.toFixed(2)}` },
+    { icon: <DollarSign size={28} className="text-green-600" />, title: 'Faturamento', value: `${moeda} ${faturamento.toFixed(2)}` },
+    { icon: <CalendarCheck size={28} className="text-blue-600" />, title: 'Pedidos', value: qtdPedidos.toString() },
+    { icon: <TrendingUp size={28} className="text-purple-600" />, title: 'Ticket Médio', value: `${moeda} ${ticketMedioTotal}` },
+    { icon: <DollarSign size={28} className="text-yellow-600" />, title: 'Lucro Líquido', value: `${moeda} ${lucroLiquidoPedidos.toFixed(2)}` },
   ];
-
-
 
   // Faturamento por dia da semana
   const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -383,7 +526,7 @@ const cardsPrincipais = [
   });
   
   // Produtos
-  const produtosMap = pedidosFiltrados.reduce((acc: Record<string, { qtd: number; valor: number; lucro: number }>, p) => {
+  const produtosMap = pedidos.reduce((acc: Record<string, { qtd: number; valor: number; lucro: number }>, p) => {
     if (Array.isArray(p.produto)) {
       p.produto.forEach(item => {
         const nome = item.nome;
@@ -587,16 +730,30 @@ const cardsPrincipais = [
                     </div>
                     <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
                   </div>
+                  <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Pedidos</span> 
+                      <span className="font-bold">{card.quantidade}</span>
+                    </span>
                   <div className="flex flex-col gap-1 mt-2">
                     <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
-                      <span className='text-blue-600 font-semibold'>Faturamento</span> <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
+                      <span className='text-blue-600 font-semibold'>Faturamento</span> 
+                      <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
+                    </span>
+                    <span className="flex justify-between text-gray-500 text-sm border-b-2 border-gray-600">
+                      <span className='text-blue-600 font-semibold'>Taxa</span> 
+                      <span className="font-bold">{moeda} {card.valorTaxaCanal.toFixed(2)}</span>
+                    </span>
+                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Repasse</span> 
+                      <span className="font-bold">{moeda} {(card.valorBruto - card.valorTaxaCanal).toFixed(2)}</span>
+                    </span>
+                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                      <span className='text-blue-600 font-semibold'>Custo</span> <span className="font-bold">{moeda} {card.valorCusto.toFixed(2)}</span>
                     </span>
                     <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
                       <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
-                      <span className='text-blue-600 font-semibold'>Quantidade de pedidos</span> <span className="font-bold">{card.quantidade}</span>
-                    </span>
+                    
                   </div>
                 </div>
               );
@@ -667,34 +824,42 @@ const cardsPrincipais = [
                     <div
                       key={idx}
                       className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
-                    >
-                      <div className='flex justify-between font-bold text-blue-600'>
-                        <div>{f.diaSemana}</div>
-                        <div>{f.dia ?? ''}</div>
-                      </div>
+                    >{!f.dia ? <div>
+                          <div className='flex justify-between font-bold text-blue-600'>
+                          <div>{f.diaSemana}</div>
+                          <div>{f.dia ?? ''}</div>
+                        </div>
+                    </div> :
+                    <div>
+                        <div className='flex justify-between font-bold text-blue-600'>
+                          <div>{f.diaSemana}</div>
+                          <div>{f.dia ?? ''}</div>
+                        </div>
 
-                      <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
-                        <div className='flex justify-between'>
-                          Almoço
-                          <div>
-                            {moeda} {f.valorAlmoco.toFixed(2)}
+                        <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
+                          <div className='flex justify-between'>
+                            Almoço
+                            <div>
+                              {moeda} {f.valorAlmoco.toFixed(2)}
 
+                            </div>
+                          </div>
+                          <div className='flex justify-between border-b-1'>
+                            Jantar 
+                            <div>
+                              {moeda} {f.valorJantar.toFixed(2)}
+
+                            </div>
+                          </div>
+                          <div className='flex justify-between text-blue-600 font-bold'>
+                            Total 
+                            <div>
+                              {moeda} {f.valor.toFixed(2)}
+                            </div>
                           </div>
                         </div>
-                        <div className='flex justify-between border-b-1'>
-                          Jantar 
-                          <div>
-                            {moeda} {f.valorJantar.toFixed(2)}
-
-                          </div>
-                        </div>
-                        <div className='flex justify-between text-blue-600 font-bold'>
-                          Total 
-                          <div>
-                            {moeda} {f.valor.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
+                    </div>
+                      }
                     </div>
                   );
                 })}
@@ -706,53 +871,110 @@ const cardsPrincipais = [
 
         {/* Semana */}
         <TabsContent value="semana">
-          {/* Cards principais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {cardsPrincipais.map((card, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
-              >
-                <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
-                  {card.icon}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-sm font-medium">{card.title}</span>
-                  <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
           {/* Filtro */}
           <div className="mb-6 w-64">
-            <Select onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodo)} defaultValue="semana">
+            <Select
+              onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodo)}
+              defaultValue="semana"
+            >
               <SelectTrigger className="cursor-pointer">
                 <SelectValue placeholder="Selecione o período" />
               </SelectTrigger>
               <SelectContent className="bg-white cursor-pointer">
                 <SelectItem className="cursor-pointer" value="hoje">Hoje</SelectItem>
                 <SelectItem className="cursor-pointer" value="semana">Semana</SelectItem>
+                <SelectItem className="cursor-pointer" value="semana-passada">Semana Passada</SelectItem>
+                <SelectItem className="cursor-pointer" value="quinzenal">15 Dias</SelectItem>
                 <SelectItem className="cursor-pointer" value="mes">Mês</SelectItem>
                 <SelectItem className="cursor-pointer" value="ano">Ano</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Card>
-            <CardHeader><CardTitle>Faturamento por dia da semana</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={pedidosPorDia}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="dia" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Faturamento']} />
-                  <Legend />
-                  <Line type="monotone" dataKey="faturamento" name={`Faturamento (${moeda})`} stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+
+          {/* Filtrando pedidos com base no filtro */}
+          {(() => {
+            const pedidosFiltrados = filtrarPedidos(filtroPeriodo, pedidos); // função que já ajustamos
+
+            // Cards da semana
+            const cardsSemana = [
+              {
+                title: "Total de Pedidos",
+                value: pedidosFiltrados.length,
+                icon: <ShoppingCartIcon className="text-blue-500" />,
+              },
+              {
+                title: "Faturamento",
+                value: pedidosFiltrados.reduce((acc, p) => acc + p.valor, 0),
+                icon: <DollarSignIcon className="text-green-500" />,
+              },
+              // Adicione outros cards se quiser
+            ];
+
+            // Dados do gráfico (por dia da semana ou período)
+            const pedidosPorDia = Array.from({ length: 7 }, (_, i) => {
+              const dia = new Date();
+              dia.setDate(dia.getDate() - (6 - i));
+
+              const totalDia = pedidosFiltrados
+                .filter((p) => new Date(p.data).toDateString() === dia.toDateString())
+                .reduce((acc, p) => acc + p.valor, 0);
+
+              const diaString = dia.toLocaleDateString("pt-BR", { weekday: "short" });
+              return { dia: diaString, faturamento: totalDia };
+            });
+
+            return (
+              <>
+                {/* Cards principais */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {cardsSemana.map((card, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+                    >
+                      <div
+                        className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}
+                      >
+                        {card.icon}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-sm font-medium">{card.title}</span>
+                        <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Gráfico */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Faturamento por dia da semana</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={pedidosPorDia}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="dia" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Faturamento']} />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="faturamento"
+                          name={`Faturamento (${moeda})`}
+                          stroke="#3b82f6"
+                          strokeWidth={3}
+                          dot={{ r: 5 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })()}
         </TabsContent>
+
        
         {/* Produtos */}
           <TabsContent value="produtos">

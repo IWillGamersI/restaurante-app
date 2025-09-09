@@ -68,6 +68,7 @@ interface Pedido {
   tipoVenda: string
   tipoFatura: string
   tipoPagamento:string
+  numeroMesa: string
 }
 
 interface Cliente {
@@ -223,7 +224,7 @@ export default function GerenciarPedidos() {
       return acc + p.preco * p.quantidade + extrasValor;
     }, 0);
 
-  const salvarPedido = async () => {
+  const salvarPedido  = async () => {
     const agora = new Date();
     const dataLisboa = new Date(
       agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
@@ -858,6 +859,7 @@ export default function GerenciarPedidos() {
                     <div>
                       <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
                       <strong>{p.nomeCliente}</strong>
+                      {p.numeroMesa ? <p className='text-xs'>Mesa: {p.numeroMesa}</p> : ''}
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                     <select
