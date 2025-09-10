@@ -1,4 +1,5 @@
 'use client';
+import { useCodigos } from "@/hook/useCodigos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useEffect, useState } from 'react';
 import {
@@ -109,40 +110,42 @@ export default function GerenciarPedidos() {
   const aumentar = () => setAjuste((prev)=> parseFloat((prev + 0.10).toFixed(2)))
   const diminuir = () => setAjuste((prev)=> parseFloat((prev - 0.10).toFixed(2)))
 
+  const {gerarCodigoPedido, gerarCodigoCliente} = useCodigos()
 
-const handleToggleExtra = (extra: Extra) => {
-  if (!produtoModal) return;
 
-  // Determinar limite baseado na classe e categoria
-  let limite: number | null = null;
+  const handleToggleExtra = (extra: Extra) => {
+    if (!produtoModal) return;
 
-  if (produtoModal.classe === "massa" || produtoModal.classe === "pizza-escolha") {
-    if (extra.tipo === "molho") limite = 1;
-    if (extra.tipo === "ingrediente") limite = 3;
-    if (extra.tipo === "ingredienteplus") limite = null; // sem limite
-  }
+    // Determinar limite baseado na classe e categoria
+    let limite: number | null = null;
 
-  // regra especial: estudante + categoria massa
-  if (produtoModal.classe === "estudante" && produtoModal.categoria === "massa") {
-    if (extra.tipo === "molho") limite = 1;
-    if (extra.tipo === "ingrediente") limite = 2;
-    if (extra.tipo === "ingredienteplus") limite = null;
-  }
-
-  const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === extra.tipo);
-
-  if (extrasSelecionados.some(x => x.id === extra.id)) {
-    // desmarcando
-    setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
-  } else {
-    // adicionando
-    if (limite !== null && selecionadosDoMesmoTipo.length >= limite) {
-      alert(`Você só pode escolher até ${limite} "${extra.tipo}" para este produto.`);
-      return;
+    if (produtoModal.classe === "massa" || produtoModal.classe === "pizza-escolha") {
+      if (extra.tipo === "molho") limite = 1;
+      if (extra.tipo === "ingrediente") limite = 3;
+      if (extra.tipo === "ingredienteplus") limite = null; // sem limite
     }
-    setExtrasSelecionados(prev => [...prev, extra]);
-  }
-};
+
+    // regra especial: estudante + categoria massa
+    if (produtoModal.classe === "estudante" && produtoModal.categoria === "massa") {
+      if (extra.tipo === "molho") limite = 1;
+      if (extra.tipo === "ingrediente") limite = 2;
+      if (extra.tipo === "ingredienteplus") limite = null;
+    }
+
+    const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === extra.tipo);
+
+    if (extrasSelecionados.some(x => x.id === extra.id)) {
+      // desmarcando
+      setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
+    } else {
+      // adicionando
+      if (limite !== null && selecionadosDoMesmoTipo.length >= limite) {
+        alert(`Você só pode escolher até ${limite} "${extra.tipo}" para este produto.`);
+        return;
+      }
+      setExtrasSelecionados(prev => [...prev, extra]);
+    }
+  };
 
 
 
@@ -414,23 +417,7 @@ const confirmarProduto = () => {
   const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase()));
   const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes(p.status.toLowerCase()));
 
-  const gerarCodigoPedido = (nome: string) => {
-    const nomeLimpo = nome.trim().toUpperCase();
-    if (nomeLimpo.length < 2) return '';
-    const prefixo = nomeLimpo[0] + nomeLimpo[nomeLimpo.length - 1];
-    const numero = Math.floor(Math.random() * 10000);
-    const codigo = numero.toString().padStart(4, '0');
-    return `${prefixo}-${codigo}`;
-  };
-
-  const gerarCodigoCliente = (nome: string, telefone: string) =>{
-    if(!nome || !telefone) return ''
-    const ultimos3 = telefone.slice(-3)
-    const consoantes = nome
-                          .replace(/[AEIOUaeiouÁÉÍÓÚáéíóúÂÊÎÔÛâêîôûÀàÇç\s]/g, '')
-                          .toUpperCase()
-    return `${consoantes}${ultimos3}`
-  }
+  
 
 
   async function buscarCliente(telefone: string): Promise<Cliente | null> {
