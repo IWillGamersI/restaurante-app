@@ -420,35 +420,7 @@ const confirmarProduto = () => {
   
 
 
-  async function buscarCliente(telefone: string): Promise<Cliente | null> {
-    if (!telefone) return null;
-
-    const clienteRef = collection(db, 'clientes');
-    const q = query(clienteRef, where('telefone', '==', telefone));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const clienteDoc = querySnapshot.docs[0];
-      const data = clienteDoc.data();
-      return {
-        id: clienteDoc.id,
-        nome: data.nome,
-        telefone: data.telefone,
-        codigoCliente: data.codigoCliente || gerarCodigoCliente(data.nome, data.telefone)
-      };
-    }
-      return null
-  }
-
-  async function criarCliente(nome: string, telefone: string): Promise<Cliente | null>{
-    
-    const clienteRef = collection(db, 'clientes');
-    const codigoCliente = gerarCodigoCliente(nome, telefone);
-    const docRef = await addDoc(clienteRef, { nome, telefone, codigoCliente });
-    return { id: docRef.id, nome, telefone, codigoCliente };
-   
-  }
-
+  
   useEffect(() => {
     if (cliente.trim().length >= 2) {
       setCodigoPedido(gerarCodigoPedido(cliente));
