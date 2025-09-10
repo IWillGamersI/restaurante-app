@@ -254,6 +254,7 @@ const confirmarProduto = () => {
     setTipoFatura('')
     setTipoPagamento('')
     setQuerImprimir(false)
+    setAjuste(0)
   };
 
   
@@ -266,7 +267,7 @@ const confirmarProduto = () => {
     await updateDoc(doc(db, 'pedidos', id), { status: novoStatus });
   };
 
-  const valorTotal = calcularTotalPedido(produtosPedido)
+  const valorTotal = calcularTotalPedido(produtosPedido) + ajuste
   
 
   

@@ -325,7 +325,10 @@ export default function CentralPedidos() {
             {pedidosConcluidosFiltrados.length === 0 ? (
               <p className="text-gray-500">Nenhum pedido finalizado.</p>
             ) : (
-            pedidosConcluidosFiltrados.map(p => (
+            pedidosConcluidosFiltrados
+              .slice()
+              .sort((a,b)=> new Date(b.data).getTime() - new Date(a.data).getTime())
+              .map(p => (
               <div key={p.id} className="flex w-full m-auto border p-3 rounded mb-3">
                 <div className="flex flex-col w-full">
                   <div className="flex justify-between items-center">
