@@ -1,4 +1,5 @@
 'use client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useEffect, useState } from 'react';
 import {
   collection,
@@ -23,17 +24,17 @@ import {
   CheckCircle2,
   Hourglass,
   ClipboardList,
-  ChevronRight,
-  ChevronDown,
-  CheckCheckIcon,
   Printer,
-  Store,
+  PlusCircleIcon,
+  Delete,
 } from 'lucide-react';
 
 import { imprimir } from '@/lib/impressao';
+import { Button } from './ui/button';
 
 interface Produto {
   id: string;
+  img: string
   nome: string;
   preco: number;
   classe: string
@@ -101,9 +102,97 @@ export default function GerenciarPedidos() {
   const [tipoPagamento, setTipoPagamento] = useState('')
   const [querImprimir, setQuerImprimir] = useState(false)
   const [ajuste, setAjuste] = useState(0)
+  const [modalAberto, setModalAberto] = useState(false)
+  const [produtoModal, setProdutoModal] = useState<Produto | null>(null)
+
 
   const aumentar = () => setAjuste((prev)=> parseFloat((prev + 0.10).toFixed(2)))
   const diminuir = () => setAjuste((prev)=> parseFloat((prev - 0.10).toFixed(2)))
+
+
+const handleToggleExtra = (extra: Extra) => {
+  if (!produtoModal) return;
+
+  // Determinar limite baseado na classe e categoria
+  let limite: number | null = null;
+
+  if (produtoModal.classe === "massa" || produtoModal.classe === "pizza-escolha") {
+    if (extra.tipo === "molho") limite = 1;
+    if (extra.tipo === "ingrediente") limite = 3;
+    if (extra.tipo === "ingredienteplus") limite = null; // sem limite
+  }
+
+  // regra especial: estudante + categoria massa
+  if (produtoModal.classe === "estudante" && produtoModal.categoria === "massa") {
+    if (extra.tipo === "molho") limite = 1;
+    if (extra.tipo === "ingrediente") limite = 2;
+    if (extra.tipo === "ingredienteplus") limite = null;
+  }
+
+  const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === extra.tipo);
+
+  if (extrasSelecionados.some(x => x.id === extra.id)) {
+    // desmarcando
+    setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
+  } else {
+    // adicionando
+    if (limite !== null && selecionadosDoMesmoTipo.length >= limite) {
+      alert(`Você só pode escolher até ${limite} "${extra.tipo}" para este produto.`);
+      return;
+    }
+    setExtrasSelecionados(prev => [...prev, extra]);
+  }
+};
+
+
+
+
+  
+const abrirModalProduto = (produto: Produto) => {
+  setProdutoModal(produto)
+  // reseta extras e quantidade
+  setExtrasSelecionados([])
+  setQuantidadeSelecionada(1)
+  setModalAberto(true)
+}
+
+const confirmarProduto = () => {
+  if (!produtoModal) return
+
+  const novoProduto: ProdutoPedido = {
+    id: produtoModal.id,
+    nome: produtoModal.nome,
+    preco: produtoModal.preco,
+    quantidade: quantidadeSelecionada,
+    extras: extrasSelecionados,
+    categoria: produtoModal.categoria,
+  }
+
+  setProdutosPedido(prev => {
+    // procurar se já existe o mesmo produto com os mesmos extras
+    const index = prev.findIndex(p =>
+      p.id === novoProduto.id &&
+      JSON.stringify(p.extras.map(e => e.id).sort()) === JSON.stringify(novoProduto.extras.map(e => e.id).sort())
+    )
+
+    if (index !== -1) {
+      // já existe → soma a quantidade
+      const copia = [...prev]
+      copia[index] = {
+        ...copia[index],
+        quantidade: copia[index].quantidade + novoProduto.quantidade,
+      }
+      return copia
+    }
+
+    // não existe → adiciona novo item
+    return [...prev, novoProduto]
+  })
+
+  setModalAberto(false)
+  setProdutoModal(null)
+}
+
  
 
   // Puxa os pedidos do Firestore
@@ -130,6 +219,7 @@ export default function GerenciarPedidos() {
       const data = doc.data();
       return {
         id: doc.id,
+        img: data.imagemUrl,
         nome: data.nome || '',
         preco: data.preco || 0,
         classe: data.classe || '',
@@ -173,42 +263,7 @@ export default function GerenciarPedidos() {
     setQuerImprimir(false)
   };
 
-  const adicionarProdutoAoPedido = () => {
-  if (!produtoSelecionado || quantidadeSelecionada <= 0) return;
-  const produto = produtos.find(p => p.id === produtoSelecionado);
-  if (!produto) return;
-
-  const novoProduto: ProdutoPedido = {
-    id: produto.id,
-    nome: produto.nome,
-    preco: produto.preco,
-    quantidade: quantidadeSelecionada,
-    extras: extrasSelecionados,
-    categoria: produto.categoria
-  };
-
-  // Verifica se já existe um produto com mesmo id e MESMOS extras
-  const existeIgual = produtosPedido.find(p => 
-    p.id === produto.id &&
-    JSON.stringify(p.extras || []) === JSON.stringify(extrasSelecionados)
-  );
-
-  if (existeIgual) {
-    // Se for exatamente igual (mesmo extras), aumenta quantidade
-    setProdutosPedido(produtosPedido.map(p =>
-      p === existeIgual ? { ...p, quantidade: p.quantidade + quantidadeSelecionada } : p
-    ));
-  } else {
-    // Caso contrário, adiciona como novo item
-    setProdutosPedido([...produtosPedido, novoProduto]);
-  }
-
-  // Reset campos
-  setProdutoSelecionado('');
-  setQuantidadeSelecionada(1);
-  setExtrasSelecionados([]);
-  };
-
+  
 
   const removerProdutoPedido = (id: string) => {
     setProdutosPedido(produtosPedido.filter(p => p.id !== id));
@@ -407,9 +462,6 @@ export default function GerenciarPedidos() {
    
   }
 
-
-
-
   useEffect(() => {
     if (cliente.trim().length >= 2) {
       setCodigoPedido(gerarCodigoPedido(cliente));
@@ -433,6 +485,7 @@ export default function GerenciarPedidos() {
 
   // Pega todas as classes distintas
   const classes = [...new Set(produtos.map(p => p.classe))];
+  const categoriaEstudante = [...new Set(produtos.map(p => p.categoria))]
 
   // Filtra produtos pela classe escolhida
   const produtosFiltrados = classeSelecionada
@@ -452,8 +505,6 @@ export default function GerenciarPedidos() {
           </div>
         </div>
         <hr />
-
-     
 
         <div className="flex justify-between">
 
@@ -542,7 +593,7 @@ export default function GerenciarPedidos() {
             <option value="glovo">Glovo</option>
             <option value="uber">Uber</option>
             <option value="bolt">Bolt</option>
-            <option value="app">App Top pizzas</option>
+            <option value="app">App Top pizzas</option> 
           </select>
 
           
@@ -609,10 +660,6 @@ export default function GerenciarPedidos() {
             disabled={!!idCliente}
           />
         </div>
-
-
-        {/* Seleção de produto */}
-
          
         {/* Botões de classe */}
         <div className="flex justify-between gap-2 flex-wrap">
@@ -634,212 +681,256 @@ export default function GerenciarPedidos() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
-          <select
-            className="border p-3 rounded w-full"
-            value={produtoSelecionado}
-            onChange={e => setProdutoSelecionado(e.target.value)}
-            disabled={!classeSelecionada} // só habilita depois de escolher classe
-          >
-            <option value="">
-              {classeSelecionada
-                ? "Selecione um produto"
-                : "Escolha uma classe primeiro"}
-            </option>
-            {produtosFiltrados.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.nome} - € {p.preco.toFixed(2)}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            className="border text-center p-2 rounded w-24"
-            min={1}
-            value={quantidadeSelecionada}
-            onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
-          />
-          <button
-            onClick={adicionarProdutoAoPedido}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus size={18} /> Adicionar
-          </button>
-        </div>
-            <hr />
-            <p className='font-semibold text-blue-600'>Extras</p>
-        {/* Extras dinâmicos */}
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          {produtoSelecionado &&
-            (() => {
-              const produto = produtos.find(p => p.id === produtoSelecionado);
-              if (!produto) return null;
+          <div className="w-full flex justify-between min-h-80 ">
 
-              const tiposExtras = extrasPorClasse[produto.classe || ''] || [];
-
-              const maxSelecionadosPorTipo: Record<string, number> = {
-                molho: 1,
-                ingrediente: 3,
-                acai: 3,
-                acompanhamento: 1,
-              };
-              
-              return tiposExtras.map(tipo => (              
-                <div key={tipo} className="bg-gray-100 p-3 rounded shadow">
-                  
-                  <h4 className="font-semibold mb-2 capitalize">{tipo}</h4>
-                  <div className="flex flex-col gap-1">
-                    {extras
-                      .filter(ex => ex.tipo === tipo)
-                      .map(extra => {
-                        const checked = extrasSelecionados.some(e => e.id === extra.id);
-                        const qtdSelecionadosTipo = extrasSelecionados.filter(e => e.tipo === tipo).length;
-
-                        return (
-                          <label key={extra.id} className="flex justify-between items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={!checked && qtdSelecionadosTipo >= (maxSelecionadosPorTipo[tipo] || 10)}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  setExtrasSelecionados(prev => [...prev, extra]);
-                                } else {
-                                  setExtrasSelecionados(prev =>
-                                    prev.filter(exSel => exSel.id !== extra.id)
-                                  );
-                                }
-                              }}
-                            />
-                            <div className='flex-1'>
-                              {extra.nome}
-
-                            </div>
-                            <span>
-                              {(extra.valor ?? 0) > 0 && (
-                                <span className="text-sm text-gray-600 ml-1">
-                                  (+€ {(extra.valor ?? 0).toFixed(2)})
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                  </div>
+            {/* Lista de produtos do pedido */}
+            <div className="flex flex-col w-1/2 border-2 border-blue-600  rounded max-h-90">
+                <div className="grid grid-cols-6 text-center border-b-2 p-2 text-blue-600 font-bold">
+                  <div>Quant</div>
+                  <div className="col-span-3">Produtos</div>
+                  <div>Valor</div>
+                  <div>Excluir</div>
+                </div>                
+              <ul className="flex-1 border-blue-600  rounded max-h-70 overflow-auto">
+                <div className="flex-1">
+                  {produtosPedido.map((p,i) => (
+                    <li key={p.id + i} className="">
+                      <div className="grid grid-cols-6 text-center border-b">
+                        <div>{p.quantidade}</div>
+                        <div className="col-span-3">{p.nome}</div>
+                        <div>€ {(p.preco * p.quantidade).toFixed(2)}</div>
+                        <div>
+                          <button
+                            onClick={() => removerProdutoPedido(p.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                          <Trash2 size={16} />
+                        </button></div>
+                      </div>
+                    </li>
+                  ))}                
                 </div>
-              ));
-            })()}
-            
-        </div>
-          
-        <hr />
-        
-        {/* Lista de produtos do pedido */}
-        <ul className="divide-y">
-          {produtosPedido.map((p,i) => (
-            <li key={p.id + i} className="flex justify-between items-center ">
-              <span>{p.nome} - {p.categoria} x {p.quantidade}</span>
-              <span>€ {(p.preco * p.quantidade).toFixed(2)}</span>
-              <button
-                onClick={() => removerProdutoPedido(p.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 size={16} />
-              </button>
-            </li>
-          ))}
-        </ul>
+              </ul>
 
-        <div className="flex justify-between items-center mt-4">
-          
-          <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
-            <label className='flex gap-1 cursor-pointer'>
-              <input
-                type='radio' 
-                name='pagamento'
-                value={'dinheiro'}
-                checked={tipoPagamento === 'dinheiro'}
-                onChange={()=> setTipoPagamento('dinheiro')} 
-                className='cursor-pointer'
-                required        
-              />
-               Dinheiro
-            </label>
-            <label className='flex gap-1 cursor-pointer'>
-              <input
-                type='radio' 
-                name='pagamento'
-                value={'cartao'}
-                checked={tipoPagamento === 'cartao'}
-                onChange={()=> setTipoPagamento('cartao')} 
-                className='cursor-pointer' 
-                required       
-              />
-               Cartão
-            </label>
-            <label className='flex gap-1 cursor-pointer'>
-              <input
-                type='radio' 
-                name='pagamento'
-                value={'mbway'}
-                checked={tipoPagamento === 'mbway'}
-                onChange={()=> setTipoPagamento('mbway')} 
-                className='cursor-pointer' 
-                required       
-              />
-               MbWay
-            </label>
-            <label className='flex gap-1 cursor-pointer'>
-              <input
-                type='radio' 
-                name='pagamento'
-                value={'aplicativo'}
-                checked={tipoPagamento === 'aplicativo'}
-                onChange={()=> setTipoPagamento('aplicativo')} 
-                className='cursor-pointer' 
-                required       
-              />
-               Aplicativos
-            </label>
-          </div>
-          <div className=" flex justify-center items-center px-4">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={diminuir} 
-                className="px-3 py-1 bg-red-500 text-white rounded cursor-pointer font-black"
-              >
-                -
-              </button>
+              <div className=" flex justify-between p-2 border-t-2 border-blue-600">
 
-              <input
-                type="text"
-                value={`€ ${ajuste.toFixed(2)}`}
-                readOnly
-                className="text-center w-24 border rounded p-1"
-              />
+                  <div className=" flex justify-center items-center px-4">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={diminuir} 
+                        className="px-3 py-1 bg-red-500 text-white rounded cursor-pointer font-black"
+                      >
+                        -
+                      </button>
 
-              <button 
-                onClick={aumentar} 
-                className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
-              >
-                +
-              </button>
+                      <input
+                        type="text"
+                        value={`€ ${ajuste.toFixed(2)}`}
+                        readOnly
+                        className="text-center w-24 border rounded p-1"
+                      />
+
+                      <button 
+                        onClick={aumentar} 
+                        className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <span className="flex gap-2 px-15 justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span>€ {(valorTotal + ajuste).toFixed(2) }</span>
+                  </span>
+
+              </div>
+
             </div>
 
+            <div className="w-1/2 flex flex-col justify-between">
+              <div className="grid grid-cols-3 gap-1 p-2 max-h-74 overflow-auto ">
+                {produtosFiltrados.map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => setProdutoSelecionado(p.id)}
+                    className={`cursor-pointer p-2 rounded-lg shadow border flex
+                      ${produtoSelecionado === p.id ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
+                  >
+                    <div className='w-full flex flex-col justify-center items-center'>
+                      <img className='w-20 h-20 rounded-full' src={p.img}/>
+                      <div className='flex flex-col'>
+                        <p className="text-sm font-semibold">{p.nome}</p>
+
+                      </div>
+                        <div className='w-full flex justify-between items-center'>
+                          <p className="text-2xl">€ {p.preco.toFixed(2)}</p>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => abrirModalProduto(p)}
+                            className="mt-2 flex items-center gap-1 bg-blue-600 rounded-full  text-white font-black cursor-pointer"
+                          >
+                            <Plus size={16} />
+                          </Button>
+                        </div>
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+
+              {/*Lançar pedido*/}
+              <div className="flex justify-between items-center mt-4 p-2 gap-2">
+                
+                <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+                  <label className='flex gap-1 cursor-pointer'>
+                    <input
+                      type='radio' 
+                      name='pagamento'
+                      value={'dinheiro'}
+                      checked={tipoPagamento === 'dinheiro'}
+                      onChange={()=> setTipoPagamento('dinheiro')} 
+                      className='cursor-pointer'
+                      required        
+                    />
+                    Dinheiro
+                  </label>
+                  <label className='flex gap-1 cursor-pointer'>
+                    <input
+                      type='radio' 
+                      name='pagamento'
+                      value={'cartao'}
+                      checked={tipoPagamento === 'cartao'}
+                      onChange={()=> setTipoPagamento('cartao')} 
+                      className='cursor-pointer' 
+                      required       
+                    />
+                    Cartão
+                  </label>
+                  <label className='flex gap-1 cursor-pointer'>
+                    <input
+                      type='radio' 
+                      name='pagamento'
+                      value={'mbway'}
+                      checked={tipoPagamento === 'mbway'}
+                      onChange={()=> setTipoPagamento('mbway')} 
+                      className='cursor-pointer' 
+                      required       
+                    />
+                    MbWay
+                  </label>
+                  <label className='flex gap-1 cursor-pointer'>
+                    <input
+                      type='radio' 
+                      name='pagamento'
+                      value={'aplicativo'}
+                      checked={tipoPagamento === 'aplicativo'}
+                      onChange={()=> setTipoPagamento('aplicativo')} 
+                      className='cursor-pointer' 
+                      required       
+                    />
+                    Aplicativos
+                  </label>
+                </div>
+
+              
+                <button
+                  onClick={salvarPedido}
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus size={18} /> Lançar
+                </button>
+              </div>
+
+            </div>
+
+            
+          {/*Modal*/}
           </div>
-          <span className="flex gap-2 px-15 justify-between font-bold text-lg">
-            <span>Total</span>
-            <span>€ {(valorTotal + ajuste).toFixed(2) }</span>
-             
-          
-          </span>
-          <button
-            onClick={salvarPedido}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus size={18} /> Lançar
-          </button>
-        </div>
+            <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+              <DialogContent className="max-w-3xl bg-white">
+                <DialogHeader>
+                  <DialogTitle>{produtoModal?.nome}</DialogTitle>
+                </DialogHeader>
+
+                {produtoModal && (
+                  <div className="space-y-4">
+                    <p className="text-gray-700">Preço base: € {produtoModal.preco.toFixed(2)}</p>
+
+                    {/* Quantidade */}
+                    <div className="flex items-center gap-2">
+                      <span>Quantidade:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={quantidadeSelecionada}
+                        onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
+                        className="w-20 border rounded p-1 text-center cursor-pointer"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Extras */}
+                      {(() => {
+                        const tiposExtras = (() => {
+                          if (!produtoModal) return [];
+
+                          if (produtoModal.classe === "estudante") {
+                            // estudante + categoria massa → mostra todos
+                            if (produtoModal.categoria === "massa") {
+                              return ["molho", "ingrediente", "ingredienteplus"];
+                            }
+                            // estudante + outras categorias → só ingredienteplus
+                            return ["ingredienteplus"];
+                          }
+
+                          // outras classes seguem o mapa normal
+                          return extrasPorClasse[produtoModal.classe] || [];
+                        })();
+
+                        if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>
+
+                        return tiposExtras.map(tipo => (
+                          <div key={tipo} className="border rounded p-2">
+                            <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
+                            <div className="flex flex-col gap-1">
+                              {extras.filter(e => e.tipo === tipo).map(extra => {
+                                const checked = extrasSelecionados.some(e => e.id === extra.id)
+                                return (
+                                  <label key={extra.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={extrasSelecionados.some(e => e.id === extra.id)}
+                                      onChange={() => handleToggleExtra(extra)}
+                                      className="cursor-pointer"
+                                    />
+                                    <span>{extra.nome}</span>
+                                    {extra.valor ? (
+                                      <span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>
+                                    ) : null}
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))
+                      })()}
+
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setModalAberto(false)} className="bg-red-600 text-white hover:bg-red-800 cursor-pointer">Cancelar<Delete/></Button>
+                  <Button onClick={confirmarProduto} className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"> <PlusCircleIcon/> Confirmar</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            
+
+
+        
       </div>
 
       {/* Listagem de Pedidos */}
@@ -877,13 +968,13 @@ export default function GerenciarPedidos() {
                   </div>
 
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
-                    {p.produtos.map(item => {
+                    {p.produtos.map((item, i) => {
                       const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                       const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
 
                       return (
                         <div
-                            key={item.id + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
+                            key={item.id + i + '-' + (item.extras?.map(e => e.id).join('_') || '') + '-'}
                             className="flex p-2 gap-5 justify-between bg-gray-200 rounded"
                           >
                           <div className="flex-1">
@@ -917,8 +1008,6 @@ export default function GerenciarPedidos() {
                           <div>{item.quantidade}</div>
                           <div>€ {subtotalProduto.toFixed(2)}</div>
                         </div>
-
-                        
                       );
                     })}
 
