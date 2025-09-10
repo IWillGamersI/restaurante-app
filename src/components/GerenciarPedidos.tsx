@@ -1,5 +1,8 @@
 'use client';
 import { useCodigos } from "@/hook/useCodigos";
+import { useStatus } from "@/hook/useStatusColor";
+import { calcularSubTotalProduto, calcularTotalExtras, calcularTotalPedido } from "@/utils/calculos";
+import { Produto, ProdutoPedido } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useEffect, useState } from 'react';
 import {
@@ -33,14 +36,7 @@ import {
 import { imprimir } from '@/lib/impressao';
 import { Button } from './ui/button';
 
-interface Produto {
-  id: string;
-  img: string
-  nome: string;
-  preco: number;
-  classe: string
-  categoria: string
-}
+
 
 interface Extra {
   id: string
@@ -49,14 +45,7 @@ interface Extra {
   valor?: number
 }
 
-interface ProdutoPedido {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  extras: Extra[] // ❌ agora sempre array, não opcional
-  categoria: string
-}
+
 
 interface Pedido {
   id: string;
@@ -111,6 +100,7 @@ export default function GerenciarPedidos() {
   const diminuir = () => setAjuste((prev)=> parseFloat((prev - 0.10).toFixed(2)))
 
   const {gerarCodigoPedido, gerarCodigoCliente} = useCodigos()
+  const {statusColor} = useStatus()
 
 
   const handleToggleExtra = (extra: Extra) => {
@@ -276,11 +266,10 @@ const confirmarProduto = () => {
     await updateDoc(doc(db, 'pedidos', id), { status: novoStatus });
   };
 
-  const valorTotal =
-    produtosPedido.reduce((acc, p) => {
-      const extrasValor = p.extras.reduce((sum, e) => sum + (e.valor || 0), 0);
-      return acc + p.preco * p.quantidade + extrasValor;
-    }, 0);
+  const valorTotal = calcularTotalPedido(produtosPedido)
+  
+
+  
 
   const salvarPedido  = async () => {
     const agora = new Date();
@@ -393,16 +382,7 @@ const confirmarProduto = () => {
     }
   };
 
-  const statusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'fila': return 'bg-gray-300 text-gray-800';
-      case 'preparando': return 'bg-yellow-200 text-blue-700';
-      case 'pronto': return 'bg-blue-100 text-blue-700';
-      case 'entregue': return 'bg-green-100 text-green-800';
-      case 'cancelado': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-200 text-gray-800';
-    }
-  };
+ 
 
   const hoje = new Date();
   const diaHoje = hoje.getDate();
@@ -416,9 +396,6 @@ const confirmarProduto = () => {
 
   const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase()));
   const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes(p.status.toLowerCase()));
-
-  
-
 
   
   useEffect(() => {
@@ -885,11 +862,6 @@ const confirmarProduto = () => {
                 </div>
               </DialogContent>
             </Dialog>
-
-            
-
-
-        
       </div>
 
       {/* Listagem de Pedidos */}
@@ -928,8 +900,8 @@ const confirmarProduto = () => {
 
                   <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
                     {p.produtos.map((item, i) => {
-                      const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
-                      const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
+                      const totalExtrasProduto = calcularTotalExtras(item)
+                      const subtotalProduto = calcularSubTotalProduto(item)
 
                       return (
                         <div
