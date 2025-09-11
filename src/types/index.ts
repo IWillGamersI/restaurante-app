@@ -21,21 +21,13 @@ export interface Extra {
   valor?: number;
 }
 
-export type ProdutoPedido = Omit<Produto, 'img' | 'classe'> & {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  extras: Extra[];
-  categoria: string;
-}
 
 export interface Pedido {
   id: string;
   codigoPedido: string;
   nomeCliente: string;
   data: string;
-  status: string;
+  status: StatusPedido
   valor: number;
   produtos: ProdutoPedido[];
   extras?: Extra[];
@@ -48,3 +40,19 @@ export interface Pedido {
   idCliente: string;
   codigoCliente: string;
 }
+
+export type ProdutoPedido = Omit<Produto, 'img' | 'classe'> & {
+  id: string;
+  nome: string;
+  preco: number;
+  quantidade: number;
+  extras: Extra[];
+  categoria: string;
+}
+
+export type PedidoFormState = Omit<Pedido, 'id' | 'criadoEm'> & {
+  querImprimi?: boolean
+  telefoneCliente?: string | null
+}
+
+export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'

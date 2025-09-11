@@ -9,11 +9,7 @@ import {
   collection,
   getDocs,
   addDoc,
-  deleteDoc,
-  doc,
-  updateDoc,
   query,
-  onSnapshot,
   serverTimestamp,
   orderBy,
   where
@@ -22,11 +18,8 @@ import { db } from '@/lib/firebase';
 import {
   Plus,
   Trash2,
-  Edit,
   Package,
-  Calendar,
   CheckCircle2,
-  Hourglass,
   ClipboardList,
   Printer,
   PlusCircleIcon,
@@ -35,7 +28,12 @@ import {
 
 import { imprimir } from '@/lib/impressao';
 import { Button } from './ui/button';
+import { usePedido } from "@/hook/usePedido";
+import { UseProdutos } from "@/hook/useProdutos";
+import { STATUS_ABERTO, STATUS_FECHADO, STATUS_PEDIDO_OPTIONS } from "@/utils/pedido";
 
+import { useExtras } from "@/hook/useExtras";
+import { getLimiteExtra } from "@/utils/pedido";
 
 
 interface Extra {
@@ -44,7 +42,6 @@ interface Extra {
   tipo: string
   valor?: number
 }
-
 
 
 interface Pedido {
@@ -70,17 +67,13 @@ interface Cliente {
 }
 
 export default function GerenciarPedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  
+  
   const [cliente, setCliente] = useState('');
   const [status, setStatus] = useState('');
   const [produtoSelecionado, setProdutoSelecionado] = useState('');
-  const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
-  const [produtosPedido, setProdutosPedido] = useState<ProdutoPedido[]>([]);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
-  const [extras, setExtras] = useState<Extra[]>([]);
-  const [extrasSelecionados, setExtrasSelecionados] = useState<Extra[]>([]);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [codigoCliente, setCodigoCliente] = useState('');
@@ -91,36 +84,44 @@ export default function GerenciarPedidos() {
   const [tipoFatura, setTipoFatura] = useState('')
   const [tipoPagamento, setTipoPagamento] = useState('')
   const [querImprimir, setQuerImprimir] = useState(false)
-  const [ajuste, setAjuste] = useState(0)
-  const [modalAberto, setModalAberto] = useState(false)
-  const [produtoModal, setProdutoModal] = useState<Produto | null>(null)
+  
 
 
-  const aumentar = () => setAjuste((prev)=> parseFloat((prev + 0.10).toFixed(2)))
-  const diminuir = () => setAjuste((prev)=> parseFloat((prev - 0.10).toFixed(2)))
+  
 
   const {gerarCodigoPedido, gerarCodigoCliente} = useCodigos()
   const {statusColor} = useStatus()
+  const {
+          atualizarStatus, 
+          pedidos, 
+          confirmarProduto,
+          removerProdutoPedido,
+          abrirModalProduto, 
+          produtoModal, 
+          setProdutoModal, 
+          modalAberto, 
+          setModalAberto,
+          extrasSelecionados,
+          produtosPedido,
+          quantidadeSelecionada,
+          setExtrasSelecionados,
+          setProdutosPedido,
+          setQuantidadeSelecionada,
+          ajuste,
+          setAjuste,
+          aumentar,
+          diminuir,
+          salvarPedido
+        } = usePedido()
+        
+    const { produtos, classes} = UseProdutos()
+    const { extras } = useExtras()
 
 
   const handleToggleExtra = (extra: Extra) => {
     if (!produtoModal) return;
 
-    // Determinar limite baseado na classe e categoria
-    let limite: number | null = null;
-
-    if (produtoModal.classe === "massa" || produtoModal.classe === "pizza-escolha") {
-      if (extra.tipo === "molho") limite = 1;
-      if (extra.tipo === "ingrediente") limite = 3;
-      if (extra.tipo === "ingredienteplus") limite = null; // sem limite
-    }
-
-    // regra especial: estudante + categoria massa
-    if (produtoModal.classe === "estudante" && produtoModal.categoria === "massa") {
-      if (extra.tipo === "molho") limite = 1;
-      if (extra.tipo === "ingrediente") limite = 2;
-      if (extra.tipo === "ingredienteplus") limite = null;
-    }
+    const limite = getLimiteExtra(produtoModal,extra.tipo)
 
     const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === extra.tipo);
 
@@ -137,104 +138,22 @@ export default function GerenciarPedidos() {
     }
   };
 
-
-
-
-  
-const abrirModalProduto = (produto: Produto) => {
-  setProdutoModal(produto)
-  // reseta extras e quantidade
-  setExtrasSelecionados([])
-  setQuantidadeSelecionada(1)
-  setModalAberto(true)
-}
-
-const confirmarProduto = () => {
-  if (!produtoModal) return
-
-  const novoProduto: ProdutoPedido = {
-    id: produtoModal.id,
-    nome: produtoModal.nome,
-    preco: produtoModal.preco,
-    quantidade: quantidadeSelecionada,
-    extras: extrasSelecionados,
-    categoria: produtoModal.categoria,
-  }
-
-  setProdutosPedido(prev => {
-    // procurar se já existe o mesmo produto com os mesmos extras
-    const index = prev.findIndex(p =>
-      p.id === novoProduto.id &&
-      JSON.stringify(p.extras.map(e => e.id).sort()) === JSON.stringify(novoProduto.extras.map(e => e.id).sort())
-    )
-
-    if (index !== -1) {
-      // já existe → soma a quantidade
-      const copia = [...prev]
-      copia[index] = {
-        ...copia[index],
-        quantidade: copia[index].quantidade + novoProduto.quantidade,
-      }
-      return copia
-    }
-
-    // não existe → adiciona novo item
-    return [...prev, novoProduto]
-  })
-
-  setModalAberto(false)
-  setProdutoModal(null)
-}
-
- 
-
-  // Puxa os pedidos do Firestore
-  useEffect(() => {
-    const q = query(collection(db, 'pedidos'), orderBy('criadoEm', 'asc'));
-
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pedido));
-      setPedidos(lista);
+  const handleSalvarPedido = () => {
+    salvarPedido({
+      tipoFatura,
+      tipoPagamento,
+      tipoVenda,
+      clienteNome,
+      clienteTelefone,
+      codigoCliente,
+      produtosPedido,
+      extrasSelecionados,
+      codigoPedido,
+      valorTotal,
+      querImprimir,
+      limparCampos,
+      imprimir,
     });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    carregarProdutos();
-    carregarExtras();
-  }, []);
-
-  const carregarProdutos = async () => {
-    const q = query(collection(db, 'produtos'), orderBy('nome', 'asc'));
-    const snap = await getDocs(q);
-    const lista: Produto[] = snap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        img: data.imagemUrl,
-        nome: data.nome || '',
-        preco: data.preco || 0,
-        classe: data.classe || '',
-        categoria: data.categoria || ''
-      };
-    });
-    setProdutos(lista);
-  };
-
-  const carregarExtras = async () => {
-    const q = query(collection(db, "extras"), orderBy("nome", "asc"));
-    const snap = await getDocs(q);
-    const lista: Extra[] = snap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        nome: data.nome || "",
-        tipo: data.tipo || "",
-        valor: data.valor || 0,
-      };
-    });
-    setExtras(lista);
   };
 
   const limparCampos = () => {
@@ -257,131 +176,13 @@ const confirmarProduto = () => {
     setAjuste(0)
   };
 
-  
-
-  const removerProdutoPedido = (id: string) => {
-    setProdutosPedido(produtosPedido.filter(p => p.id !== id));
-  };
-
-  const atualizarStatus = async (id: string, novoStatus: string) => {
-    await updateDoc(doc(db, 'pedidos', id), { status: novoStatus });
-  };
+   
 
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste
   
 
   
 
-  const salvarPedido  = async () => {
-    const agora = new Date();
-    const dataLisboa = new Date(
-      agora.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })
-    );
-
-    if(!tipoFatura){
-      alert('Informe se é CF ou SF!')
-      return
-    }
-
-    if(!tipoVenda){
-      alert('Informe qual o tipo de VENDA!')
-      return
-    }
-
-    if (!clienteNome) {
-      alert('Informe o NOME do cliente!');
-      return;
-    }
-    if (produtosPedido.length === 0) {
-      alert('Adicione pelo menos um PRODUTO!');
-      return;
-    }
-
-    if(!tipoPagamento){
-      alert('Informe o tipo de PAGAMENTO!')
-      return
-    }
-
-    let clienteIdFinal = idCliente;
-    let codigoClienteFinal = codigoCliente;
-
-    // Se cliente tem telefone → buscar ou criar no banco
-    if (clienteTelefone) {
-      const clientesRef = collection(db, 'clientes');
-      const q = query(clientesRef, where('telefone', '==', clienteTelefone));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        // Cliente já existe
-        const clienteDoc = snapshot.docs[0];
-        clienteIdFinal = clienteDoc.id;
-        codigoClienteFinal = clienteDoc.data().codigoCliente;
-      } else {
-        // Criar cliente só agora (não no blur)
-        const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
-        const docRef = await addDoc(clientesRef, {
-          nome: clienteNome,
-          telefone: clienteTelefone,
-          codigoCliente: novoCodigo,
-        });
-        clienteIdFinal = docRef.id;
-        codigoClienteFinal = novoCodigo;
-      }
-    } else {
-      // Cliente genérico
-      const clientesRef = collection(db, 'clientes');
-      const q = query(clientesRef, where('codigoCliente', '==', 'CLNT123'));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        clienteIdFinal = snapshot.docs[0].id;
-      } else {
-        const docRef = await addDoc(clientesRef, {
-          nome: 'Cliente Genérico',
-          telefone: null,
-          codigoCliente: 'CLNT123',
-        });
-        clienteIdFinal = docRef.id;
-      }
-
-      codigoClienteFinal = 'CLNT123';
-    }
-
-    const dados = {
-      idCliente: clienteIdFinal,
-      nomeCliente: clienteNome,
-      telefoneCliente: clienteTelefone || null,
-      codigoCliente: codigoClienteFinal,
-      tipoFatura,
-      tipoPagamento,
-      data: dataLisboa.toISOString(),
-      status: 'Fila',
-      tipoVenda,
-      valor: valorTotal,
-      produtos: produtosPedido,
-      extras: extrasSelecionados,
-      codigoPedido,
-      criadoEm: serverTimestamp(),
-    };
-
-    try {
-      // Sempre cria novo pedido
-      await addDoc(collection(db, 'pedidos'), dados);
-
-      if(querImprimir){
-        imprimir(dados, 2);
-
-      }else{
-        alert('Pedido salvo com Sucesso!!!')
-      }
-
-      limparCampos();
-
-    } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      alert('Erro ao salvar pedido. Verifique se você tem permissão.');
-    }
-  };
 
  
 
@@ -395,8 +196,9 @@ const confirmarProduto = () => {
     return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
   });
 
-  const pedidosAbertos = pedidosDoDia.filter(p => ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase()));
-  const pedidosFechados = pedidosDoDia.filter(p => ['entregue', 'cancelado'].includes(p.status.toLowerCase()));
+  const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status));
+
+  const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status));
 
   
   useEffect(() => {
@@ -420,9 +222,7 @@ const confirmarProduto = () => {
     estudante: ['molho', 'ingrediente', 'ingredienteplus']
   };
 
-  // Pega todas as classes distintas
-  const classes = [...new Set(produtos.map(p => p.classe))];
-  const categoriaEstudante = [...new Set(produtos.map(p => p.categoria))]
+
 
   // Filtra produtos pela classe escolhida
   const produtosFiltrados = classeSelecionada
@@ -678,7 +478,7 @@ const confirmarProduto = () => {
 
                   <span className="flex gap-2 px-15 justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>€ {(valorTotal + ajuste).toFixed(2) }</span>
+                    <span>€ {(valorTotal).toFixed(2) }</span>
                   </span>
 
               </div>
@@ -773,7 +573,7 @@ const confirmarProduto = () => {
 
               
                 <button
-                  onClick={salvarPedido}
+                  onClick={handleSalvarPedido}
                   className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
                 >
                   <Plus size={18} /> Lançar
@@ -890,11 +690,14 @@ const confirmarProduto = () => {
                       onChange={(e) => atualizarStatus(p.id, e.target.value)}
                       className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
                     >
-                      <option value="Fila">Fila</option>
-                      <option value="Preparando">Preparando</option>
-                      <option value="Pronto">Pronto</option>
-                      <option value="Entregue">Entregue</option>
-                      <option value="Cancelado">Cancelado</option>
+                      {STATUS_PEDIDO_OPTIONS.map((status)=>(
+                        <option
+                          key={status} value={status}
+                        >
+                          {status}
+                        </option>
+                      ))}
+                      
                     </select>
 
                   </div>
