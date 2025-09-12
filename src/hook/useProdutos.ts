@@ -1,10 +1,10 @@
 import { db } from "@/lib/firebase";
-import { Extra, Produto } from "@/types";
+import { Produto } from "@/types";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
-
-export function UseProdutos(){
+export function useProdutos(){  
+    const [classeSelecionada, setClasseSelecionada] = useState("");
     const [produtos, setProdutos] = useState<Produto[]>([])
 
     const carregarProdutos = async () =>{
@@ -23,15 +23,26 @@ export function UseProdutos(){
         })
         setProdutos(lista)
     }
-
-   
-    // Pega todas as classes distintas
-    const classes = [...new Set(produtos.map(p => p.classe))];
-
+    
     useEffect(()=>{
         carregarProdutos()
     },[])
 
+   
+    // Pega todas as classes distintas
+    const classes = [...new Set(produtos.map(p => p.classe))];
+    
+    // Filtra produtos pela classe escolhida
+    const produtosFiltrados = classeSelecionada
+    ? produtos.filter(p => p.classe.toLowerCase() === classeSelecionada.toLowerCase())
+    : produtos;
+  
+    // Debug para garantir que tudo está certo
+    console.log("classeSelecionada:", classeSelecionada);
+    console.log("classes:", classes);
+    console.log("produtos carregados:", produtos.length);
+    console.log("produtosFiltrados:", produtosFiltrados.length);
 
-    return {produtos, carregarProdutos,classes}
+
+    return {produtos, carregarProdutos, produtosFiltrados, classes, classeSelecionada, setClasseSelecionada}
 }

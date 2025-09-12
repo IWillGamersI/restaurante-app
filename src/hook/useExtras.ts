@@ -26,7 +26,19 @@ export function useExtras(){
     useEffect(()=>{
         carregaExtras()
     }, [])
+
+    const extrasPorClasse: Record<string, string[]> = {
+        acai: ['acai', 'acaiplus'],
+        entrada: [],
+        prato: ['acompanhamento', 'ingredienteplus'],
+        pizza: ['ingredienteplus'],
+        "pizza-escolha": ['ingrediente', 'ingredienteplus'],
+        massa: ['molho', 'ingrediente', 'ingredienteplus'],
+        bebida: [],
+        sobremesa: [],
+        estudante: ['molho', 'ingrediente', 'ingredienteplus']
+    };
     
 
-    return {extras, carregaExtras}
+    return {extras, carregaExtras, extrasPorClasse}
 }

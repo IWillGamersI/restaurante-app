@@ -198,9 +198,21 @@ export function usePedido(){
 
     async function removerProdutoPedido(id: string){
 
-    setProdutosPedido(produtosPedido.filter(p => p.id !== id));
+        setProdutosPedido(produtosPedido.filter(p => p.id !== id));
   
-}
+    }
+
+     const hoje = new Date();
+    const diaHoje = hoje.getDate();
+    const mesHoje = hoje.getMonth();
+    const anoHoje = hoje.getFullYear();
+
+    const pedidosDoDia = pedidos.filter(p => {
+        const pData = new Date(p.data);
+        return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
+    });
+
+
 
 
     const aumentar = () => setAjuste((prev)=> parseFloat((prev + 0.10).toFixed(2)))
@@ -235,6 +247,9 @@ export function usePedido(){
         ajuste,
         setAjuste,
         aumentar,
-        diminuir
+        diminuir,
+        hoje,
+        pedidosDoDia
     }
 }
+

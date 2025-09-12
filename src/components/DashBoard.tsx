@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
-import { div, h2 } from 'framer-motion/client';
-import { Underdog } from 'next/font/google';
+import { somarAcumulado } from '@/utils/calculos';
 
 
 interface Produto {
@@ -19,17 +18,6 @@ interface Produto {
   preco: number;
   custo?: number;
   quantidade: number;  
-}
-
-interface Pedido {
-  valor: number;
-  custo?: number;
-  data: Date;
-  produto?: Produto[];
-  canal?: string;
-  pagamento?: string;
-  faturado?: string;  
-  imagemUrl?: string 
 }
 
 interface Despesa {
@@ -49,12 +37,7 @@ interface DespesasPaga {
   formaPagamento: string
 }
 
-
-
-type FiltroPeriodo = 'hoje' | 'semana' | 'semana-passada' |'quinzenal'|'mes' | 'ano';
-
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
-
 
 const imagensPorCanal: Record<string, string> = {
   Uber: '/uber.png',
@@ -820,15 +803,21 @@ const cardsPrincipais = [
               <CardContent className="w-full grid grid-cols-9 gap-2">
                 {gerarFaturamentoDiario(mesSelecionado, anoSelecionado).map((f, idx) => {
                   const isSemana = f.diaSemana === 'Faturamento Semanal';
+
+                  const valoresSemanaAlmoco = gerarFaturamentoDiario(mesSelecionado,anoSelecionado)
+                    .filter(d => d.diaSemana !== 'Faturamento Semanal')
+                    .map(d=>d.valorAlmoco || 0)
+
                   return (
                     <div
                       key={idx}
                       className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
-                    >{!f.dia ? <div>
-                          <div className='flex justify-between font-bold text-blue-600'>
-                          <div>{f.diaSemana}</div>
-                          <div>{f.dia ?? ''}</div>
-                        </div>
+                    >{!f.dia ? 
+                      <div>                        
+                        <div className='flex justify-between font-bold text-blue-600'>
+                        <div>{f.diaSemana}</div>
+                        <div>{f.dia ?? ''}</div>                       
+                      </div>
                     </div> :
                     <div>
                         <div className='flex justify-between font-bold text-blue-600'>
@@ -840,7 +829,7 @@ const cardsPrincipais = [
                           <div className='flex justify-between'>
                             Almoço
                             <div>
-                              {moeda} {f.valorAlmoco.toFixed(2)}
+                              {moeda} {isSemana ? somarAcumulado(valoresSemanaAlmoco).toFixed(2): f.valorAlmoco.toFixed(2) } 
 
                             </div>
                           </div>

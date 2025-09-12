@@ -1,17 +1,10 @@
 'use client';
-import { useCodigos } from "@/hook/useCodigos";
-import { useStatus } from "@/hook/useStatusColor";
 import { calcularSubTotalProduto, calcularTotalExtras, calcularTotalPedido } from "@/utils/calculos";
-import { Produto, ProdutoPedido } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useEffect, useState } from 'react';
 import {
   collection,
   getDocs,
-  addDoc,
   query,
-  serverTimestamp,
-  orderBy,
   where
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -26,96 +19,71 @@ import {
   Delete,
 } from 'lucide-react';
 
+import { useCodigos } from "@/hook/useCodigos";
+import { useStatus } from "@/hook/useStatusColor";
+import { useStados } from "@/hook/useStados"
+import { Extra } from "@/types";
 import { imprimir } from '@/lib/impressao';
 import { Button } from './ui/button';
 import { usePedido } from "@/hook/usePedido";
-import { UseProdutos } from "@/hook/useProdutos";
+import { useProdutos } from "@/hook/useProdutos";
 import { STATUS_ABERTO, STATUS_FECHADO, STATUS_PEDIDO_OPTIONS } from "@/utils/pedido";
 
 import { useExtras } from "@/hook/useExtras";
 import { getLimiteExtra } from "@/utils/pedido";
 
 
-interface Extra {
-  id: string
-  nome: string
-  tipo: string
-  valor?: number
-}
-
-
-interface Pedido {
-  id: string;
-  codigoPedido: string
-  nomeCliente: string;
-  data: string;
-  status: string;
-  valor: number;
-  produtos: ProdutoPedido[];
-  extras: Extra[]
-  tipoVenda: string
-  tipoFatura: string
-  tipoPagamento:string
-  numeroMesa: string
-}
-
-interface Cliente {
-  id: string
-  nome: string
-  telefone:string
-  codigoCliente:string
-}
-
 export default function GerenciarPedidos() {
   
-  
-  const [cliente, setCliente] = useState('');
-  const [status, setStatus] = useState('');
-  const [produtoSelecionado, setProdutoSelecionado] = useState('');
-  const [erro, setErro] = useState('');
-  const [sucesso, setSucesso] = useState('');
-  const [clienteNome, setClienteNome] = useState('');
-  const [clienteTelefone, setClienteTelefone] = useState('');
-  const [codigoCliente, setCodigoCliente] = useState('');
-  const [codigoPedido, setCodigoPedido] = useState('');
-  const [idCliente, setIdCliente] = useState<string | null>(null);
-  const [classeSelecionada, setClasseSelecionada] = useState("");
-  const [tipoVenda, setTipoVenda] = useState("");
-  const [tipoFatura, setTipoFatura] = useState('')
-  const [tipoPagamento, setTipoPagamento] = useState('')
-  const [querImprimir, setQuerImprimir] = useState(false)
-  
-
-
-  
-
-  const {gerarCodigoPedido, gerarCodigoCliente} = useCodigos()
+  const { gerarCodigoPedido } = useCodigos()
   const {statusColor} = useStatus()
   const {
           atualizarStatus, 
-          pedidos, 
           confirmarProduto,
           removerProdutoPedido,
           abrirModalProduto, 
           produtoModal, 
-          setProdutoModal, 
           modalAberto, 
           setModalAberto,
           extrasSelecionados,
           produtosPedido,
           quantidadeSelecionada,
           setExtrasSelecionados,
-          setProdutosPedido,
           setQuantidadeSelecionada,
           ajuste,
-          setAjuste,
           aumentar,
           diminuir,
-          salvarPedido
+          salvarPedido,
+          hoje,
+          pedidosDoDia
         } = usePedido()
         
-    const { produtos, classes} = UseProdutos()
-    const { extras } = useExtras()
+    const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada} = useProdutos()
+    const { extras, extrasPorClasse } = useExtras()
+
+    const {
+            limparCampos, 
+            tipoFatura, 
+            setTipoFatura,
+            clienteNome,
+            clienteTelefone,
+            codigoCliente,
+            codigoPedido,
+            idCliente,
+            produtoSelecionado,
+            querImprimir,
+            setClienteNome,
+            setClienteTelefone,
+            setCodigoCliente,
+            setCodigoPedido,
+            setIdCliente,
+            setProdutoSelecionado,
+            setQuerImprimir,
+            setTipoPagamento,
+            setTipoVenda,
+            tipoPagamento,
+            tipoVenda
+          } = useStados()
 
 
   const handleToggleExtra = (extra: Extra) => {
@@ -156,78 +124,11 @@ export default function GerenciarPedidos() {
     });
   };
 
-  const limparCampos = () => {
-    setClienteNome('');
-    setClienteTelefone('');
-    setCodigoPedido('')
-    setCodigoCliente('')
-    setStatus('');
-    setProdutosPedido([]);
-    setProdutoSelecionado('');
-    setQuantidadeSelecionada(1);
-    setErro('');
-    setSucesso('');
-    setExtrasSelecionados([]);
-    setClasseSelecionada('')
-    setTipoVenda('')
-    setTipoFatura('')
-    setTipoPagamento('')
-    setQuerImprimir(false)
-    setAjuste(0)
-  };
-
-   
-
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste
   
-
-  
-
-
- 
-
-  const hoje = new Date();
-  const diaHoje = hoje.getDate();
-  const mesHoje = hoje.getMonth();
-  const anoHoje = hoje.getFullYear();
-
-  const pedidosDoDia = pedidos.filter(p => {
-    const pData = new Date(p.data);
-    return pData.getDate() === diaHoje && pData.getMonth() === mesHoje && pData.getFullYear() === anoHoje;
-  });
-
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status));
 
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status));
-
-  
-  useEffect(() => {
-    if (cliente.trim().length >= 2) {
-      setCodigoPedido(gerarCodigoPedido(cliente));
-
-    } else {
-      setCodigoPedido('');
-    }
-  }, [cliente]);
-
-  const extrasPorClasse: Record<string, string[]> = {
-    acai: ['acai', 'acaiplus'],
-    entrada: [],
-    prato: ['acompanhamento', 'ingredienteplus'],
-    pizza: ['ingredienteplus'],
-    "pizza-escolha": ['ingrediente', 'ingredienteplus'],
-    massa: ['molho', 'ingrediente', 'ingredienteplus'],
-    bebida: [],
-    sobremesa: [],
-    estudante: ['molho', 'ingrediente', 'ingredienteplus']
-  };
-
-
-
-  // Filtra produtos pela classe escolhida
-  const produtosFiltrados = classeSelecionada
-    ? produtos.filter(p => p.classe === classeSelecionada)
-    : [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
