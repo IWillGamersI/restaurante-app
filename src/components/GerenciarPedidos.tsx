@@ -9,7 +9,7 @@ import { imprimir } from '@/lib/impressao';
 import { Button } from './ui/button';
 import { usePedido } from "@/hook/usePedido";
 import { useProdutos } from "@/hook/useProdutos";
-import { STATUS_ABERTO, STATUS_FECHADO, STATUS_PEDIDO_OPTIONS } from "@/utils/pedido";
+import { getLimiteExtra, STATUS_ABERTO, STATUS_FECHADO, STATUS_PEDIDO_OPTIONS } from "@/utils/pedido";
 import { useExtras } from "@/hook/useExtras";
 import { ClasseButtons } from "./elements/ClassesButtons";
 import { PedidoInfoForm } from "./elements/FormularioPedido";
@@ -283,28 +283,39 @@ export default function GerenciarPedidos() {
                           <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
                           <div className="flex flex-col gap-1">
                             {extras.filter(e => e.tipo === tipo).map(extra => {
-                              const selecionado = extrasSelecionados.some(e => e.id === extra.id);
-                              const limite = typeof extrasPorClasse === 'number' ? extrasPorClasse : null;
-                              const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === tipo);
+                              const selecionado = extrasSelecionados.some(sel => sel.id === extra.id);
+                              const limite = getLimiteExtra(produtoModal, tipo);
+                              const selecionadosDoMesmoTipo = extrasSelecionados.filter(sel => sel.tipo === tipo).length;
+
+
+                              // Se já atingiu o limite e esse item não está marcado, desabilita
+                              const disabled = limite !== null && selecionadosDoMesmoTipo >= limite && !selecionado;
 
                               return (
-                                <label key={extra.id} className="flex items-center gap-2 cursor-pointer">
+                                <label key={extra.id} className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                   <input
                                     type="checkbox"
                                     checked={selecionado}
+                                    disabled={disabled}
                                     onChange={() => {
-                                      if (selecionado) setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
-                                      else if (!limite || selecionadosDoMesmoTipo.length < limite)
+                                      if (selecionado) {
+                                        // Remove extra
+                                        setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
+                                      } else {
+                                        // Adiciona extra
                                         setExtrasSelecionados(prev => [...prev, extra]);
-                                      else alert(`Limite de ${limite} para ${tipo}`);
+                                      }
                                     }}
                                     className="cursor-pointer"
                                   />
                                   <span>{extra.nome}</span>
-                                  {extra.valor ? (<span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>) : null}
+                                  {extra.valor ? (
+                                    <span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>
+                                  ) : null}
                                 </label>
                               );
                             })}
+
                           </div>
                         </div>
                       ));
