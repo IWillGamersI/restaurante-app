@@ -1,0 +1,175 @@
+import React from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { PedidoInfoFormProps } from "@/types";
+
+
+
+export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
+                                                                    tipoFatura,
+                                                                    setTipoFatura,
+                                                                    tipoVenda,
+                                                                    setTipoVenda,
+                                                                    clienteTelefone,
+                                                                    setClienteTelefone,
+                                                                    clienteNome,
+                                                                    setClienteNome,
+                                                                    codigoCliente,
+                                                                    setCodigoCliente,
+                                                                    idCliente,
+                                                                    setIdCliente,
+                                                                    codigoPedido,
+                                                                    setCodigoPedido,
+                                                                    querImprimir,
+                                                                    setQuerImprimir,
+                                                                    gerarCodigoPedido
+                                                                }) => {
+
+  const handleBlurTelefone = async () => {
+    if (!clienteTelefone) return;
+    const clientesRef = collection(db, 'clientes');
+    const q = query(clientesRef, where('telefone', '==', clienteTelefone));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const clienteDoc = snapshot.docs[0];
+      const data = clienteDoc.data();
+
+      setClienteNome(data.nome);
+      setClienteTelefone(data.telefone);
+      setCodigoCliente(data.codigoCliente);
+      setIdCliente(clienteDoc.id);
+      setCodigoPedido(gerarCodigoPedido(data.nome));
+    } else {
+      console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
+    }
+  };
+
+  return (
+    <div className="flex justify-between gap-1 flex-wrap">
+      {/* Impressão */}
+      <div className="flex flex-col justify-around bg-blue-600 px-4 rounded text-white">
+        <label className="flex gap-1 cursor-pointer">
+          <input
+            type="radio"
+            name="imprimir"
+            checked={querImprimir === false}
+            onChange={() => setQuerImprimir(false)}
+            className="cursor-pointer"
+            required
+          />
+          Não Imprimir
+        </label>
+        <label className="flex gap-1 cursor-pointer">
+          <input
+            type="radio"
+            name="imprimir"
+            checked={querImprimir === true}
+            onChange={() => setQuerImprimir(true)}
+            className="cursor-pointer"
+            required
+          />
+          Imprimir
+        </label>
+      </div>
+
+      {/* Código Pedido */}
+      <input
+        type="text"
+        className="border p-3 rounded max-w-[130px]"
+        placeholder="Código Pedido"
+        value={codigoPedido}
+        readOnly
+        disabled
+      />
+
+      {/* Código Cliente */}
+      <input
+        type="text"
+        className="border p-3 rounded max-w-[130px]"
+        placeholder="Código do Cliente"
+        value={codigoCliente}
+        readOnly
+        disabled
+      />
+
+      {/* Fatura */}
+      <div className="flex flex-col justify-around bg-blue-600 px-4 rounded text-white">
+        <label className="flex gap-1 cursor-pointer">
+          <input
+            type="radio"
+            name="fatura"
+            value="CF"
+            checked={tipoFatura === 'cf'}
+            onChange={() => setTipoFatura('cf')}
+            className="cursor-pointer"
+            required
+          />
+          CF
+        </label>
+        <label className="flex gap-1 cursor-pointer">
+          <input
+            type="radio"
+            name="fatura"
+            value="SF"
+            checked={tipoFatura === 'sf'}
+            onChange={() => setTipoFatura('sf')}
+            className="cursor-pointer"
+            required
+          />
+          SF
+        </label>
+      </div>
+
+      {/* Tipo de Venda */}
+      <select
+        className="border p-3 rounded"
+        value={tipoVenda}
+        onChange={e => setTipoVenda(e.target.value)}
+        required
+      >
+        <option value="">Tipo de Venda</option>
+        <option value="balcao">Balcao</option>
+        <option value="mesa">Mesa</option>
+        <option value="glovo">Glovo</option>
+        <option value="uber">Uber</option>
+        <option value="bolt">Bolt</option>
+        <option value="app">App Top pizzas</option>
+      </select>
+
+      {/* Telefone Cliente */}
+      <input
+        type="text"
+        className="border p-3 rounded"
+        placeholder="Telefone Cliente..."
+        value={clienteTelefone}
+        disabled={tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt'}
+        onChange={e => {
+          const telefone = e.target.value;
+          setClienteTelefone(telefone);
+          if (!telefone) {
+            setClienteNome("");
+            setCodigoCliente("");
+            setIdCliente(null);
+            setCodigoPedido("");
+          }
+        }}
+        onBlur={handleBlurTelefone}
+      />
+
+      {/* Nome Cliente */}
+      <input
+        type="text"
+        className="border p-3 rounded"
+        placeholder="Nome Cliente..."
+        value={clienteNome}
+        onChange={e => {
+          const nome = e.target.value;
+          setClienteNome(nome);
+          setCodigoPedido(gerarCodigoPedido(nome));
+        }}
+        disabled={!!idCliente}
+      />
+    </div>
+  );
+};

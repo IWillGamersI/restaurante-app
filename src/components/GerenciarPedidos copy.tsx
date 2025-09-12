@@ -1,10 +1,11 @@
 'use client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, Trash2, Package, CheckCircle2, ClipboardList, Printer, PlusCircleIcon, Delete } from 'lucide-react';
+
 import { calcularSubTotalProduto, calcularTotalExtras, calcularTotalPedido } from "@/utils/calculos";
 import { useCodigos } from "@/hook/useCodigos";
 import { useStatus } from "@/hook/useStatusColor";
-import { useStados } from "@/hook/useStados";
+import { useStados } from "@/hook/useStados"
 import { imprimir } from '@/lib/impressao';
 import { Button } from './ui/button';
 import { usePedido } from "@/hook/usePedido";
@@ -14,61 +15,60 @@ import { useExtras } from "@/hook/useExtras";
 import { ClasseButtons } from "./elements/ClassesButtons";
 import { PedidoInfoForm } from "./elements/FormularioPedido";
 
+
 export default function GerenciarPedidos() {
-  const stados = useStados();
-  const pedido = usePedido(stados);
-  const { gerarCodigoPedido } = useCodigos();
-  const { statusColor } = useStatus();
 
+  const stados = useStados()
+  const pedido = usePedido(stados)
+  const { gerarCodigoPedido } = useCodigos()
+  const {statusColor} = useStatus()
   const {
-    atualizarStatus,
-    confirmarProduto,
-    removerProdutoPedido,
-    abrirModalProduto,
-    produtoModal,
-    modalAberto,
-    setModalAberto,
-    extrasSelecionados,
-    produtosPedido,
-    quantidadeSelecionada,
-    setExtrasSelecionados,
-    setQuantidadeSelecionada,
-    ajuste,
-    aumentar,
-    diminuir,
-    salvarPedido,
-    hoje,
-    pedidosDoDia,
-    handleToggleExtra,
-    produtoSelecionado,
-    setProdutoSelecionado,
-  } = pedido;
+          atualizarStatus, 
+          confirmarProduto,
+          removerProdutoPedido,
+          abrirModalProduto, 
+          produtoModal, 
+          modalAberto, 
+          setModalAberto,
+          extrasSelecionados,
+          produtosPedido,
+          quantidadeSelecionada,
+          setExtrasSelecionados,
+          setQuantidadeSelecionada,
+          ajuste,
+          aumentar,
+          diminuir,
+          salvarPedido,
+          hoje,
+          pedidosDoDia,
+          handleToggleExtra,
+        } = pedido
+        
+    const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada} = useProdutos()
+    const { extras, extrasPorClasse } = useExtras()
 
-  const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
-  const { extras, extrasPorClasse } = useExtras();
-
-  const {
-    tipoFatura,
-    setTipoFatura,
-    clienteNome,
-    clienteTelefone,
-    codigoCliente,
-    codigoPedido,
-    idCliente,
-    querImprimir,
-    setClienteNome,
-    setClienteTelefone,
-    setCodigoCliente,
-    setCodigoPedido,
-    setIdCliente,
-    setQuerImprimir,
-    setTipoPagamento,
-    setTipoVenda,
-    tipoPagamento,
-    tipoVenda
-  } = stados;
-
-  const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
+    const {
+            tipoFatura, 
+            setTipoFatura,
+            clienteNome,
+            clienteTelefone,
+            codigoCliente,
+            codigoPedido,
+            idCliente,
+            produtoSelecionado,
+            querImprimir,
+            setClienteNome,
+            setClienteTelefone,
+            setCodigoCliente,
+            setCodigoPedido,
+            setIdCliente,
+            setProdutoSelecionado,
+            setQuerImprimir,
+            setTipoPagamento,
+            setTipoVenda,
+            tipoPagamento,
+            tipoVenda
+          } = useStados()
 
   const handleSalvarPedido = () => {
     salvarPedido({
@@ -87,14 +87,18 @@ export default function GerenciarPedidos() {
     });
   };
 
+  const valorTotal = calcularTotalPedido(produtosPedido) + ajuste
+  
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status));
+
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
+      
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
         <div className='flex justify-between items-center'>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
+          <h2 className="text-3xl font-bold  flex items-center gap-2">
             <Package /> Novo Pedido
           </h2>
           <div className="flex justify-center items-center rounded font-bold text-3xl">
@@ -102,28 +106,27 @@ export default function GerenciarPedidos() {
           </div>
         </div>
         <hr />
-
         {/* Formulário */}
         <PedidoInfoForm
-          tipoFatura={tipoFatura}
-          setTipoFatura={setTipoFatura}
-          tipoVenda={tipoVenda}
-          setTipoVenda={setTipoVenda}
-          clienteTelefone={clienteTelefone}
-          setClienteTelefone={setClienteTelefone}
-          clienteNome={clienteNome}
-          setClienteNome={setClienteNome}
-          codigoCliente={codigoCliente}
-          setCodigoCliente={setCodigoCliente}
-          idCliente={idCliente}
-          setIdCliente={setIdCliente}
-          codigoPedido={codigoPedido}
-          setCodigoPedido={setCodigoPedido}
-          querImprimir={querImprimir}
-          setQuerImprimir={setQuerImprimir}
-          gerarCodigoPedido={gerarCodigoPedido}
+            tipoFatura={tipoFatura}
+            setTipoFatura={setTipoFatura}
+            tipoVenda={tipoVenda}
+            setTipoVenda={setTipoVenda}
+            clienteTelefone={clienteTelefone}
+            setClienteTelefone={setClienteTelefone}
+            clienteNome={clienteNome}
+            setClienteNome={setClienteNome}
+            codigoCliente={codigoCliente}
+            setCodigoCliente={setCodigoCliente}
+            idCliente={idCliente}
+            setIdCliente={setIdCliente}
+            codigoPedido={codigoPedido}
+            setCodigoPedido={setCodigoPedido}
+            querImprimir={querImprimir}
+            setQuerImprimir={setQuerImprimir}
+            gerarCodigoPedido={gerarCodigoPedido}
         />
-
+         
         <ClasseButtons
           classeSelecionada={classeSelecionada}
           classes={classes}
@@ -133,63 +136,73 @@ export default function GerenciarPedidos() {
         <div className="w-full flex justify-between min-h-80 ">
 
           {/* Lista de produtos do pedido */}
-          <div className="flex flex-col w-1/2 border-2 border-blue-600 rounded max-h-90">
-            <div className="grid grid-cols-6 text-center border-b-2 p-2 text-blue-600 font-bold">
-              <div>Quant</div>
-              <div className="col-span-3">Produtos</div>
-              <div>Valor</div>
-              <div>Excluir</div>
-            </div>
-            <ul className="flex-1 border-blue-600 rounded max-h-70 overflow-auto">
-              {produtosPedido.map((p, i) => (
-                <li key={p.id + i}>
-                  <div className="grid grid-cols-6 text-center border-b">
-                    <div>{p.quantidade}</div>
-                    <div className="col-span-3">{p.nome}</div>
-                    <div>€ {(p.preco * p.quantidade).toFixed(2)}</div>
-                    <div>
-                      <button
-                        onClick={() => removerProdutoPedido(p.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+          <div className="flex flex-col w-1/2 border-2 border-blue-600  rounded max-h-90">
+              <div className="grid grid-cols-6 text-center border-b-2 p-2 text-blue-600 font-bold">
+                <div>Quant</div>
+                <div className="col-span-3">Produtos</div>
+                <div>Valor</div>
+                <div>Excluir</div>
+              </div>                
+            <ul className="flex-1 border-blue-600  rounded max-h-70 overflow-auto">
+              <div className="flex-1">
+                {produtosPedido.map((p,i) => (
+                  <li key={p.id + i} className="">
+                    <div className="grid grid-cols-6 text-center border-b">
+                      <div>{p.quantidade}</div>
+                      <div className="col-span-3">{p.nome}</div>
+                      <div>€ {(p.preco * p.quantidade).toFixed(2)}</div>
+                      <div>
+                        <button
+                          onClick={() => removerProdutoPedido(p.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
                         <Trash2 size={16} />
-                      </button>
+                      </button></div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                ))}                
+              </div>
             </ul>
 
-            <div className="flex justify-between p-2 border-t-2 border-blue-600">
-              <div className="flex justify-center items-center px-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={diminuir}
-                    className="px-3 py-1 bg-red-500 text-white rounded cursor-pointer font-black"
-                  >-</button>
-                  <input
-                    type="text"
-                    value={`€ ${ajuste.toFixed(2)}`}
-                    readOnly
-                    className="text-center w-24 border rounded p-1"
-                  />
-                  <button
-                    onClick={aumentar}
-                    className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
-                  >+</button>
-                </div>
-              </div>
+            <div className=" flex justify-between p-2 border-t-2 border-blue-600">
 
-              <span className="flex gap-2 px-15 justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>€ {valorTotal.toFixed(2)}</span>
-              </span>
+                <div className=" flex justify-center items-center px-4">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={diminuir} 
+                      className="px-3 py-1 bg-red-500 text-white rounded cursor-pointer font-black"
+                    >
+                      -
+                    </button>
+
+                    <input
+                      type="text"
+                      value={`€ ${ajuste.toFixed(2)}`}
+                      readOnly
+                      className="text-center w-24 border rounded p-1"
+                    />
+
+                    <button 
+                      onClick={aumentar} 
+                      className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <span className="flex gap-2 px-15 justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>€ {(valorTotal).toFixed(2) }</span>
+                </span>
+
             </div>
+
           </div>
 
-          {/* Lista de Produtos */}
+          {/*Lista de Produtos*/}
           <div className="w-1/2 flex flex-col justify-between">
-            <div className="grid grid-cols-3 gap-1 p-2 max-h-74 overflow-auto">
+            <div className="grid grid-cols-3 gap-1 p-2 max-h-74 overflow-auto ">
               {produtosFiltrados.map(p => (
                 <div
                   key={p.id}
@@ -198,45 +211,83 @@ export default function GerenciarPedidos() {
                     ${produtoSelecionado === p.id ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
                 >
                   <div className='w-full flex flex-col justify-center items-center'>
-                    <img className='w-20 h-20 rounded-full' src={p.img} />
+                    <img className='w-20 h-20 rounded-full' src={p.img}/>
                     <div className='flex flex-col'>
                       <p className="text-sm font-semibold">{p.nome}</p>
+
                     </div>
-                    <div className='w-full flex justify-between items-center'>
-                      <p className="text-2xl">€ {p.preco.toFixed(2)}</p>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => abrirModalProduto(p)}
-                        className="mt-2 flex items-center gap-1 bg-blue-600 rounded-full text-white font-black cursor-pointer"
-                      >
-                        <Plus size={16} />
-                      </Button>
-                    </div>
+                      <div className='w-full flex justify-between items-center'>
+                        <p className="text-2xl">€ {p.preco.toFixed(2)}</p>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => abrirModalProduto(p)}
+                          className="mt-2 flex items-center gap-1 bg-blue-600 rounded-full  text-white font-black cursor-pointer"
+                        >
+                          <Plus size={16} />
+                        </Button>
+                      </div>
                   </div>
+
                 </div>
               ))}
             </div>
 
-            {/* Lançar pedido */}
+            {/*Lançar pedido*/}
             <div className="flex justify-between items-center mt-4 p-2 gap-2">
+              
               <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
-                {['dinheiro', 'cartao', 'mbway', 'aplicativo'].map(pag => (
-                  <label key={pag} className='flex gap-1 cursor-pointer'>
-                    <input
-                      type='radio'
-                      name='pagamento'
-                      value={pag}
-                      checked={tipoPagamento === pag}
-                      onChange={() => setTipoPagamento(pag)}
-                      className='cursor-pointer'
-                      required
-                    />
-                    {pag.charAt(0).toUpperCase() + pag.slice(1)}
-                  </label>
-                ))}
+                <label className='flex gap-1 cursor-pointer'>
+                  <input
+                    type='radio' 
+                    name='pagamento'
+                    value={'dinheiro'}
+                    checked={tipoPagamento === 'dinheiro'}
+                    onChange={()=> setTipoPagamento('dinheiro')} 
+                    className='cursor-pointer'
+                    required        
+                  />
+                  Dinheiro
+                </label>
+                <label className='flex gap-1 cursor-pointer'>
+                  <input
+                    type='radio' 
+                    name='pagamento'
+                    value={'cartao'}
+                    checked={tipoPagamento === 'cartao'}
+                    onChange={()=> setTipoPagamento('cartao')} 
+                    className='cursor-pointer' 
+                    required       
+                  />
+                  Cartão
+                </label>
+                <label className='flex gap-1 cursor-pointer'>
+                  <input
+                    type='radio' 
+                    name='pagamento'
+                    value={'mbway'}
+                    checked={tipoPagamento === 'mbway'}
+                    onChange={()=> setTipoPagamento('mbway')} 
+                    className='cursor-pointer' 
+                    required       
+                  />
+                  MbWay
+                </label>
+                <label className='flex gap-1 cursor-pointer'>
+                  <input
+                    type='radio' 
+                    name='pagamento'
+                    value={'aplicativo'}
+                    checked={tipoPagamento === 'aplicativo'}
+                    onChange={()=> setTipoPagamento('aplicativo')} 
+                    className='cursor-pointer' 
+                    required       
+                  />
+                  Aplicativos
+                </label>
               </div>
 
+            
               <button
                 onClick={handleSalvarPedido}
                 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 cursor-pointer"
@@ -244,88 +295,91 @@ export default function GerenciarPedidos() {
                 <Plus size={18} /> Lançar
               </button>
             </div>
+
           </div>
 
-          {/* Modal */}
-          <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-            <DialogContent className="max-w-3xl bg-white">
-              <DialogHeader>
-                <DialogTitle>{produtoModal?.nome}</DialogTitle>
-              </DialogHeader>
+          {/*Modal*/}
+          </div>
+            <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+              <DialogContent className="max-w-3xl bg-white">
+                <DialogHeader>
+                  <DialogTitle>{produtoModal?.nome}</DialogTitle>
+                </DialogHeader>
 
-              {produtoModal && (
-                <div className="space-y-4">
-                  <p className="text-gray-700">Preço base: € {produtoModal.preco.toFixed(2)}</p>
+                {produtoModal && (
+                  <div className="space-y-4">
+                    <p className="text-gray-700">Preço base: € {produtoModal.preco.toFixed(2)}</p>
 
-                  <div className="flex items-center gap-2">
-                    <span>Quantidade:</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={quantidadeSelecionada}
-                      onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
-                      className="w-20 border rounded p-1 text-center cursor-pointer"
-                    />
-                  </div>
+                    {/* Quantidade */}
+                    <div className="flex items-center gap-2">
+                      <span>Quantidade:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={quantidadeSelecionada}
+                        onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
+                        className="w-20 border rounded p-1 text-center cursor-pointer"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Extras */}
+                      {(() => {
+                        const tiposExtras = (() => {
+                          if (!produtoModal) return [];
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {(() => {
-                      if (!produtoModal) return null;
+                          if (produtoModal.classe === "estudante") {
+                            // estudante + categoria massa → mostra todos
+                            if (produtoModal.categoria === "massa") {
+                              return ["molho", "ingrediente", "ingredienteplus"];
+                            }
+                            // estudante + outras categorias → só ingredienteplus
+                            return ["ingredienteplus"];
+                          }
 
-                      const tiposExtras = produtoModal.classe === "estudante"
-                        ? (produtoModal.categoria === "massa" ? ["molho", "ingrediente", "ingredienteplus"] : ["ingredienteplus"])
-                        : extrasPorClasse[produtoModal.classe] || [];
+                          // outras classes seguem o mapa normal
+                          return extrasPorClasse[produtoModal.classe] || [];
+                        })();
 
-                      if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>;
+                        if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>
 
-                      return tiposExtras.map(tipo => (
-                        <div key={tipo} className="border rounded p-2">
-                          <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
-                          <div className="flex flex-col gap-1">
-                            {extras.filter(e => e.tipo === tipo).map(extra => {
-                              const selecionado = extrasSelecionados.some(e => e.id === extra.id);
-                              const limite = typeof extrasPorClasse === 'number' ? extrasPorClasse : null;
-                              const selecionadosDoMesmoTipo = extrasSelecionados.filter(x => x.tipo === tipo);
-
-                              return (
-                                <label key={extra.id} className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={selecionado}
-                                    onChange={() => {
-                                      if (selecionado) setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
-                                      else if (!limite || selecionadosDoMesmoTipo.length < limite)
-                                        setExtrasSelecionados(prev => [...prev, extra]);
-                                      else alert(`Limite de ${limite} para ${tipo}`);
-                                    }}
-                                    className="cursor-pointer"
-                                  />
-                                  <span>{extra.nome}</span>
-                                  {extra.valor ? (<span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>) : null}
-                                </label>
-                              );
-                            })}
+                        return tiposExtras.map(tipo => (
+                          <div key={tipo} className="border rounded p-2">
+                            <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
+                            <div className="flex flex-col gap-1">
+                              {extras.filter(e => e.tipo === tipo).map(extra => {
+                                const checked = extrasSelecionados.some(e => e.id === extra.id)
+                                return (
+                                  <label key={extra.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={extrasSelecionados.some(e => e.id === extra.id)}
+                                      onChange={() => handleToggleExtra(extra)}
+                                      className="cursor-pointer"
+                                    />
+                                    <span>{extra.nome}</span>
+                                    {extra.valor ? (
+                                      <span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>
+                                    ) : null}
+                                  </label>
+                                )
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ));
-                    })()}
+                        ))
+                      })()}
+
+                    </div>
                   </div>
+                )}
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setModalAberto(false)} className="bg-red-600 text-white hover:bg-red-800 cursor-pointer">Cancelar<Delete/></Button>
+                  <Button onClick={confirmarProduto} className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"> <PlusCircleIcon/> Confirmar</Button>
                 </div>
-              )}
+              </DialogContent>
+            </Dialog>
+          </div>
 
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setModalAberto(false)} className="bg-red-600 text-white hover:bg-red-800 cursor-pointer">
-                  Cancelar<Delete/>
-                </Button>
-                <Button onClick={confirmarProduto} className="bg-green-600 text-white hover:bg-green-800 cursor-pointer">
-                  <PlusCircleIcon/> Confirmar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        
           {/* Listagem de Pedidos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
             {/* Pedidos Abertos */}
@@ -517,8 +571,7 @@ export default function GerenciarPedidos() {
               )}
             </div>
           </div>
-        
-      </div>
-    </div>
+
+        </div>
   );
 }

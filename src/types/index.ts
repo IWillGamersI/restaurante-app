@@ -21,7 +21,6 @@ export interface Extra {
   valor?: number;
 }
 
-
 export interface Pedido {
   id: string;
   codigoPedido: string;
@@ -56,3 +55,30 @@ export type PedidoFormState = Omit<Pedido, 'id' | 'criadoEm'> & {
 }
 
 export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'
+
+
+export interface ClasseButtonsProps {
+  classes: string[];
+  classeSelecionada: string;
+  setClasseSelecionada: (classe: string) => void;  
+}
+
+export interface PedidoInfoFormProps {
+  tipoFatura: string;
+  setTipoFatura: (value: string) => void;
+  tipoVenda: string;
+  setTipoVenda: (value: string) => void;
+  clienteTelefone: string;
+  setClienteTelefone: (value: string) => void;
+  clienteNome: string;
+  setClienteNome: (value: string) => void;
+  codigoCliente: string;
+  setCodigoCliente: (value: string) => void;
+  idCliente: string | null;
+  setIdCliente: (value: string | null) => void;
+  codigoPedido: string;
+  setCodigoPedido: (value: string) => void;
+  querImprimir: boolean;
+  setQuerImprimir: (value: boolean) => void;
+  gerarCodigoPedido: (nome: string) => string;
+}
