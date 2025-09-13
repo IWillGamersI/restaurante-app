@@ -7,11 +7,13 @@ export interface Cliente {
 
 export interface Produto {
   id: string;
-  img: string
   nome: string;
-  preco: number;
-  classe: string;
+  descricao: string;
+  imagemUrl: string;
   categoria: string;
+  classe: string;
+  precoVenda: number;
+  custo: number;
 }
 
 export interface Extra {
@@ -61,6 +63,7 @@ export interface ClasseButtonsProps {
   classes: string[];
   classeSelecionada: string;
   setClasseSelecionada: (classe: string) => void;  
+  classeTodos: boolean
 }
 
 export interface PedidoInfoFormProps {

@@ -10,17 +10,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Plus, Trash2, Edit, ImageIcon, DollarSign, Package } from 'lucide-react';
+import { ClasseButtons } from './elements/ClassesButtons';
+import { useProdutos } from '@/hook/useProdutos';
+import { Produto } from '@/types';
 
-interface Produto {
-  id: string;
-  nome: string;
-  descricao: string;
-  imagemUrl: string;
-  categoria: string;
-  classe: string;
-  preco: number;
-  precoCusto: number;
-}
+
 
 export default function GerenciarProdutos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -34,10 +28,12 @@ export default function GerenciarProdutos() {
   const [sucesso, setSucesso] = useState('');
   const [categoria,setCategoria] = useState('');
   const [classe, setClasse] = useState('')
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>("todas");
-  const categoriasOrdem = ["todas", "entrada", "prato", "pizza-individual", "pizza-tradicional", "massa", "bebida","sobremesa", 'estudante'];
+  //const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>("todas");
+  
 
+  const { classes, setClasseSelecionada, classeSelecionada, produtosFiltrados } = useProdutos();
 
+  
   useEffect(() => {
     carregarProdutos();
   }, []);
@@ -62,7 +58,7 @@ export default function GerenciarProdutos() {
   };
 
   const salvarProduto = async () => {
-    if (!nome || !preco || !precoCusto) {
+    if (!nome || !preco || !precoCusto || !categoria || !classe) {
       setErro('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -97,8 +93,8 @@ export default function GerenciarProdutos() {
     setNome(p.nome);
     setDescricao(p.descricao);
     setImagemUrl(p.imagemUrl);
-    setPreco(p.preco.toString());
-    setPrecoCusto(p.precoCusto.toString());
+    setPreco(p.precoVenda.toString());
+    setPrecoCusto(p.custo.toString());
     setEditandoId(p.id);
     setCategoria(p.categoria);
     setClasse(p.classe)
@@ -109,13 +105,6 @@ export default function GerenciarProdutos() {
     await deleteDoc(doc(db, 'produtos', id));
     carregarProdutos();
   };
-
-  const produtosFiltrados =
-  categoriaSelecionada === "todas"
-    ? produtos
-    : produtos.filter((p) => p.categoria.toLowerCase().trim() === categoriaSelecionada.toLowerCase());
-
-  produtosFiltrados.sort((a,b)=> a.nome.localeCompare(b.nome, 'pt', {sensitivity: 'base'}))
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -226,7 +215,7 @@ export default function GerenciarProdutos() {
         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
           <ImageIcon className="text-green-500" /> Produtos Cadastrados
         </h2>
-
+          {/*
         <div className="grid grid-cols-5 gap-4 mb-6">
           {categoriasOrdem.map((c) => (
             <button
@@ -240,7 +229,14 @@ export default function GerenciarProdutos() {
             </button>
           ))}
         </div>
+            */}
 
+        <ClasseButtons
+          classeTodos = {true}
+          classeSelecionada={classeSelecionada}
+          classes={classes}
+          setClasseSelecionada={setClasseSelecionada}
+        />            
 
         {produtos.length === 0 ? (
           <p className="text-gray-500">Nenhum produto cadastrado.</p>
@@ -275,7 +271,7 @@ export default function GerenciarProdutos() {
                 </div>
                 <div className="flex justify-between items-center bg-blue-600 p-2 text-white font-bold">
                   <p className='font-medium'>Preço</p>
-                  <p className='text-2xl'>€ {Number(p.preco).toFixed(2)}</p>
+                  <p className='text-2xl'>€ {Number(p.precoVenda).toFixed(2)}</p>
                 </div>
                 <div className="flex justify-between gap-3 mt-3 p-2">
                   <button

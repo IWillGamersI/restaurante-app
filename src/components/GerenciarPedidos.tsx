@@ -125,6 +125,7 @@ export default function GerenciarPedidos() {
         />
 
         <ClasseButtons
+          classeTodos= {true}
           classeSelecionada={classeSelecionada}
           classes={classes}
           setClasseSelecionada={setClasseSelecionada}
@@ -198,12 +199,12 @@ export default function GerenciarPedidos() {
                     ${produtoSelecionado === p.id ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
                 >
                   <div className='w-full flex flex-col justify-center items-center'>
-                    <img className='w-20 h-20 rounded-full' src={p.img} />
+                    <img className='w-20 h-20 rounded-full' src={p.imagemUrl} />
                     <div className='flex flex-col'>
                       <p className="text-sm font-semibold">{p.nome}</p>
                     </div>
                     <div className='w-full flex justify-between items-center'>
-                      <p className="text-2xl">€ {p.preco.toFixed(2)}</p>
+                      <p className="text-2xl">€ {p.precoVenda.toFixed(2)}</p>
                       <Button
                         variant="default"
                         size="sm"
@@ -255,7 +256,7 @@ export default function GerenciarPedidos() {
 
               {produtoModal && (
                 <div className="space-y-4">
-                  <p className="text-gray-700">Preço base: € {produtoModal.preco.toFixed(2)}</p>
+                  <p className="text-gray-700">Preço base: € {produtoModal.precoVenda.toFixed(2)}</p>
 
                   <div className="flex items-center gap-2">
                     <span>Quantidade:</span>

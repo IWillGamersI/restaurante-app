@@ -14,11 +14,13 @@ export function useProdutos(){
             const data = doc.data()
             return {
                 id: doc.id,
-                img: data.imagemUrl,
+                imagemUrl: data.imagemUrl,
                 nome: data.nome || '',
-                preco: data.preco || 0,
+                precoVenda: data.preco || 0,
                 classe: data.classe || '',
-                categoria: data.categoria || ''
+                categoria: data.categoria || '',
+                descricao: data.descricao || '',
+                custo: data.precoCusto || ''
             }
         })
         setProdutos(lista)
@@ -34,7 +36,7 @@ export function useProdutos(){
     
     // Filtra produtos pela classe escolhida
     const produtosFiltrados = classeSelecionada
-    ? produtos.filter(p => p.classe.toLowerCase() === classeSelecionada.toLowerCase())
+    ? produtos.filter(p => p.classe.toLowerCase() === classeSelecionada.toLowerCase() || classeSelecionada === 'todos')
     : produtos;
   
     
