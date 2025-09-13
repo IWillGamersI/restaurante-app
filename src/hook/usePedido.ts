@@ -42,7 +42,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
   const [ajuste, setAjuste] = useState(0);
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>("");
-  const {gerarCodigoCliente} = useCodigos()
+  const {gerarCodigoCliente, hoje} = useCodigos()
 
   const { 
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
@@ -240,7 +240,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setModalAberto(true);
   };
 
-  const hoje = new Date();
+  
   const pedidosDoDia = pedidos.filter((p) => {
     const pData = new Date(p.data);
     return (

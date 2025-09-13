@@ -83,3 +83,8 @@ export interface PedidoInfoFormProps {
   setQuerImprimir: (value: boolean) => void;
   gerarCodigoPedido: (nome: string) => string;
 }
+
+export interface HeaderDataProps{
+  icon: React.ReactNode
+  titulo: string
+}

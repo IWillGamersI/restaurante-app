@@ -13,11 +13,12 @@ import { getLimiteExtra, STATUS_ABERTO, STATUS_FECHADO, STATUS_PEDIDO_OPTIONS } 
 import { useExtras } from "@/hook/useExtras";
 import { ClasseButtons } from "./elements/ClassesButtons";
 import { PedidoInfoForm } from "./elements/FormularioPedido";
+import { HeaderData } from "./elements/HeaderData";
 
 export default function GerenciarPedidos() {
   const stados = useStados();
   const pedido = usePedido(stados);
-  const { gerarCodigoPedido } = useCodigos();
+  const { gerarCodigoPedido, hoje } = useCodigos();
   const { statusColor } = useStatus();
 
   const {
@@ -37,7 +38,6 @@ export default function GerenciarPedidos() {
     aumentar,
     diminuir,
     salvarPedido,
-    hoje,
     pedidosDoDia,
     produtoSelecionado,
     setProdutoSelecionado,
@@ -92,15 +92,10 @@ export default function GerenciarPedidos() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
-        <div className='flex justify-between items-center'>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
-            <Package /> Novo Pedido
-          </h2>
-          <div className="flex justify-center items-center rounded font-bold text-3xl">
-            <p>{hoje.toLocaleDateString('pt-BR')}</p>
-          </div>
-        </div>
-        <hr />
+        <HeaderData
+          icon={<Package size={36}/>}
+          titulo="Novo Pedido"
+        />
 
         {/* Formulário */}
         <PedidoInfoForm

@@ -20,5 +20,8 @@ export function useCodigos(){
             return `${consoantes}-${ultimos3}`
     },[])
 
-    return { gerarCodigoCliente, gerarCodigoPedido}
+    const hoje = new Date();
+    
+
+    return { gerarCodigoCliente, gerarCodigoPedido, hoje}
 }
