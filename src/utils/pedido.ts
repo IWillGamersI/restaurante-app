@@ -52,9 +52,6 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
     return null
 }
 
-export function gerarCodigoCliente(nome: string, telefone: string): string {
-  return `CL-${nome.slice(0,2).toUpperCase()}-${telefone.slice(-4)}`;
-}
 
 
 

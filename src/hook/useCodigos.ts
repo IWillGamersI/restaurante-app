@@ -17,7 +17,7 @@ export function useCodigos(){
             const consoantes = nome
                                 .replace(/[AEIOUaeiouÁÉÍÓÚáéíóúÂÊÎÔÛâêîôûÀàÇç\s]/g, '')
                                 .toUpperCase()
-            return `${consoantes}${ultimos3}`
+            return `${consoantes}-${ultimos3}`
     },[])
 
     return { gerarCodigoCliente, gerarCodigoPedido}

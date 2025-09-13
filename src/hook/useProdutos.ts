@@ -37,12 +37,6 @@ export function useProdutos(){
     ? produtos.filter(p => p.classe.toLowerCase() === classeSelecionada.toLowerCase())
     : produtos;
   
-    // Debug para garantir que tudo está certo
-    console.log("classeSelecionada:", classeSelecionada);
-    console.log("classes:", classes);
-    console.log("produtos carregados:", produtos.length);
-    console.log("produtosFiltrados:", produtosFiltrados.length);
-
-
+    
     return {produtos, carregarProdutos, produtosFiltrados, classes, classeSelecionada, setClasseSelecionada}
 }

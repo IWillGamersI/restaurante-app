@@ -2,6 +2,7 @@ import React from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PedidoInfoFormProps } from "@/types";
+import { useCodigos } from "@/hook/useCodigos";
 
 
 
@@ -22,28 +23,33 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
                                                                     setCodigoPedido,
                                                                     querImprimir,
                                                                     setQuerImprimir,
-                                                                    gerarCodigoPedido
                                                                 }) => {
 
+  const {gerarCodigoCliente, gerarCodigoPedido} = useCodigos()
+
   const handleBlurTelefone = async () => {
-    if (!clienteTelefone) return;
-    const clientesRef = collection(db, 'clientes');
-    const q = query(clientesRef, where('telefone', '==', clienteTelefone));
-    const snapshot = await getDocs(q);
+      if (!clienteTelefone) return;
+        const clientesRef = collection(db, "clientes");
+        const q = query(clientesRef, where("telefone", "==", clienteTelefone));
+        const snapshot = await getDocs(q);
 
-    if (!snapshot.empty) {
-      const clienteDoc = snapshot.docs[0];
-      const data = clienteDoc.data();
+      if (!snapshot.empty) {
+        const clienteDoc = snapshot.docs[0];
+        const data = clienteDoc.data();
 
-      setClienteNome(data.nome);
-      setClienteTelefone(data.telefone);
-      setCodigoCliente(data.codigoCliente);
-      setIdCliente(clienteDoc.id);
-      setCodigoPedido(gerarCodigoPedido(data.nome));
-    } else {
-      console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
-    }
+        setClienteNome(data.nome);
+        setClienteTelefone(data.telefone);
+        setIdCliente(clienteDoc.id);
+
+        // Aqui você pode gerar o código agora que tem o nome
+        setCodigoCliente(gerarCodigoCliente(data.nome, data.telefone));
+        setCodigoPedido(gerarCodigoPedido(data.nome));
+      } else {
+        console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
+      }
+
   };
+
 
   return (
     <div className="flex justify-between gap-1 flex-wrap">
@@ -149,7 +155,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
           setClienteTelefone(telefone);
           if (!telefone) {
             setClienteNome("");
-            setCodigoCliente("");
+            setCodigoCliente('');
             setIdCliente(null);
             setCodigoPedido("");
           }
@@ -166,10 +172,16 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
         onChange={e => {
           const nome = e.target.value;
           setClienteNome(nome);
-          setCodigoPedido(gerarCodigoPedido(nome));
+
+          // Gera código só se houver telefone
+          if (clienteTelefone) {
+            setCodigoCliente(gerarCodigoCliente(nome, clienteTelefone));
+            setCodigoPedido(gerarCodigoPedido(nome));
+          }
         }}
         disabled={!!idCliente}
       />
+
     </div>
   );
 };
