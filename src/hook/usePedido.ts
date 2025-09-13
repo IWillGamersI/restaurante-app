@@ -102,6 +102,12 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
           return acc + p.precoVenda * p.quantidade + extras
         },0)
 
+        
+        const valorNovosProdutos = novosProdutos.reduce((acc,p)=>{
+          const extras = p.extras?.reduce((sum,e)=> sum + (e.valor || 0),0) || 0
+          return acc + extras
+        },0)
+
         await updateDoc(pedidoRef,{
           produtos: [...pedidoAtual.produtos, ...novosProdutos],
           valor: novoValor,
@@ -109,10 +115,12 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         })
 
         await imprimir({
-          codigoCliente:pedidoAtual.codigoPedido,
-          cliente:pedidoAtual.tipoVenda === 'mesa' ? `Mesa ${pedidoAtual.numeroMesa}` : pedidoAtual.nomeCliente,
+          codigo:pedidoAtual.codigoPedido,
+          cliente:pedidoAtual.nomeCliente,
           produtos:novosProdutos,
-          valor:novoValor,
+          valor:valorNovosProdutos,
+          data:hoje,
+          tipoVenda:pedidoAtual.tipoVenda === 'mesa' ? `Mesa ${pedidoAtual.numeroMesa}` : pedidoAtual.tipoVenda,
 
         },1)
 
