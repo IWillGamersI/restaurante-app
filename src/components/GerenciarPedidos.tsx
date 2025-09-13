@@ -39,7 +39,6 @@ export default function GerenciarPedidos() {
     salvarPedido,
     hoje,
     pedidosDoDia,
-    handleToggleExtra,
     produtoSelecionado,
     setProdutoSelecionado,
   } = pedido;
@@ -147,11 +146,11 @@ export default function GerenciarPedidos() {
                   <div className="grid grid-cols-6 text-center border-b">
                     <div>{p.quantidade}</div>
                     <div className="col-span-3">{p.nome}</div>
-                    <div>€ {(p.preco * p.quantidade).toFixed(2)}</div>
+                    <div>€ {(p.precoVenda * p.quantidade).toFixed(2)}</div>
                     <div>
                       <button
                         onClick={() => removerProdutoPedido(p.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 cursor-pointer"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -183,7 +182,7 @@ export default function GerenciarPedidos() {
 
               <span className="flex gap-2 px-15 justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>€ {valorTotal.toFixed(2)}</span>
+                <span>€ {(valorTotal.toFixed(2))}</span>
               </span>
             </div>
           </div>
@@ -461,7 +460,7 @@ export default function GerenciarPedidos() {
                       <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
                         {p.produtos.map(item => {
                           const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
-                          const subtotalProduto = item.preco * item.quantidade + totalExtrasProduto;
+                          const subtotalProduto = item.precoVenda * item.quantidade + totalExtrasProduto;
 
                           return (
                             <div

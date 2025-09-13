@@ -42,14 +42,12 @@ export interface Pedido {
   codigoCliente: string;
 }
 
-export type ProdutoPedido = Omit<Produto, 'img' | 'classe'> & {
-  id: string;
-  nome: string;
-  preco: number;
+export type ProdutoPedido = Produto & {
   quantidade: number;
   extras: Extra[];
-  categoria: string;
-}
+  preco: number; // preço do pedido (pode ser igual a precoVenda)
+};
+
 
 export type PedidoFormState = Omit<Pedido, 'id' | 'criadoEm'> & {
   querImprimi?: boolean

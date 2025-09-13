@@ -1,6 +1,7 @@
 import { db } from "@/lib/firebase";
 import { Extra, Pedido, Produto, ProdutoPedido } from "@/types";
-import { gerarCodigoCliente, getLimiteExtra } from "@/utils/pedido";
+import { useCodigos } from "@/hook/useCodigos";
+import { getLimiteExtra } from "@/utils/pedido";
 import {
   addDoc,
   collection,
@@ -41,6 +42,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
   const [ajuste, setAjuste] = useState(0);
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>("");
+  const {gerarCodigoCliente} = useCodigos()
 
   const { 
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
@@ -144,42 +146,48 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   };
 
   const confirmarProduto = () => {
-    if (!produtoModal) return;
+  if (!produtoModal) return;
 
-    const novoProduto: ProdutoPedido = {
-      id: produtoModal.id,
-      nome: produtoModal.nome,
-      preco: produtoModal.preco,
-      quantidade: quantidadeSelecionada,
-      extras: extrasSelecionados,
-      categoria: produtoModal.categoria,
-    };
-
-    setProdutosPedido((prev) => {
-      const index = prev.findIndex(
-        (p) =>
-          p.id === novoProduto.id &&
-          JSON.stringify(p.extras.map((e) => e.id).sort()) ===
-            JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
-      );
-
-      if (index !== -1) {
-        const copia = [...prev];
-        copia[index] = {
-          ...copia[index],
-          quantidade: copia[index].quantidade + novoProduto.quantidade,
-        };
-        return copia;
-      }
-
-      return [...prev, novoProduto];
-    });
-
-    setModalAberto(false);
-    setProdutoModal(null);
-    setExtrasSelecionados([]);
-    setQuantidadeSelecionada(1);
+  const novoProduto: ProdutoPedido = {
+    id: produtoModal.id,
+    nome: produtoModal.nome,
+    descricao: produtoModal.descricao,   // obrigatório pelo Produto
+    preco: produtoModal.precoVenda,      // mapeia precoVenda -> preco
+    precoVenda: produtoModal.precoVenda, // mantém campo original
+    custo: produtoModal.custo,           // obrigatório pelo Produto
+    quantidade: quantidadeSelecionada,
+    extras: extrasSelecionados,
+    categoria: produtoModal.categoria,
+    classe: produtoModal.classe,         // ainda existe no Produto
+    imagemUrl: produtoModal.imagemUrl,   // removido em Omit, mas pode manter
   };
+
+  setProdutosPedido((prev) => {
+    const index = prev.findIndex(
+      (p) =>
+        p.id === novoProduto.id &&
+        JSON.stringify(p.extras.map((e) => e.id).sort()) ===
+          JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
+    );
+
+    if (index !== -1) {
+      const copia = [...prev];
+      copia[index] = {
+        ...copia[index],
+        quantidade: copia[index].quantidade + novoProduto.quantidade,
+      };
+      return copia;
+    }
+
+    return [...prev, novoProduto];
+  });
+
+  setModalAberto(false);
+  setProdutoModal(null);
+  setExtrasSelecionados([]);
+  setQuantidadeSelecionada(1);
+  };
+
 
   const removerProdutoPedido = (id: string) => {
     setProdutosPedido((prev) => prev.filter((p) => p.id !== id));
