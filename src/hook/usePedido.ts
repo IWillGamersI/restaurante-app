@@ -42,7 +42,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const [quantidadeSelecionada, setQuantidadeSelecionada] = useState(1);
   const [ajuste, setAjuste] = useState(0);
   const [produtoSelecionado, setProdutoSelecionado] = useState<string>("");
-  const {gerarCodigoCliente, hoje} = useCodigos()
+  const {gerarCodigoCliente, hoje, gerarCodigoPedido} = useCodigos()
 
   const { 
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
@@ -74,21 +74,23 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     querImprimir,
     imprimir,
   }: SalvarPedidoArgs) => {
-    if (!tipoFatura || !tipoVenda || !clienteNome || produtosPedido.length === 0) {
-      alert("Preencha todos os campos obrigatórios!");
-      return;
-    }
+
+    // Validações obrigatórias
+    if (!tipoFatura) { alert('Informe se é CF ou SF!'); return; }
+    if (!tipoVenda) { alert('Informe qual o tipo de VENDA!'); return; }
+    if (produtosPedido.length === 0) { alert('Adicione pelo menos um PRODUTO!'); return; }
+    if (!tipoPagamento) { alert('Informe o tipo de PAGAMENTO!'); return; }
 
     const agora = new Date();
-    const dataLisboa = new Date(
-      agora.toLocaleString("en-US", { timeZone: "Europe/Lisbon" })
-    );
+    const dataLisboa = new Date(agora.toLocaleString("en-US", { timeZone: "Europe/Lisbon" }));
 
     let clienteIdFinal = idCliente;
     let codigoClienteFinal = codigoCliente;
+    let codigoPedidoFinal = codigoPedido
 
     const clientesRef = collection(db, "clientes");
 
+    // Se houver telefone, verifica se já existe cliente
     if (clienteTelefone) {
       const q = query(clientesRef, where("telefone", "==", clienteTelefone));
       const snapshot = await getDocs(q);
@@ -98,8 +100,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         codigoClienteFinal = clienteDoc.data().codigoCliente;
       } else {
         const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+        
         const docRef = await addDoc(clientesRef, {
-          nome: clienteNome,
+          nome: clienteNome || "Cliente CLNT",
           telefone: clienteTelefone,
           codigoCliente: novoCodigo,
         });
@@ -107,14 +110,18 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         codigoClienteFinal = novoCodigo;
       }
     } else {
-      clienteIdFinal = clienteIdFinal || "CLNT123";
-      codigoClienteFinal = codigoClienteFinal || "CLNT123";
+      // Cliente genérico
+      clienteIdFinal = clienteIdFinal || "CLT-123";
+      codigoClienteFinal = codigoClienteFinal || "CLT-123";
+      clienteNome = clienteNome || "Cliente";
+      clienteTelefone = clienteTelefone || null;
+      codigoPedidoFinal = gerarCodigoPedido()
     }
 
     const dados: Omit<Pedido, "id"> & { telefoneCliente?: string | null } = {
       idCliente: clienteIdFinal!,
       nomeCliente: clienteNome,
-      telefoneCliente: clienteTelefone || null,
+      telefoneCliente: clienteTelefone,
       codigoCliente: codigoClienteFinal!,
       tipoFatura,
       tipoPagamento,
@@ -124,7 +131,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       valor: valorTotal,
       produtos: produtosPedido,
       extras: extrasSelecionados,
-      codigoPedido,
+      codigoPedido:codigoPedidoFinal!,
       criadoEm: serverTimestamp(),
     };
 
@@ -141,51 +148,52 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     }
   };
 
+
   const atualizarStatus = async (id: string, novoStatus: string) => {
     return updateDoc(doc(db, "pedidos", id), { status: novoStatus });
   };
 
   const confirmarProduto = () => {
-  if (!produtoModal) return;
+    if (!produtoModal) return;
 
-  const novoProduto: ProdutoPedido = {
-    id: produtoModal.id,
-    nome: produtoModal.nome,
-    descricao: produtoModal.descricao,   // obrigatório pelo Produto
-    preco: produtoModal.precoVenda,      // mapeia precoVenda -> preco
-    precoVenda: produtoModal.precoVenda, // mantém campo original
-    custo: produtoModal.custo,           // obrigatório pelo Produto
-    quantidade: quantidadeSelecionada,
-    extras: extrasSelecionados,
-    categoria: produtoModal.categoria,
-    classe: produtoModal.classe,         // ainda existe no Produto
-    imagemUrl: produtoModal.imagemUrl,   // removido em Omit, mas pode manter
-  };
+    const novoProduto: ProdutoPedido = {
+      id: produtoModal.id,
+      nome: produtoModal.nome,
+      descricao: produtoModal.descricao,   // obrigatório pelo Produto
+      preco: produtoModal.precoVenda,      // mapeia precoVenda -> preco
+      precoVenda: produtoModal.precoVenda, // mantém campo original
+      custo: produtoModal.custo,           // obrigatório pelo Produto
+      quantidade: quantidadeSelecionada,
+      extras: extrasSelecionados,
+      categoria: produtoModal.categoria,
+      classe: produtoModal.classe,         // ainda existe no Produto
+      imagemUrl: produtoModal.imagemUrl,   // removido em Omit, mas pode manter
+    };
 
-  setProdutosPedido((prev) => {
-    const index = prev.findIndex(
-      (p) =>
-        p.id === novoProduto.id &&
-        JSON.stringify(p.extras.map((e) => e.id).sort()) ===
-          JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
-    );
+    setProdutosPedido((prev) => {
+      const index = prev.findIndex(
+        (p) =>
+          p.id === novoProduto.id &&
+          JSON.stringify(p.extras.map((e) => e.id).sort()) ===
+            JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
+      );
 
-    if (index !== -1) {
-      const copia = [...prev];
-      copia[index] = {
-        ...copia[index],
-        quantidade: copia[index].quantidade + novoProduto.quantidade,
-      };
-      return copia;
-    }
+      if (index !== -1) {
+        const copia = [...prev];
+        copia[index] = {
+          ...copia[index],
+          quantidade: copia[index].quantidade + novoProduto.quantidade,
+        };
+        return copia;
+      }
 
-    return [...prev, novoProduto];
-  });
+      return [...prev, novoProduto];
+    });
 
-  setModalAberto(false);
-  setProdutoModal(null);
-  setExtrasSelecionados([]);
-  setQuantidadeSelecionada(1);
+    setModalAberto(false);
+    setProdutoModal(null);
+    setExtrasSelecionados([]);
+    setQuantidadeSelecionada(1);
   };
 
 
