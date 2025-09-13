@@ -82,6 +82,8 @@ export interface PedidoInfoFormProps {
   querImprimir: boolean;
   setQuerImprimir: (value: boolean) => void;
   gerarCodigoPedido: (nome: string) => string;
+  numeroMesa: string
+  setNumeroMesa: (value: string) => void
 }
 
 export interface HeaderDataProps{

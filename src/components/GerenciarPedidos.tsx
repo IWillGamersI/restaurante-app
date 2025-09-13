@@ -1,6 +1,6 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Package, CheckCircle2, ClipboardList, Printer, PlusCircleIcon, Delete } from 'lucide-react';
+import { Plus, Trash2, Package, CheckCircle2, ClipboardList, Printer, PlusCircleIcon, Delete, PlusSquare } from 'lucide-react';
 import { calcularSubTotalProduto, calcularTotalExtras, calcularTotalPedido } from "@/utils/calculos";
 import { useCodigos } from "@/hook/useCodigos";
 import { useStatus } from "@/hook/useStatusColor";
@@ -14,6 +14,7 @@ import { useExtras } from "@/hook/useExtras";
 import { ClasseButtons } from "./elements/ClassesButtons";
 import { PedidoInfoForm } from "./elements/FormularioPedido";
 import { HeaderData } from "./elements/HeaderData";
+import { Pedido } from "@/types";
 
 export default function GerenciarPedidos() {
   const stados = useStados();
@@ -64,13 +65,18 @@ export default function GerenciarPedidos() {
     setTipoPagamento,
     setTipoVenda,
     tipoPagamento,
-    tipoVenda
+    tipoVenda,
+    numeroMesa,
+    setNumeroMesa,
+    idPedidoSelecionado,
+    setIdPedidoSelecionado
   } = stados;
 
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
 
   const handleSalvarPedido = () => {
     salvarPedido({
+      id: idPedidoSelecionado || undefined, // se null, cria novo pedido
       tipoFatura,
       tipoPagamento,
       tipoVenda,
@@ -81,13 +87,29 @@ export default function GerenciarPedidos() {
       extrasSelecionados,
       codigoPedido,
       valorTotal,
+      numeroMesa,
       querImprimir,
       imprimir,
     });
+
+    // Depois de salvar/adicionar produtos
+    setIdPedidoSelecionado(null);
   };
+
 
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status));
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status));
+
+  const preencherCamposPedido = (pedidoSelecionado: Pedido) => {
+    setTipoFatura(pedidoSelecionado.tipoFatura);
+    setTipoVenda(pedidoSelecionado.tipoVenda);
+    setTipoPagamento(pedidoSelecionado.tipoPagamento);
+    setClienteNome(pedidoSelecionado.nomeCliente);
+    setCodigoCliente(pedidoSelecionado.codigoCliente);
+    setCodigoPedido(pedidoSelecionado.codigoPedido);
+    setNumeroMesa(pedidoSelecionado.numeroMesa || '');
+  };
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
@@ -113,6 +135,8 @@ export default function GerenciarPedidos() {
           setIdCliente={setIdCliente}
           codigoPedido={codigoPedido}
           setCodigoPedido={setCodigoPedido}
+          numeroMesa={numeroMesa}
+          setNumeroMesa={setNumeroMesa}
           querImprimir={querImprimir}
           setQuerImprimir={setQuerImprimir}
           gerarCodigoPedido={gerarCodigoPedido}
@@ -125,11 +149,11 @@ export default function GerenciarPedidos() {
           setClasseSelecionada={setClasseSelecionada}
         />
 
-        <div className="w-full flex justify-between min-h-80 ">
+        <div className="w-full flex flex-col justify-between min-h-80 lg:flex-row ">
 
           {/* Lista de produtos do pedido */}
-          <div className="flex flex-col w-1/2 border-2 border-blue-600 rounded max-h-90">
-            <div className="grid grid-cols-6 text-center border-b-2 p-2 text-blue-600 font-bold">
+          <div className="flex flex-col w-full border-2 border-blue-600 rounded max-h-90 lg:w-1/2">
+            <div className="hidden text-center border-b-2 p-2 text-blue-600 font-bold sm:grid sm:grid-cols-6">
               <div>Quant</div>
               <div className="col-span-3">Produtos</div>
               <div>Valor</div>
@@ -155,7 +179,7 @@ export default function GerenciarPedidos() {
               ))}
             </ul>
 
-            <div className="flex justify-between p-2 border-t-2 border-blue-600">
+            <div className="flex flex-col justify-between p-2 border-t-2 border-blue-600 sm:flex-row">
               <div className="flex justify-center items-center px-4">
                 <div className="flex items-center gap-2">
                   <button
@@ -183,8 +207,8 @@ export default function GerenciarPedidos() {
           </div>
 
           {/* Lista de Produtos */}
-          <div className="w-1/2 flex flex-col justify-between">
-            <div className="grid grid-cols-3 gap-1 p-2 max-h-74 overflow-auto">
+          <div className="w-full p-2 rounded mt-5 lg:p-0 lg:mt-0 lg:shadow-none lg:w-1/2 flex flex-col justify-between shadow shadow-blue-600">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 gap-1 p-2 max-h-74 overflow-auto ">
               {produtosFiltrados.map(p => (
                 <div
                   key={p.id}
@@ -214,8 +238,8 @@ export default function GerenciarPedidos() {
             </div>
 
             {/* Lançar pedido */}
-            <div className="flex justify-between items-center mt-4 p-2 gap-2">
-              <div className='flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
+            <div className="flex flex-col justify-between items-center mt-4 p-2 gap-2 sm:flex-row">
+              <div className='flex gap-5 flex-1 justify-between bg-blue-600 text-white rounded p-2'>
                 {['dinheiro', 'cartao', 'mbway', 'aplicativo'].map(pag => (
                   <label key={pag} className='flex gap-1 cursor-pointer'>
                     <input
@@ -333,7 +357,7 @@ export default function GerenciarPedidos() {
 
         
           {/* Listagem de Pedidos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
             {/* Pedidos Abertos */}
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -417,6 +441,19 @@ export default function GerenciarPedidos() {
                       
                       <div className="flex justify-between font-black pt-2 border-t-2 gap-6 items-center">
                         <div className="flex gap-2">
+                          {/* Botão para selecionar pedido */}
+                          <button
+                            onClick={() => {
+                              setIdPedidoSelecionado(p.id);
+                              preencherCamposPedido(p); // preenche os campos do formulário
+                            }}
+                            className={`px-2 py-1 font-bold rounded-full text-white ${
+                              idPedidoSelecionado === p.id ? 'bg-green-600' : ''
+                            }`}
+                          >
+                            <PlusSquare size={30} className="bg-green-500 p-1 rounded-full"/>
+                          </button>
+
                           <button className='text-blue-600 hover:bg-blue-600 p-2 rounded-full hover:text-white' onClick={() => imprimir(p)}>
                             <Printer className='cursor-pointer' size={24} />
                           </button>

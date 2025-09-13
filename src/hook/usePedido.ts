@@ -6,6 +6,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -18,6 +19,7 @@ import { useEffect, useState } from "react";
 import { useStados } from "./useStados";
 
 interface SalvarPedidoArgs {
+  id?:string
   tipoFatura: string;
   tipoVenda: string;
   tipoPagamento: string;
@@ -29,6 +31,7 @@ interface SalvarPedidoArgs {
   extrasSelecionados: Extra[];
   codigoPedido: string;
   valorTotal: number;
+  numeroMesa?: string
   querImprimir?: boolean;
   imprimir: (dados: any, copias: number) => void;
 }
@@ -48,7 +51,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
     setStatus, setErro, setSucesso,
     setClasseSelecionada, setTipoVenda, setTipoFatura, setTipoPagamento,
-    setQuerImprimir
+    setQuerImprimir, numeroMesa, setNumeroMesa
   } = stados;
 
   useEffect(() => {
@@ -59,7 +62,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     return () => unsub();
   }, []);
 
+
   const salvarPedido = async ({
+    id,
     tipoFatura,
     tipoVenda,
     tipoPagamento,
@@ -71,6 +76,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     extrasSelecionados,
     codigoPedido,
     valorTotal,
+    numeroMesa,
     querImprimir,
     imprimir,
   }: SalvarPedidoArgs) => {
@@ -81,12 +87,50 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     if (produtosPedido.length === 0) { alert('Adicione pelo menos um PRODUTO!'); return; }
     if (!tipoPagamento) { alert('Informe o tipo de PAGAMENTO!'); return; }
 
+    let pedidoAtualDoc = null
+
+    if(id){
+      const pedidoRef = doc(db,'pedidos',id)
+      const pedidoSnap = await getDoc(pedidoRef)
+      
+      if(pedidoSnap.exists()){
+        const pedidoAtual = pedidoSnap.data() as Pedido
+
+        const novosProdutos = produtosPedido
+        const novoValor = (pedidoAtual.valor || 0) + novosProdutos.reduce((acc,p)=>{
+          const extras = p.extras?.reduce((sum,e)=> sum + (e.valor || 0),0) || 0
+          return acc + p.precoVenda * p.quantidade + extras
+        },0)
+
+        await updateDoc(pedidoRef,{
+          produtos: [...pedidoAtual.produtos, ...novosProdutos],
+          valor: novoValor,
+          atualizadoEm: serverTimestamp()
+        })
+
+        await imprimir({
+          codigoCliente:pedidoAtual.codigoPedido,
+          cliente:pedidoAtual.tipoVenda === 'mesa' ? `Mesa ${pedidoAtual.numeroMesa}` : pedidoAtual.nomeCliente,
+          produtos:novosProdutos,
+          valor:novoValor,
+
+        },1)
+
+        limparCampos()
+        alert(`Produtos adicionados aos Pedido ${pedidoAtual.codigoPedido}`)
+
+        return
+
+      }
+      
+    }
+
     const agora = new Date();
     const dataLisboa = new Date(agora.toLocaleString("en-US", { timeZone: "Europe/Lisbon" }));
 
     let clienteIdFinal = idCliente;
     let codigoClienteFinal = codigoCliente;
-    let codigoPedidoFinal = codigoPedido
+    let codigoPedidoFinal = codigoPedido;
 
     const clientesRef = collection(db, "clientes");
 
@@ -100,7 +144,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         codigoClienteFinal = clienteDoc.data().codigoCliente;
       } else {
         const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
-        
+
         const docRef = await addDoc(clientesRef, {
           nome: clienteNome || "Cliente CLNT",
           telefone: clienteTelefone,
@@ -115,38 +159,117 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       codigoClienteFinal = codigoClienteFinal || "CLT-123";
       clienteNome = clienteNome || "Cliente";
       clienteTelefone = clienteTelefone || null;
-      codigoPedidoFinal = gerarCodigoPedido()
+      codigoPedidoFinal = gerarCodigoPedido();
     }
-
-    const dados: Omit<Pedido, "id"> & { telefoneCliente?: string | null } = {
-      idCliente: clienteIdFinal!,
-      nomeCliente: clienteNome,
-      telefoneCliente: clienteTelefone,
-      codigoCliente: codigoClienteFinal!,
-      tipoFatura,
-      tipoPagamento,
-      data: dataLisboa.toISOString(),
-      status: "Fila",
-      tipoVenda,
-      valor: valorTotal,
-      produtos: produtosPedido,
-      extras: extrasSelecionados,
-      codigoPedido:codigoPedidoFinal!,
-      criadoEm: serverTimestamp(),
-    };
 
     try {
-      await addDoc(collection(db, "pedidos"), dados);
 
-      if (querImprimir) imprimir(dados, 2);
-      else alert("Pedido salvo com sucesso!");
+      const numeroMesaFinal = numeroMesa ?? stados.numeroMesa ?? ''
+      
+      if (tipoVenda === 'mesa' && !numeroMesaFinal.trim()) {
+        alert("Informe o número da mesa antes de salvar o pedido!");
+        return;
+      }else{
+        // ===== Pedido mesa existente =====
+        if (tipoVenda === 'mesa') {
+          const pedidosRef = collection(db, 'pedidos');
+          const q = query(
+            pedidosRef,
+            where('tipoVenda', '==', 'mesa'),
+            where('numeroMesa', '==', numeroMesaFinal),
+            where('status', 'in', ['Fila', 'Preparando', 'Pronto'])
+          );
+  
+          const snap = await getDocs(q);
+  
+          if (!snap.empty) {
+            const pedidoDoc = snap.docs[0];
+            const pedidoAtual = pedidoDoc.data() as Pedido;
+  
+            // Apenas anexar produtos novos
+            const novosProdutos = produtosPedido;
+  
+            const novoValor = (pedidoAtual.valor || 0) +
+              novosProdutos.reduce((acc, p) => {
+                const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                return acc + p.preco * p.quantidade + extras;
+              }, 0);
+  
+            await updateDoc(doc(db, 'pedidos', pedidoDoc.id), {
+              produtos: [...pedidoAtual.produtos, ...novosProdutos],
+              valor: novoValor,
+              atualizadoEm: serverTimestamp(),
+            });
+  
+            // Imprimir apenas os novos produtos para a cozinha
+            const dadosParciais = {
+              codigo: pedidoAtual.codigoPedido || codigoPedido || '',
+              cliente: `Mesa ${numeroMesa}`,
+              data: new Date().toISOString(),
+              produtos: novosProdutos,
+              valor: novosProdutos.reduce((acc, p) => {
+                const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
+                return acc + p.preco * p.quantidade + extras;
+              }, 0),
+            };
+  
+            await imprimir(dadosParciais, 1);
+  
+            limparCampos();
+            alert(`Produtos adicionados à Mesa ${numeroMesa} e enviados para cozinha.`);
+            return;
+          }
+        }
+
+      }
+
+
+      // ===== Criar novo pedido =====
+      const dados: Omit<Pedido, "id"> & { telefoneCliente?: string | null } = {
+        idCliente: clienteIdFinal!,
+        nomeCliente: clienteNome,
+        telefoneCliente: clienteTelefone,
+        codigoCliente: codigoClienteFinal!,
+        tipoFatura,
+        tipoPagamento,
+        data: dataLisboa.toISOString(),
+        status: "Fila",
+        tipoVenda,
+        numeroMesa: tipoVenda === 'mesa' ? numeroMesaFinal : null,
+        valor: valorTotal,
+        produtos: produtosPedido,
+        extras: extrasSelecionados,
+        codigoPedido: codigoPedidoFinal!,
+        criadoEm: serverTimestamp(),
+      };
+
+      console.log("DEBUG tipoVenda:", tipoVenda);
+      console.log("DEBUG numeroMesa (estado):", numeroMesaFinal);
+      console.log("Salvando pedido:", dados);
+
+
+
+      const docRef = await addDoc(collection(db, "pedidos"), dados);
+
+      const dadosCompleto = {
+        ...dados,
+        id: docRef.id,
+      };
+
+      // Impressão
+      if (querImprimir) {
+        await imprimir(dadosCompleto, 1);
+      }
 
       limparCampos();
+      alert("Pedido criado e enviado para cozinha!");
     } catch (error) {
       console.error("Erro ao salvar pedido:", error);
-      alert("Erro ao salvar pedido. Verifique se você tem permissão.");
+      alert("Erro ao salvar pedido. Verifique se você tem permissão ou índices no Firestore.");
     }
   };
+
+  
 
 
   const atualizarStatus = async (id: string, novoStatus: string) => {
@@ -236,6 +359,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setTipoPagamento("");
     setQuerImprimir(false);
     setAjuste(0);
+    setNumeroMesa('')
   };
 
   const aumentar = () => setAjuste((prev) => parseFloat((prev + 0.1).toFixed(2)));

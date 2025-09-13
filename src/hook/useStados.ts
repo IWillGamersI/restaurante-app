@@ -18,6 +18,9 @@ export function useStados() {
   const [tipoPagamento, setTipoPagamento] = useState('');
   const [querImprimir, setQuerImprimir] = useState(false);
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [numeroMesa, setNumeroMesa] = useState<string>('')
+  const [idPedidoSelecionado, setIdPedidoSelecionado] = useState<string | null>(null);
+
 
   const { setClasseSelecionada, classeSelecionada } = useProdutos();
 
@@ -37,6 +40,9 @@ export function useStados() {
     tipoFatura, setTipoFatura,
     tipoPagamento, setTipoPagamento,
     querImprimir, setQuerImprimir,
-    produtos, setProdutos
+    produtos, setProdutos,
+    numeroMesa, setNumeroMesa,
+    idPedidoSelecionado,
+    setIdPedidoSelecionado
   };
 }

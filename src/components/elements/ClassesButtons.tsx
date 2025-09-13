@@ -3,7 +3,7 @@ import React from "react";
 
 export function ClasseButtons({ classes, classeSelecionada, setClasseSelecionada, classeTodos }: ClasseButtonsProps) {
   return (
-    <div className="flex justify-between gap-2 flex-wrap  bg-white p-2 rounded-lg shadow shadow-blue-600">
+    <div className="grid grid-cols-2 flex-col justify-between gap-2 flex-wrap  bg-white p-2 rounded-lg shadow shadow-blue-600 lg:flex lg:flex-row">
       {classeTodos ? <button
           className={classeSelecionada === 'todos'? "bg-blue-500 text-white px-4 py-2 rounded cursor-pointer": "bg-gray-200 text-gray-700 px-4 py-2 rounded cursor-pointer"}
            onClick={()=> setClasseSelecionada('todos')} >Todos

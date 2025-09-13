@@ -21,6 +21,8 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
                                                                     setIdCliente,
                                                                     codigoPedido,
                                                                     setCodigoPedido,
+                                                                    numeroMesa,
+                                                                    setNumeroMesa,
                                                                     querImprimir,
                                                                     setQuerImprimir,
                                                                 }) => {
@@ -52,7 +54,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
 
 
   return (
-    <div className="flex justify-between gap-1 flex-wrap">
+    <div className="flex flex-col justify-between gap-1 flex-wrap sm:flex-row">
       {/* Impressão */}
       <div className="flex flex-col justify-around bg-blue-600 px-4 rounded text-white">
         <label className="flex gap-1 cursor-pointer">
@@ -82,7 +84,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
       {/* Código Pedido */}
       <input
         type="text"
-        className="border p-3 rounded max-w-[130px]"
+        className="border p-3 rounded lg:max-w-[130px]"
         placeholder="Código Pedido"
         value={codigoPedido}
         readOnly
@@ -92,7 +94,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
       {/* Código Cliente */}
       <input
         type="text"
-        className="border p-3 rounded max-w-[130px]"
+        className="border p-3 rounded lg:max-w-[130px]"
         placeholder="Código do Cliente"
         value={codigoCliente}
         readOnly
@@ -142,6 +144,17 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
         <option value="bolt">Bolt</option>
         <option value="app">App Top pizzas</option>
       </select>
+
+      {/* Número da mesa (só se for mesa) */}
+          {tipoVenda === 'mesa' && (
+            <input
+              type="text"
+              className="border p-3 rounded"
+              placeholder="Número da Mesa"
+              value={numeroMesa}
+              onChange={(e) => setNumeroMesa(e.target.value)}
+            />
+          )}
 
       {/* Telefone Cliente */}
       <input
