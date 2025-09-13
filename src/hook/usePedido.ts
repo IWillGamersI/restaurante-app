@@ -105,7 +105,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         
         const valorNovosProdutos = novosProdutos.reduce((acc,p)=>{
           const extras = p.extras?.reduce((sum,e)=> sum + (e.valor || 0),0) || 0
-          return acc + extras
+          return acc + p.precoVenda * p.quantidade + extras
         },0)
 
         await updateDoc(pedidoRef,{
@@ -117,6 +117,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         await imprimir({
           codigo:pedidoAtual.codigoPedido,
           cliente:pedidoAtual.nomeCliente,
+          codigoCliente: pedidoAtual.codigoCliente,
           produtos:novosProdutos,
           valor:valorNovosProdutos,
           data:hoje,
@@ -209,12 +210,14 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
               atualizadoEm: serverTimestamp(),
             });
   
-            // Imprimir apenas os novos produtos para a cozinha
+            // Imprimir apenas os novos produtos 
             const dadosParciais = {
-              codigo: pedidoAtual.codigoPedido || codigoPedido || '',
-              cliente: `Mesa ${numeroMesa}`,
-              data: new Date().toISOString(),
-              produtos: novosProdutos,
+              codigo:pedidoAtual.codigoPedido,
+              cliente:pedidoAtual.nomeCliente,
+              codigoCliente: pedidoAtual.codigoCliente,
+              produtos:novosProdutos,
+              data:hoje,
+              tipoVenda:pedidoAtual.tipoVenda === 'mesa' ? `Mesa ${pedidoAtual.numeroMesa}` : pedidoAtual.tipoVenda,
               valor: novosProdutos.reduce((acc, p) => {
                 const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                 return acc + p.preco * p.quantidade + extras;
@@ -224,7 +227,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
             await imprimir(dadosParciais, 1);
   
             limparCampos();
-            alert(`Produtos adicionados à Mesa ${numeroMesa} e enviados para cozinha.`);
+            alert(`Produtos adicionados à Mesa ${numeroMesa}.`);
             return;
           }
         }
@@ -251,18 +254,22 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         criadoEm: serverTimestamp(),
       };
 
-      console.log("DEBUG tipoVenda:", tipoVenda);
-      console.log("DEBUG numeroMesa (estado):", numeroMesaFinal);
-      console.log("Salvando pedido:", dados);
-
-
-
       const docRef = await addDoc(collection(db, "pedidos"), dados);
 
       const dadosCompleto = {
-        ...dados,
+        codigo:dados.codigoPedido,
+        cliente:dados.nomeCliente,
+        codigoCliente: dados.codigoCliente,
+        produtos:dados,
+        valor:dados.valor,
+        data:hoje,
+        tipoVenda:dados.tipoVenda === 'mesa' ? `Mesa ${dados.numeroMesa}` : dados.tipoVenda,
+        
         id: docRef.id,
       };
+
+
+      
 
       // Impressão
       if (querImprimir) {
@@ -270,7 +277,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       }
 
       limparCampos();
-      alert("Pedido criado e enviado para cozinha!");
+      alert("Pedido criado com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar pedido:", error);
       alert("Erro ao salvar pedido. Verifique se você tem permissão ou índices no Firestore.");
