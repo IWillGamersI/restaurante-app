@@ -1,4 +1,4 @@
-import GerenciarPedidosMesa from "@/components/GerenciarPedidosMesa";
+import GerenciarPedidos from "@/components/GerenciarPedidos";
 import LogoutButton from "@/components/LogoutButton";
 import { TabletSmartphone } from "lucide-react";
 
@@ -11,7 +11,7 @@ export default function Mesa() {
         </div>
          <LogoutButton/>
       </h2>
-      <GerenciarPedidosMesa/>
+      <GerenciarPedidos/>
     </div>
   );
 }
