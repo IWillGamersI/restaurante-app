@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -51,7 +52,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
     setStatus, setErro, setSucesso,
     setClasseSelecionada, setTipoVenda, setTipoFatura, setTipoPagamento,
-    setQuerImprimir, numeroMesa, setNumeroMesa
+    setQuerImprimir, setNumeroMesa
   } = stados;
 
   useEffect(() => {
@@ -87,8 +88,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     if (produtosPedido.length === 0) { alert('Adicione pelo menos um PRODUTO!'); return; }
     if (!tipoPagamento) { alert('Informe o tipo de PAGAMENTO!'); return; }
 
-    let pedidoAtualDoc = null
-
+    
     if(id){
       const pedidoRef = doc(db,'pedidos',id)
       const pedidoSnap = await getDoc(pedidoRef)
@@ -236,6 +236,22 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
 
       // ===== Criar novo pedido =====
+       let ordemDiaria = 1
+
+       const pedidosRef = collection(db, "pedidos");
+        const q = query(
+          pedidosRef,
+          where("dataPedido", "==", hoje),
+          orderBy("ordemDiaria", "desc"),
+          limit(1)
+        );
+
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const ultimo = snap.docs[0].data() as Pedido;
+          ordemDiaria = (ultimo.ordemDiaria || 0) + 1;
+        }
+       
       const dados: Omit<Pedido, "id"> & { telefoneCliente?: string | null } = {
         idCliente: clienteIdFinal!,
         nomeCliente: clienteNome,
@@ -252,8 +268,10 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         extras: extrasSelecionados,
         codigoPedido: codigoPedidoFinal!,
         criadoEm: serverTimestamp(),
+        ordemDiaria
       };
 
+     
       const docRef = await addDoc(collection(db, "pedidos"), dados);
 
       const dadosCompleto = {

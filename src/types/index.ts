@@ -40,12 +40,14 @@ export interface Pedido {
   criadoEm?: any;
   idCliente: string;
   codigoCliente: string;
+  ordemDiaria: number
 }
 
 export type ProdutoPedido = Produto & {
   quantidade: number;
   extras: Extra[];
   preco: number; // preço do pedido (pode ser igual a precoVenda)
+  concluido?: string
 };
 
 

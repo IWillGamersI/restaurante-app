@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ProdutoPedido, Pedido } from '@/types';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -8,24 +9,7 @@ import {
   updateDoc,
   doc,
 } from 'firebase/firestore';
-import { CheckCircle2, ClipboardList } from 'lucide-react';
 
-interface ProdutoPedido {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  concluido?: boolean;
-}
-
-interface Pedido {
-  id: string;
-  cliente: string;
-  data: string;
-  status: string;
-  valor: number;
-  produtos: ProdutoPedido[];
-}
 
 export default function TelaCozinha() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -80,7 +64,9 @@ export default function TelaCozinha() {
         <div key={p.id} className="border p-4 rounded shadow bg-white space-y-2 text-gray-800">
           <div className="flex justify-between items-center">
             <div>
-              <strong>{p.cliente}</strong> — {new Date(p.data).toLocaleDateString('pt-BR')}
+              <div>{p.codigoPedido}</div>
+              <div>{p.ordemDiaria}</div>
+              <strong>{p.nomeCliente}</strong> — {new Date(p.data).toLocaleDateString('pt-BR')}
             </div>
             <select
               value={p.status}
@@ -95,16 +81,21 @@ export default function TelaCozinha() {
 
           <ul className="mt-2 space-y-1">
             {p.produtos.map(prod => (
-              <li
+              <div
                 key={prod.id}
-                className={`flex justify-between items-center px-3 py-2 rounded cursor-pointer ${
+                className={`flex flex-col  px-3 py-2 rounded cursor-pointer ${
                   prod.concluido ? 'line-through text-gray-400' : ''
                 } hover:bg-gray-100`}
                 onClick={() => toggleProdutoConcluido(p.id, prod.id)}
               >
-                <span> {prod.quantidade} - {prod.nome}</span>
+                <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome}</div>
+
+                <div>{prod.extras.map((item)=>(
+                    <div className='ml-3'> - {item.nome}</div>
+                  ))}
+                </div>
                 
-              </li>
+              </div>
             ))}
           </ul>
 
