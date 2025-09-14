@@ -242,7 +242,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         const q = query(
           pedidosRef,
           where("dataPedido", "==", hoje),
-          orderBy("ordemDiaria", "desc"),
+          orderBy("criadoEm", "desc"),
           limit(1)
         );
 
