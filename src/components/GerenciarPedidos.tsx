@@ -293,7 +293,7 @@ export default function GerenciarPedidos() {
                       if (!produtoModal) return null;
 
                       const tiposExtras = produtoModal.classe === "estudante"
-                        ? (produtoModal.categoria === "massa" ? ["molho", "ingrediente", "ingredienteplus"] : ["ingredienteplus"])
+                        ? (produtoModal.categoria === "massa" ? ["molho", "ingrediente", "ingredienteplus",'bebida-estudante'] : ["ingredienteplus",'bebida-estudante'])
                         : extrasPorClasse[produtoModal.classe] || [];
 
                       if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>;

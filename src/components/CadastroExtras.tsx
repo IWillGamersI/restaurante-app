@@ -9,8 +9,9 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { Trash2 } from 'lucide-react';
+import { TipoExtra } from '@/types';
 
-type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus' | 'bebida-estudante';
+
 
 export default function CadastroExtras() {
   const [tipo, setTipo] = useState<TipoExtra | ''>();
@@ -75,6 +76,7 @@ export default function CadastroExtras() {
   const acompanhamentos = orderLista(itens,'acompanhamento')
   const ingredienteacai = orderLista(itens,'acai')  
   const ingredienteacaiplus = orderLista(itens,'acaiplus')
+  const bebidaestudante = orderLista(itens,'bebida-estudante')
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -96,6 +98,7 @@ export default function CadastroExtras() {
             <option value="acompanhamento">Acompanhamento</option>
             <option value="acai">Açai</option>
             <option value="acaiplus">Açai Plus</option>
+            <option value="bebida-estudante">Bebida Estudante</option>
           </select>
         </div>
 
@@ -226,7 +229,7 @@ export default function CadastroExtras() {
           )}
         </div>
 
-          {/* Card Ingrediente Açai */}
+        {/* Card Ingrediente Açai */}
         <div className="flex-1 bg-white rounded shadow p-4 h-85 overflow-auto">
           <h3 className="text-xl font-semibold mb-4 text-center">Ingredientes Açai</h3>
           {ingredienteacai.length === 0 ? (
@@ -249,7 +252,7 @@ export default function CadastroExtras() {
           )}
         </div>
 
-          {/* Card Ingrediente Açai */}
+        {/* Card Ingrediente Açai */}
         <div className="flex-1 bg-white rounded shadow p-4 h-85 overflow-auto">
           <h3 className="text-xl font-semibold mb-4 text-center">Ingredientes Açai Plus</h3>
           {ingredienteacaiplus.length === 0 ? (
@@ -271,6 +274,31 @@ export default function CadastroExtras() {
             </ul>
           )}
         </div>
+
+        {/* Card Bebida Estudante */}
+        <div className="flex-1 bg-white rounded shadow p-4 h-85 overflow-auto">
+          <h3 className="text-xl font-semibold mb-4 text-center">Bebidas Estudante</h3>
+          {bebidaestudante.length === 0 ? (
+            <p className="text-gray-500 text-center">Nenhum ingrediente cadastrado.</p>
+          ) : (
+            <ul className="space-y-2">
+              {bebidaestudante.map(item => (
+                <li key={item.id} className="flex justify-between items-center bg-gray-100 p-2 rounded gap-2">
+                  <span className='flex-1'>{item.nome}</span>
+                  <span>€ {(item.valor.toFixed(2))}</span>
+                  <button
+                    onClick={() => removerItem(item.id)}
+                    className="text-red-600 p-1 rounded-full hover:bg-red-600 hover:text-white text-sm cursor-pointer"
+                  >
+                    <Trash2 size={20}/>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+
 
 
       </div>

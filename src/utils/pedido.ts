@@ -22,7 +22,7 @@ export const extrasPorClasse: Record<string, string[]> = {
     massa: ['molho', 'ingrediente', 'ingredienteplus'],
     bebida: [],
     sobremesa: [],
-    estudante: ['molho', 'ingrediente', 'ingredienteplus']
+    estudante: ['molho', 'ingrediente', 'ingredienteplus', 'bebida-estudante']
 };
 
 export function getLimiteExtra(produto: Produto, tipoExtra:string): number | null {
@@ -36,6 +36,7 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
 
     if (produto.classe === "estudante" && produto.categoria === "massa") {
       if (tipoExtra === "molho") return 1;
+      if (tipoExtra === "bebida-estudante") return 1;
       if (tipoExtra === "ingrediente") return 2;
       if (tipoExtra === "ingredienteplus") return null;
     }

@@ -58,6 +58,7 @@ export type PedidoFormState = Omit<Pedido, 'id' | 'criadoEm'> & {
 
 export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'
 
+export type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus' | 'bebida-estudante';
 
 export interface ClasseButtonsProps {
   classes: string[];
