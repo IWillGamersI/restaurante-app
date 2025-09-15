@@ -17,10 +17,19 @@ export default function TelaCozinha() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'pedidos'), (snap) => {
       const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pedido));
-      const emPreparo = lista.filter(p =>
-        ['fila', 'preparando'].includes(p.status.toLowerCase())
-      );
-      setPedidos(emPreparo);
+      
+      
+      const emPreparo = lista
+      .filter(p => ['fila', 'preparando'].includes(p.status.toLowerCase()))
+      .sort((a, b) => {
+        // Ordena do mais antigo para o mais recente
+        return a.criadoEm?.seconds - b.criadoEm?.seconds;
+      });
+
+setPedidos(emPreparo);
+
+
+
     });
 
     return () => unsub();
@@ -63,11 +72,11 @@ export default function TelaCozinha() {
       {pedidos.map(p => (
         <div key={p.id} className="border p-4 rounded shadow bg-white space-y-2 text-gray-800">
           <div className="flex justify-between items-center">
-            <div>
+            <div >
               <div>{p.codigoPedido}</div>
-              <div>{p.ordemDiaria}</div>
               <strong>{p.nomeCliente}</strong> — {new Date(p.data).toLocaleDateString('pt-BR')}
             </div>
+              <div className='bg-blue-600 py-2 px-4 rounded-full text-white font-black text-3xl'>{p.ordemDiaria}</div>
             <select
               value={p.status}
               onChange={(e) => atualizarStatus(p.id, e.target.value)}

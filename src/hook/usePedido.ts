@@ -236,21 +236,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
 
       // ===== Criar novo pedido =====
-       let ordemDiaria = 1
-
-       const pedidosRef = collection(db, "pedidos");
-        const q = query(
-          pedidosRef,
-          where("dataPedido", "==", hoje),
-          orderBy("criadoEm", "desc"),
-          limit(1)
-        );
-
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const ultimo = snap.docs[0].data() as Pedido;
-          ordemDiaria = (ultimo.ordemDiaria || 0) + 1;
-        }
+       let ordemDiaria = pedidosDoDia.length + 1
+       
        
       const dados: Omit<Pedido, "id"> & { telefoneCliente?: string | null } = {
         idCliente: clienteIdFinal!,
@@ -281,8 +268,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         produtos:dados,
         valor:dados.valor,
         data:hoje,
-        tipoVenda:dados.tipoVenda === 'mesa' ? `Mesa ${dados.numeroMesa}` : dados.tipoVenda,
-        
+        tipoVenda:dados.tipoVenda === 'mesa' ? `Mesa ${dados.numeroMesa}` : dados.tipoVenda,        
         id: docRef.id,
       };
 
