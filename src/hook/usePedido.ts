@@ -203,6 +203,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
                 const extras = p.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                 return acc + p.preco * p.quantidade + extras;
               }, 0);
+
+              pedidoAtual.status = 'Fila'
   
             await updateDoc(doc(db, 'pedidos', pedidoDoc.id), {
               produtos: [...pedidoAtual.produtos, ...novosProdutos],
