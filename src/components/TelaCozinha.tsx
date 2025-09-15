@@ -20,14 +20,13 @@ export default function TelaCozinha() {
       
       
       const emPreparo = lista
-      .filter(p => ['fila', 'preparando'].includes(p.status.toLowerCase()))
-      .sort((a, b) => {
-        // Ordena do mais antigo para o mais recente
-        return a.criadoEm?.seconds - b.criadoEm?.seconds;
-      });
+      .filter(p => 
+        ['fila', 'preparando'].includes(p.status.toLowerCase()) && // só em andamento
+        p.produtos.some((item)=>item.classe !== 'acai') // remove pedidos de açaí
+      )
+      .sort((a, b) => a.criadoEm?.seconds - b.criadoEm?.seconds); // do mais antigo para o mais novo
 
-setPedidos(emPreparo);
-
+    setPedidos(emPreparo);
 
 
     });
@@ -89,22 +88,23 @@ setPedidos(emPreparo);
           </div>
 
           <ul className="mt-2 space-y-1">
-            {p.produtos.map(prod => (
-              <div
-                key={prod.id}
-                className={`flex flex-col  px-3 py-2 rounded cursor-pointer ${
-                  prod.concluido ? 'line-through text-gray-400' : ''
-                } hover:bg-gray-100`}
-                onClick={() => toggleProdutoConcluido(p.id, prod.id)}
-              >
-                <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome}</div>
-
-                <div>{prod.extras.map((item)=>(
-                    <div className='ml-3'> - {item.nome}</div>
-                  ))}
-                </div>
-                
-              </div>
+            {p.produtos.map(prod => (            
+              prod.classe !== 'acai' ?(
+                <div
+                  key={prod.id}
+                  className={`flex flex-col  px-3 py-2 rounded cursor-pointer ${
+                    prod.concluido ? 'line-through text-gray-400' : ''
+                  } hover:bg-gray-100`}
+                  onClick={() => toggleProdutoConcluido(p.id, prod.id)}
+                >
+                  <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome}</div>
+  
+                  <div>{prod.extras.map((item)=>(
+                      <div key={item.id} className='ml-3'> - {item?.nome}</div>
+                    ))}
+                  </div>
+                  
+                </div>): null                
             ))}
           </ul>
 
