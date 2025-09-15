@@ -3,31 +3,8 @@ import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Pedido, Produto } from '@/types';
 
-
-interface Produto {
-  id: string;
-  nome: string;
-  preco: number;
-  imagemUrl?: string;
-}
-
-interface ProdutoPedido {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-}
-
-interface Pedido {
-  id: string;
-  cliente: string;
-  data: string;
-  status: string;
-  valor: number;
-  produtos: ProdutoPedido[];
-  codigo: string;
-}
 
 export default function SalaoCliente() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -46,9 +23,14 @@ export default function SalaoCliente() {
         const data = doc.data();
         return {
           id: doc.id,
-          nome: data.nome,
-          preco: data.preco,
-          imagemUrl: data.imagemUrl,
+          nome: data.nome || '',
+          descricao: data.descricao || '',
+          categoria: data.categoria || '',
+          classe: data.classe || '',
+          precoVenda: data.precoVenda || 0,
+          preco: data.precoVenda || 0, // se quiser manter o antigo "preco"
+          custo: data.custo || 0,
+          imagemUrl: data.imagemUrl || '',
         } as Produto;
       });
       setProdutos(lista);
@@ -97,7 +79,7 @@ export default function SalaoCliente() {
                 />
                 <h3 className="text-7xl font-semibold">{produtos[carrosselIndex].nome}</h3>
                 <p className="text-green-400 text-9xl">
-                  € {produtos[carrosselIndex].preco.toFixed(2)}
+                  € {produtos[carrosselIndex].precoVenda.toFixed(2)}
                 </p>
               </motion.div>
             </AnimatePresence>
