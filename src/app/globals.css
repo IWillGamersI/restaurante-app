@@ -4,3 +4,10 @@
   @apply px-4 py-2 bg-blue-500 text-white rounded-lg;
 }
 
+/* Desativa seleção de texto em toda a aplicação */
+body {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* padrão */
+}
