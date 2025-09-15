@@ -61,7 +61,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
           <input
             type="radio"
             name="imprimir"
-            checked={querImprimir === false}
+            checked={querImprimir === true}
             onChange={() => setQuerImprimir(false)}
             className="cursor-pointer"
             required
