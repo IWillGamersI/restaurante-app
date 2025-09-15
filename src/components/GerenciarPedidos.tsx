@@ -75,6 +75,7 @@ export default function GerenciarPedidos() {
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
 
   const handleSalvarPedido = () => {
+    setQuerImprimir(true)
     salvarPedido({
       id: idPedidoSelecionado || undefined, // se null, cria novo pedido
       tipoFatura,
@@ -91,7 +92,7 @@ export default function GerenciarPedidos() {
       querImprimir,
       imprimir,
     });
-
+    
     // Depois de salvar/adicionar produtos
     setIdPedidoSelecionado(null);
   };

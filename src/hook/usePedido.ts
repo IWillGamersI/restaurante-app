@@ -267,7 +267,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         codigo:dados.codigoPedido,
         cliente:dados.nomeCliente,
         codigoCliente: dados.codigoCliente,
-        produtos:dados,
+        produtos:dados.produtos,
         valor:dados.valor,
         data:hoje,
         tipoVenda:dados.tipoVenda === 'mesa' ? `Mesa ${dados.numeroMesa}` : dados.tipoVenda,        
@@ -275,12 +275,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       };
 
 
-      
+      await imprimir(dadosCompleto, 1);
 
-      // Impressão
-      if (querImprimir) {
-        await imprimir(dadosCompleto, 1);
-      }
+      
 
       limparCampos();
       alert("Pedido criado com sucesso!");

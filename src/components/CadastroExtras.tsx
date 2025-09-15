@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { Trash2 } from 'lucide-react';
 
-type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus';
+type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus' | 'bebida-estudante';
 
 export default function CadastroExtras() {
   const [tipo, setTipo] = useState<TipoExtra | ''>();
