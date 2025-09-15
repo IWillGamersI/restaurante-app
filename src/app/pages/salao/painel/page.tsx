@@ -78,7 +78,7 @@ export default function SalaoCliente() {
     <div className="flex flex-col md:flex-row min-h-screen text-gray-800">
       <div className="w-full flex">
         {/* Área de Divulgação */}
-        <div className="bg-black text-white p-4 relative overflow-hidden flex flex-col items-center justify-center w-1/3 min-w-[300px]">
+        <div className="bg-white text-black p-4 relative overflow-hidden flex flex-col items-center justify-center w-1/3 min-w-[300px]">
           <h2 className="text-9xl font-bold mb-4">Promoções</h2>
           {produtosCarregados && produtos.length > 0 ? (
             <AnimatePresence mode="wait">
@@ -93,7 +93,7 @@ export default function SalaoCliente() {
                 <img
                   src={produtos[carrosselIndex].imagemUrl || ''}
                   alt={produtos[carrosselIndex].nome || 'Promoção'}
-                  className="object-contain rounded-lg mb-3 max-h-300 mx-auto transition-all duration-300"
+                  className="object-contain rounded-2xl mb-3 max-h-300 mx-auto transition-all duration-300"
                 />
                 <h3 className="text-7xl font-semibold">{produtos[carrosselIndex].nome}</h3>
                 <p className="text-green-400 text-9xl">
