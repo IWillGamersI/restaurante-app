@@ -16,7 +16,7 @@ export function useStados() {
   const [tipoVenda, setTipoVenda] = useState("");
   const [tipoFatura, setTipoFatura] = useState('');
   const [tipoPagamento, setTipoPagamento] = useState('');
-  const [querImprimir, setQuerImprimir] = useState(false);
+  const [querImprimir, setQuerImprimir] = useState(true);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [numeroMesa, setNumeroMesa] = useState<string>('')
   const [idPedidoSelecionado, setIdPedidoSelecionado] = useState<string | null>(null);
