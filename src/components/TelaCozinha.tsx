@@ -103,12 +103,14 @@ export default function TelaCozinha() {
                       <div key={item.id} className='ml-3'> - {item?.nome}</div>
                     ))}
                   </div>
-                  
+                                    
                 </div>): null                
             ))}
           </ul>
-
-          
+            {p.obs !=='' ?
+                <div className='bg-red-500 p-2 text-white font-bold rounded text-center'>{p.obs}</div>
+                : ''
+            }
         </div>
       ))}
     </div>

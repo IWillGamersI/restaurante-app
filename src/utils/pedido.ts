@@ -41,6 +41,10 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
       if (tipoExtra === "ingredienteplus") return null;
     }
 
+    if(produto.classe === 'estudante'){
+      if (tipoExtra === "bebida-estudante") return 1;
+    }
+
     if(produto.classe === 'acai') {
       if(tipoExtra === 'acai') return 3
     }

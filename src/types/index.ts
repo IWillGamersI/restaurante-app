@@ -41,6 +41,7 @@ export interface Pedido {
   idCliente: string;
   codigoCliente: string;
   ordemDiaria: number
+  obs?: string
 }
 
 export type ProdutoPedido = Produto & {

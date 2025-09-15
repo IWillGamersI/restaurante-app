@@ -35,6 +35,7 @@ interface SalvarPedidoArgs {
   numeroMesa?: string
   querImprimir?: boolean;
   imprimir: (dados: any, copias: number) => void;
+  obs?:string
 }
 
 export function usePedido(stados: ReturnType<typeof useStados>) {
@@ -52,7 +53,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
     setStatus, setErro, setSucesso,
     setClasseSelecionada, setTipoVenda, setTipoFatura, setTipoPagamento,
-    setQuerImprimir, setNumeroMesa
+    setQuerImprimir, setNumeroMesa, setObs
   } = stados;
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     numeroMesa,
     querImprimir,
     imprimir,
+    obs
   }: SalvarPedidoArgs) => {
 
     // Validações obrigatórias
@@ -257,7 +259,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         extras: extrasSelecionados,
         codigoPedido: codigoPedidoFinal!,
         criadoEm: serverTimestamp(),
-        ordemDiaria
+        ordemDiaria,
+        obs: obs || ''
       };
 
      
@@ -378,6 +381,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setQuerImprimir(false);
     setAjuste(0);
     setNumeroMesa('')
+    setObs('')
   };
 
   const aumentar = () => setAjuste((prev) => parseFloat((prev + 0.1).toFixed(2)));

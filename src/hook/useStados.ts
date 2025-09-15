@@ -20,6 +20,7 @@ export function useStados() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [numeroMesa, setNumeroMesa] = useState<string>('')
   const [idPedidoSelecionado, setIdPedidoSelecionado] = useState<string | null>(null);
+  const [obs, setObs] = useState('')
 
 
   const { setClasseSelecionada, classeSelecionada } = useProdutos();
@@ -43,6 +44,8 @@ export function useStados() {
     produtos, setProdutos,
     numeroMesa, setNumeroMesa,
     idPedidoSelecionado,
-    setIdPedidoSelecionado
+    setIdPedidoSelecionado,
+    obs,
+    setObs
   };
 }

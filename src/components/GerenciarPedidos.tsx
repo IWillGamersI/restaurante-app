@@ -19,7 +19,7 @@ import { Pedido } from "@/types";
 export default function GerenciarPedidos() {
   const stados = useStados();
   const pedido = usePedido(stados);
-  const { gerarCodigoPedido, hoje } = useCodigos();
+  const { gerarCodigoPedido } = useCodigos();
   const { statusColor } = useStatus();
 
   const {
@@ -41,7 +41,7 @@ export default function GerenciarPedidos() {
     salvarPedido,
     pedidosDoDia,
     produtoSelecionado,
-    setProdutoSelecionado,
+    setProdutoSelecionado,    
   } = pedido;
 
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
@@ -69,7 +69,8 @@ export default function GerenciarPedidos() {
     numeroMesa,
     setNumeroMesa,
     idPedidoSelecionado,
-    setIdPedidoSelecionado
+    setIdPedidoSelecionado,
+    obs
   } = stados;
 
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
@@ -91,6 +92,7 @@ export default function GerenciarPedidos() {
       numeroMesa,
       querImprimir,
       imprimir,
+      obs: obs || ''
     });
     
     // Depois de salvar/adicionar produtos
@@ -264,6 +266,12 @@ export default function GerenciarPedidos() {
                 <Plus size={18} /> Lançar
               </button>
             </div>
+            <input 
+              className="border-1 border-blue-600 rounded p-3" 
+              type="text" placeholder="observação..." 
+              value={obs}     
+              onChange={(e)=>stados.setObs(e.target.value)}         
+            />
           </div>
 
           {/* Modal */}
