@@ -309,7 +309,7 @@ export default function GerenciarPedidos() {
                       return tiposExtras.map(tipo => (
                         <div key={tipo} className="border rounded p-2">
                           <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-0.5">
                             {extras.filter(e => e.tipo === tipo).map(extra => {
                               const selecionado = extrasSelecionados.some(sel => sel.id === extra.id);
                               const limite = getLimiteExtra(produtoModal, tipo);
