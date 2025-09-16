@@ -296,7 +296,7 @@ export default function GerenciarPedidos() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {(() => {
                       if (!produtoModal) return null;
 
