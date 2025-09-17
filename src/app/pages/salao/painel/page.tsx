@@ -27,8 +27,7 @@ export default function SalaoCliente() {
           descricao: data.descricao || '',
           categoria: data.categoria || '',
           classe: data.classe || '',
-          precoVenda: data.precoVenda || 0,
-          preco: data.precoVenda || 0, // se quiser manter o antigo "preco"
+          precoVenda: data.preco || 0,
           custo: data.custo || 0,
           imagemUrl: data.imagemUrl || '',
         } as Produto;
