@@ -466,7 +466,7 @@ const cardsPrincipais = [
       p.produtos.forEach(item => {
         const nome = item.nome;
         const quantidade = item.quantidade || 1;
-        const valorTotal = quantidade * item.precoVenda;
+        const valorTotal = item.quantidade * item.precoVenda;
         const lucroTotal = ((item.precoVenda) - (item.precoVenda * .35 || 0)) * quantidade;
 
         if (!acc[nome]) acc[nome] = { qtd: 0, valor: 0, lucro: 0 };
