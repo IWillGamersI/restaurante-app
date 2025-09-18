@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Produto } from "@/types";
+import { Produto, Pedido, FiltroPeriodo,Despesa,DespesasPaga } from "@/types";
 import { useProdutos } from '@/hook/useProdutos';
+
 
 export function useStados() {
   const [cliente, setCliente] = useState('');
@@ -21,7 +22,14 @@ export function useStados() {
   const [numeroMesa, setNumeroMesa] = useState<string>('')
   const [idPedidoSelecionado, setIdPedidoSelecionado] = useState<string | null>(null);
   const [obs, setObs] = useState('')
-
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>('hoje');
+  const [moeda, setMoeda] = useState('€'); // pode trocar para 'R$' etc.
+  const [despesas, setDespesas] = useState<Despesa[]>([])
+  const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
+  const [mesSelecionado, setMesSelecionado] = useState<number>(new Date().getMonth());
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
 
   const { setClasseSelecionada, classeSelecionada } = useProdutos();
 
@@ -43,9 +51,15 @@ export function useStados() {
     querImprimir, setQuerImprimir,
     produtos, setProdutos,
     numeroMesa, setNumeroMesa,
-    idPedidoSelecionado,
-    setIdPedidoSelecionado,
-    obs,
-    setObs
+    idPedidoSelecionado, setIdPedidoSelecionado,
+    obs,setObs,
+    pedidos, setPedidos,
+    loading, setLoading,
+    filtroPeriodo, setFiltroPeriodo,
+    moeda, setMoeda,
+    despesas, setDespesas,
+    despesasPagas,setDespesasPagas,
+    mesSelecionado, setMesSelecionado,
+    anoSelecionado, setAnoSelecionado
   };
 }

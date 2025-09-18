@@ -9,62 +9,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
 import { somarAcumulado } from '@/utils/calculos';
+import { COLORS, FiltroPeriodo, Despesa, DespesasPaga, Pedido, imagensPorCanal, taxasPorCanal } from '@/types';
+import { useStados } from '@/hook/useStados';
 
 
-interface Produto {
-  id: string
-  imagemUrl: string;
-  nome: string;
-  preco: number;
-  custo?: number;
-  quantidade: number;  
-}
-
-interface Despesa {
-  id: string
-  nome: string
-  valor: number
-  vencimentoDia: number
-  pago?: boolean
-}
-
-interface DespesasPaga {
-  id: string
-  despesaId: string
-  nome: string
-  valorPago: number
-  dataPagamento: Date | Timestamp
-  formaPagamento: string
-}
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
-
-const imagensPorCanal: Record<string, string> = {
-  Uber: '/uber.png',
-  Glovo: '/glovo.png',
-  Bolt: '/bolt.png',
-  Restaurante: '/logo.png',
-};
-
-const taxasPorCanal: Record<string, number> = {
-  Uber: 0.33,   // 25% de taxa
-  Glovo: 0.33,  // 20% de taxa
-  Bolt: 0.33,   // 22% de taxa
-  Restaurante: 0, // sem taxa
-};
 
 export default function DashBoard() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>('hoje');
-  const [moeda, setMoeda] = useState('€'); // pode trocar para 'R$' etc.
-  const [despesas, setDespesas] = useState<Despesa[]>([])
-  const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
-  const [mesSelecionado, setMesSelecionado] = useState<number>(new Date().getMonth());
-  const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-
-
+  
+  const {
+          pedidos,setPedidos,
+          loading,setLoading,
+          filtroPeriodo,setFiltroPeriodo,
+          moeda, setMoeda,
+          despesas, setDespesas,
+          despesasPagas, setDespesasPagas,
+          mesSelecionado, setMesSelecionado,
+          anoSelecionado, setAnoSelecionado
+        } = useStados()
+  
+  //carrega pedidos
   useEffect(() => {
     async function carregarPedidos() {
       try {
@@ -75,7 +38,7 @@ export default function DashBoard() {
           const produtos = Array.isArray(d.produtos)
             ? d.produtos.map((p: any) => ({
                 nome: p.nome,
-                preco: p.preco,
+                precoVenda: p.preco,
                 custo: p.custo || 0,
                 quantidade: p.quantidade || 1,
               }))
@@ -84,11 +47,11 @@ export default function DashBoard() {
           return {
             valor: d.valor,
             custo: d.custo || 0,
-            data: d.data instanceof Timestamp ? d.data.toDate() : new Date(d.data),
+            criadoEm: d.data instanceof Timestamp ? d.data.toDate() : new Date(d.data),
             produto: produtos,
             canal: d.tipoVenda,
-            pagamento: d.tipoPagamento,
-            faturado: d.tipoFatura,
+            tipoPagamento: d.tipoPagamento,
+            tipoFatura: d.tipoFatura,
           } as Pedido;
         });
         setPedidos(dados);
@@ -101,6 +64,7 @@ export default function DashBoard() {
     carregarPedidos();
   }, []);
 
+  //carrega despesas
   useEffect(()=>{    
     async function carregarDespesas(){
       try{
@@ -125,6 +89,7 @@ export default function DashBoard() {
     carregarDespesasPagas() // 👈 adicionado aqui
   }, [])
 
+  //carrega despesas pagas
   async function carregarDespesasPagas(){
     try{
       const pagasRef = collection(db,'despesaspagas')
@@ -147,7 +112,7 @@ export default function DashBoard() {
   }
   if (loading) return <p>Carregando...</p>;
 
- const hoje = new Date();
+    const hoje = new Date();
     const mesAtual = hoje.getMonth();
     const anoAtual = hoje.getFullYear();
 
@@ -176,9 +141,6 @@ export default function DashBoard() {
       const restante = Math.max(0, d.valor - pago); // se pagamento maior que valor, zero
       return acc + restante;
     }, 0);
-
-
-   
 
 
     // Função para criar a data completa de vencimento da despesa
@@ -227,14 +189,14 @@ export default function DashBoard() {
     for (let i = 1; i <= totalDias; i++) {
       const data = new Date(ano, mes, i);
       const pedidosDoDia = pedidos
-        .filter(p => p.data.getFullYear() === ano && p.data.getMonth() === mes && p.data.getDate() === i);
+        .filter(p => p.criadoEm.getFullYear() === ano && p.criadoEm.getMonth() === mes && p.criadoEm.getDate() === i);
 
       const valorAlmoco = pedidosDoDia
-        .filter(p => p.data.getHours() >= 10 && p.data.getHours() < 16)
+        .filter(p => p.criadoEm.getHours() >= 10 && p.criadoEm.getHours() < 16)
         .reduce((acc, p) => acc + p.valor, 0);
 
       const valorJantar = pedidosDoDia
-        .filter(p => p.data.getHours() >= 16 && p.data.getHours() < 23)
+        .filter(p => p.criadoEm.getHours() >= 16 && p.criadoEm.getHours() < 23)
         .reduce((acc, p) => acc + p.valor, 0);
 
       dias.push({ dia: i, valor: valorAlmoco + valorJantar, valorAlmoco, valorJantar });
@@ -278,18 +240,8 @@ export default function DashBoard() {
     return semanas;
   }; 
 
-  interface Pedido {
-  valor: number;
-  custo?: number;
-  data: Date;
-  produto?: Produto[];
-  canal?: string;
-  pagamento?: string;
-  faturado?: string;
-  imagemUrl?: string;
-}
+  
 
-type FiltroPeriodo = 'hoje' | 'semana' | 'semana-passada' | 'quinzenal' | 'mes' | 'ano';
 
 // Função para filtrar pedidos de acordo com o período
 const filtrarPedidos = (periodo: FiltroPeriodo, pedidos: Pedido[]): Pedido[] => {
@@ -316,7 +268,7 @@ const filtrarPedidos = (periodo: FiltroPeriodo, pedidos: Pedido[]): Pedido[] => 
   inicioQuinzenal.setHours(0, 0, 0, 0);
 
   return pedidos.filter(p => {
-    const dataPedido = new Date(p.data);
+    const dataPedido = new Date(p.criadoEm);
     dataPedido.setHours(0, 0, 0, 0);
 
     switch (periodo) {
@@ -404,7 +356,7 @@ const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
 
     // Somar valores do dia
     const faturamentoDia = pedidosFiltrados
-      .filter(p => new Date(p.data).getTime() === diaAtual.getTime())
+      .filter(p => new Date(p.criadoEm).getTime() === diaAtual.getTime())
       .reduce((sum, p) => sum + p.valor, 0);
 
     dias.push({
@@ -496,26 +448,26 @@ const cardsPrincipais = [
   ];
 
   // Faturamento por dia da semana
-  const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo', 'Faturamento Semanal'];
   const pedidosPorDia = diasSemana.map((dia, i) => {
     const hoje = new Date();
     const inicioSemana = new Date(hoje);
     const diaSemana = hoje.getDay() === 0 ? 7 : hoje.getDay();
     inicioSemana.setDate(hoje.getDate() - diaSemana + 1 + i);
     const faturamento = pedidosFiltrados
-      .filter((p) => p.data.toDateString() === inicioSemana.toDateString())
+      .filter((p) => p.criadoEm.toDateString() === inicioSemana.toDateString())
       .reduce((acc, p) => acc + p.valor, 0);
     return { dia, faturamento };
   });
   
   // Produtos
   const produtosMap = pedidos.reduce((acc: Record<string, { qtd: number; valor: number; lucro: number }>, p) => {
-    if (Array.isArray(p.produto)) {
-      p.produto.forEach(item => {
+    if (Array.isArray(p.produtos)) {
+      p.produtos.forEach(item => {
         const nome = item.nome;
         const quantidade = item.quantidade || 1;
-        const valorTotal = item.quantidade * item.preco;
-        const lucroTotal = ((item.preco) - (item.preco * .35 || 0)) * quantidade;
+        const valorTotal = quantidade * item.precoVenda;
+        const lucroTotal = ((item.precoVenda) - (item.precoVenda * .35 || 0)) * quantidade;
 
         if (!acc[nome]) acc[nome] = { qtd: 0, valor: 0, lucro: 0 };
         acc[nome].qtd += quantidade;
@@ -550,21 +502,21 @@ const cardsPrincipais = [
 
   // Horários
   const refeicoes = [
-    { nome: 'Almoço', inicio: 10, fim: 16 },
-    { nome: 'Jantar', inicio: 16, fim: 23 },
+    { nome: 'Almoço', inicio: 10, fim: 18 },
+    { nome: 'Jantar', inicio: 18, fim: 23 },
   ];
   const faturamentoPorRefeicao = refeicoes.map((r) => {
     const total = pedidosFiltrados
-      .filter((p) => p.data.getHours() >= r.inicio && p.data.getHours() < r.fim)
+      .filter((p) => p.criadoEm.getHours() >= r.inicio && p.criadoEm.getHours() < r.fim)
       .reduce((acc, p) => acc + p.valor, 0);
     return { refeicao: r.nome, total };
   });
 
   // Finanças
-  const vendasComFatura = pedidosFiltrados.filter((p) => p.faturado === 'cf').reduce((acc, p) => acc + p.valor, 0);
-  const vendasSemFatura = pedidosFiltrados.filter((p) => p.faturado === 'sf').reduce((acc, p) => acc + p.valor, 0);
+  const vendasComFatura = pedidosFiltrados.filter((p) => p.tipoFatura === 'cf').reduce((acc, p) => acc + p.valor, 0);
+  const vendasSemFatura = pedidosFiltrados.filter((p) => p.tipoFatura === 'sf').reduce((acc, p) => acc + p.valor, 0);
   const pagamentosMap = pedidosFiltrados.reduce((acc: Record<string, number>, p) => {
-    if (p.pagamento) acc[p.pagamento] = (acc[p.pagamento] || 0) + p.valor;
+    if (p.tipoPagamento) acc[p.tipoPagamento] = (acc[p.tipoPagamento] || 0) + p.valor;
     return acc;
   }, {});
   const vendasPorPagamento = Object.entries(pagamentosMap).map(([pagamento, total]) => ({ pagamento, total }));
@@ -574,10 +526,10 @@ const cardsPrincipais = [
   const faturamentoPorRefeicaoMesSelecionado = refeicoes.map((r) => {
     const total = pedidos
       .filter(p => 
-        p.data.getMonth() === mesSelecionado && 
-        p.data.getFullYear() === anoSelecionado && 
-        p.data.getHours() >= r.inicio && 
-        p.data.getHours() < r.fim
+        p.criadoEm.getMonth() === mesSelecionado && 
+        p.criadoEm.getFullYear() === anoSelecionado && 
+        p.criadoEm.getHours() >= r.inicio && 
+        p.criadoEm.getHours() < r.fim
       )
       .reduce((acc, p) => acc + p.valor, 0);
     return { refeicao: r.nome, total };
@@ -905,7 +857,7 @@ const cardsPrincipais = [
               dia.setDate(dia.getDate() - (6 - i));
 
               const totalDia = pedidosFiltrados
-                .filter((p) => new Date(p.data).toDateString() === dia.toDateString())
+                .filter((p) => new Date(p.criadoEm).toDateString() === dia.toDateString())
                 .reduce((acc, p) => acc + p.valor, 0);
 
               const diaString = dia.toLocaleDateString("pt-BR", { weekday: "short" });
