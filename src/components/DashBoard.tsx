@@ -192,11 +192,11 @@ export default function DashBoard() {
         .filter(p => p.criadoEm.getFullYear() === ano && p.criadoEm.getMonth() === mes && p.criadoEm.getDate() === i);
 
       const valorAlmoco = pedidosDoDia
-        .filter(p => p.criadoEm.getHours() >= 10 && p.criadoEm.getHours() < 16)
+        .filter(p => p.criadoEm.getHours() >= 10 && p.criadoEm.getHours() < 18)
         .reduce((acc, p) => acc + p.valor, 0);
 
       const valorJantar = pedidosDoDia
-        .filter(p => p.criadoEm.getHours() >= 16 && p.criadoEm.getHours() < 23)
+        .filter(p => p.criadoEm.getHours() >= 18 && p.criadoEm.getHours() < 23)
         .reduce((acc, p) => acc + p.valor, 0);
 
       dias.push({ dia: i, valor: valorAlmoco + valorJantar, valorAlmoco, valorJantar });
