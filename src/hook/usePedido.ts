@@ -111,7 +111,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         },0)
 
         await updateDoc(pedidoRef,{
-          produtos: [...pedidoAtual.produtos, ...novosProdutos],
+          produtos: [...pedidoAtual.produtos || '', ...novosProdutos],
           valor: novoValor,
           atualizadoEm: serverTimestamp()
         })
@@ -209,7 +209,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
               pedidoAtual.status = 'Fila'
   
             await updateDoc(doc(db, 'pedidos', pedidoDoc.id), {
-              produtos: [...pedidoAtual.produtos, ...novosProdutos],
+              produtos: [...pedidoAtual.produtos || '', ...novosProdutos],
               valor: novoValor,
               atualizadoEm: serverTimestamp(),
             });
@@ -396,7 +396,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
   
   const pedidosDoDia = pedidos.filter((p) => {
-    const pData = new Date(p.data);
+    const pData = new Date(p.criadoEm);
     return (
       pData.getDate() === hoje.getDate() &&
       pData.getMonth() === hoje.getMonth() &&

@@ -100,16 +100,16 @@ export default function GerenciarPedidos() {
   };
 
 
-  const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status));
-  const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status));
+  const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' || 'Preparando' || 'Pronto'));
+  const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue' || 'Cancelado'));
 
   const preencherCamposPedido = (pedidoSelecionado: Pedido) => {
     setTipoFatura(pedidoSelecionado.tipoFatura);
-    setTipoVenda(pedidoSelecionado.tipoVenda);
-    setTipoPagamento(pedidoSelecionado.tipoPagamento);
-    setClienteNome(pedidoSelecionado.nomeCliente);
-    setCodigoCliente(pedidoSelecionado.codigoCliente);
-    setCodigoPedido(pedidoSelecionado.codigoPedido);
+    setTipoVenda(pedidoSelecionado.tipoVenda || '');
+    setTipoPagamento(pedidoSelecionado.tipoPagamento || '');
+    setClienteNome(pedidoSelecionado.nomeCliente || '');
+    setCodigoCliente(pedidoSelecionado.codigoCliente || '');
+    setCodigoPedido(pedidoSelecionado.codigoPedido || '');
     setNumeroMesa(pedidoSelecionado.numeroMesa || '');
   };
 
@@ -148,7 +148,7 @@ export default function GerenciarPedidos() {
         <ClasseButtons
           classeTodos= {true}
           classeSelecionada={classeSelecionada}
-          classes={classes}
+          classes={classes.filter((c): c is string => !!c)}
           setClasseSelecionada={setClasseSelecionada}
         />
 
@@ -302,7 +302,7 @@ export default function GerenciarPedidos() {
 
                       const tiposExtras = produtoModal.classe === "estudante"
                         ? (produtoModal.categoria === "massa" ? ["molho", "ingrediente", "ingredienteplus",'bebida-estudante'] : ["ingredienteplus",'bebida-estudante'])
-                        : extrasPorClasse[produtoModal.classe] || [];
+                        : extrasPorClasse[(produtoModal.classe ?? '')] || [];
 
                       if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>;
 
@@ -380,15 +380,15 @@ export default function GerenciarPedidos() {
                     <div className="flex flex-col w-full">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                          <p>{new Date(p.criadoEm).toLocaleDateString('pt-BR')}</p>
                           <strong>{p.nomeCliente}</strong>
                           {p.numeroMesa ? <p className='text-xs'>Mesa: {p.numeroMesa}</p> : ''}
                         </div>
                         <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                         <select
                           value={p.status}
-                          onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                          onChange={(e) => atualizarStatus(p.id || '', e.target.value)}
+                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status || '')}`}
                         >
                           {STATUS_PEDIDO_OPTIONS.map((status)=>(
                             <option
@@ -403,7 +403,7 @@ export default function GerenciarPedidos() {
                       </div>
 
                       <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
-                        {p.produtos.map((item, i) => {
+                        {p.produtos?.map((item, i) => {
                           const totalExtrasProduto = calcularTotalExtras(item)
                           const subtotalProduto = calcularSubTotalProduto(item)
 
@@ -453,7 +453,7 @@ export default function GerenciarPedidos() {
                           {/* Botão para selecionar pedido */}
                           <button
                             onClick={() => {
-                              setIdPedidoSelecionado(p.id);
+                              setIdPedidoSelecionado(p.id || '');
                               preencherCamposPedido(p); // preenche os campos do formulário
                             }}
                             className={`px-2 py-1 font-bold rounded-full text-white ${
@@ -492,14 +492,14 @@ export default function GerenciarPedidos() {
                     <div className="flex flex-col w-full">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
+                          <p>{new Date(p.criadoEm).toLocaleDateString('pt-BR')}</p>
                           <strong>{p.nomeCliente}</strong>
                         </div>
                         <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                       </div>
 
                       <div className="flex flex-col gap-3 w-full text-sm mt-1 text-gray-700 list-disc list-inside">                    
-                        {p.produtos.map(item => {
+                        {p.produtos?.map(item => {
                           const totalExtrasProduto = item.extras?.reduce((sum, e) => sum + (e.valor || 0), 0) || 0;
                           const subtotalProduto = item.precoVenda * item.quantidade + totalExtrasProduto;
 

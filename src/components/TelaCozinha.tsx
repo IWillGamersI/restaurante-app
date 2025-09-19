@@ -21,10 +21,10 @@ export default function TelaCozinha() {
       
       const emPreparo = lista
       .filter(p => 
-        ['fila', 'preparando'].includes(p.status.toLowerCase()) && // só em andamento
-        p.produtos.some((item)=>item.classe !== 'acai') // remove pedidos de açaí
+        ['fila', 'preparando'].includes((p.status ?? '').toLowerCase()) && // só em andamento
+        p.produtos?.some((item)=>item.classe !== 'acai') // remove pedidos de açaí
       )
-      .sort((a, b) => a.criadoEm?.seconds - b.criadoEm?.seconds); // do mais antigo para o mais novo
+      .sort((a, b) => (a.criadoEm?.seconds ?? 0) - (b.criadoEm?.seconds ?? 0)); // do mais antigo para o mais novo
 
     setPedidos(emPreparo);
 
@@ -42,7 +42,7 @@ export default function TelaCozinha() {
     const pedido = pedidos.find(p => p.id === pedidoId);
     if (!pedido) return;
 
-    const novosProdutos = pedido.produtos.map(prod => 
+    const novosProdutos = pedido.produtos?.map(prod => 
       prod.id === produtoId
         ? { ...prod, concluido: !prod.concluido }
         : prod
@@ -73,13 +73,13 @@ export default function TelaCozinha() {
           <div className="flex justify-between items-center">
             <div >
               <div>{p.codigoPedido}</div>
-              <strong>{p.nomeCliente}</strong> — {new Date(p.data).toLocaleDateString('pt-BR')}
+              <strong>{p.nomeCliente}</strong> — {new Date(p.criadoEm).toLocaleDateString('pt-BR')}
             </div>
               <div className='bg-blue-600 py-2 px-4 rounded-full text-white font-black text-3xl'>{p.ordemDiaria}</div>
             <select
               value={p.status}
-              onChange={(e) => atualizarStatus(p.id, e.target.value)}
-              className={`px-3 py-1 border rounded text-sm font-semibold ${statusColor(p.status)}`}
+              onChange={(e) => atualizarStatus(p.id || '', e.target.value)}
+              className={`px-3 py-1 border rounded text-sm font-semibold ${statusColor(p.status || '')}`}
             >
               <option value="Fila">Fila</option>
               <option value="Preparando">Preparando</option>
@@ -88,14 +88,14 @@ export default function TelaCozinha() {
           </div>
 
           <ul className="mt-2 space-y-1">
-            {p.produtos.map(prod => (            
+            {p.produtos?.map(prod => (            
               prod.classe !== 'acai' ?(
                 <div
                   key={prod.id}
                   className={`flex flex-col  px-3 py-2 rounded cursor-pointer ${
                     prod.concluido ? 'line-through text-gray-400' : ''
                   } hover:bg-gray-100`}
-                  onClick={() => toggleProdutoConcluido(p.id, prod.id)}
+                  onClick={() => toggleProdutoConcluido(p.id || '', prod.id)}
                 >
                   <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome}</div>
   

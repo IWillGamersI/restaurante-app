@@ -11,6 +11,7 @@ import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tool
 import { somarAcumulado } from '@/utils/calculos';
 import { COLORS, FiltroPeriodo, Despesa, DespesasPaga, Pedido, imagensPorCanal, taxasPorCanal } from '@/types';
 import { useStados } from '@/hook/useStados';
+import { formatarMoeda } from '@/utils/format';
 
 
 
@@ -48,7 +49,7 @@ export default function DashBoard() {
             valor: d.valor,
             custo: d.custo || 0,
             criadoEm: d.data instanceof Timestamp ? d.data.toDate() : new Date(d.data),
-            produto: produtos,
+            produtos: produtos,
             canal: d.tipoVenda,
             tipoPagamento: d.tipoPagamento,
             tipoFatura: d.tipoFatura,
@@ -371,11 +372,6 @@ const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
   return dias;
 };
 
-
-
-
-
-  
   // Cards DashBoard
   const faturamento = pedidos.reduce((acc, p) => acc + p.valor, 0);
   const qtdPedidos = pedidos.length;
@@ -391,6 +387,13 @@ const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
   const ticketMedio = totalPedidos > 0 ? (faturamentoTotal / totalPedidos).toFixed(2) : '0.00';
   const custoTotal = faturamentoTotal * 0.3;
   const lucroLiquido = faturamentoTotal - custoTotal;
+
+    console.log("Pedidos recebidos:", pedidos);
+
+    pedidos.forEach((p, i) => {
+      console.log(`Pedido ${i}:`, p);
+      console.log("Produtos:", p.produtos);
+    });
 
    
 
@@ -464,12 +467,18 @@ const cardsPrincipais = [
   const produtosMap = pedidos.reduce((acc: Record<string, { qtd: number; valor: number; lucro: number }>, p) => {
     if (Array.isArray(p.produtos)) {
       p.produtos.forEach(item => {
-        const nome = item.nome;
-        const quantidade = item.quantidade || 1;
-        const valorTotal = item.quantidade * item.precoVenda;
-        const lucroTotal = ((item.precoVenda) - (item.precoVenda * .35 || 0)) * quantidade;
+        const nome = item.nome?.trim().toLowerCase() || 'sem nome';
+        const quantidade = item.quantidade ?? 1;
+        const precoVenda = item.precoVenda ?? 0;
+
+        const valorTotal = quantidade * precoVenda;
+
+        // custo fixo de 35% do preço de venda
+        const custo = precoVenda * 0.35;
+        const lucroTotal = (precoVenda - custo) * quantidade;
 
         if (!acc[nome]) acc[nome] = { qtd: 0, valor: 0, lucro: 0 };
+
         acc[nome].qtd += quantidade;
         acc[nome].valor += valorTotal;
         acc[nome].lucro += lucroTotal;
@@ -478,16 +487,20 @@ const cardsPrincipais = [
     return acc;
   }, {});
 
+  // Top 10 mais vendidos
   const topProdutos = Object.entries(produtosMap)
     .map(([nome, dados]) => ({ nome, ...dados }))
     .sort((a, b) => b.qtd - a.qtd)
     .slice(0, 10);
 
-
+  // Top 10 mais lucrativos
   const produtoMaisLucrativo = Object.entries(produtosMap)
     .map(([nome, dados]) => ({ nome, ...dados }))
     .sort((a, b) => b.lucro - a.lucro)
     .slice(0, 10);
+
+    console.log(topProdutos)
+    console.log(produtoMaisLucrativo)
 
   // Pedidos por canal
   const canaisMap = pedidosFiltrados.reduce((acc: Record<string, { qtd: number; valor: number }>, p) => {
@@ -916,88 +929,62 @@ const cardsPrincipais = [
           })()}
         </TabsContent>
 
+
+
        
         {/* Produtos */}
-          <TabsContent value="produtos">
-            <div className='flex flex-col gap-3'>  
-              <div className='flex flex-col gap-2 bg-blue-100 p-4 rounded-2xl'>
-                <h2 className='text-2xl text-blue-600 font-extrabold'>Produtos mais vendidos</h2>           
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {topProdutos.map((produto, i) => (                
-                      <div key={i}>
-                        <div className='flex flex-col justify-between border-1 border-blue-400 h-35 rounded p-2'>                  
-                            <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Lucro
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.lucro.toFixed(2)}</div>
+            <TabsContent value="produtos">
+              <div className="flex flex-col gap-3">  
 
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Valor total
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.valor.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Quantidade vendida
-                                </div>
-                                <div className="font-bold text-center w-1/4">{produto.qtd}</div>
-                            </div>          
+                {/* Produtos mais vendidos */}
+                <div className="flex flex-col gap-2 bg-blue-100 p-4 rounded-2xl">
+                  <h2 className="text-2xl text-blue-600 font-extrabold">Produtos mais vendidos</h2>           
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {topProdutos.map((produto, i) => (                
+                      <div key={i} className="flex flex-col justify-between border border-blue-400 h-[140px] rounded p-2">                  
+                        <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
+                        <div className="flex justify-between">
+                          <span>Lucro</span>
+                          <span className="font-bold">{formatarMoeda(produto.lucro)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Valor total</span>
+                          <span className="font-bold">{formatarMoeda(produto.valor)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Quantidade vendida</span>
+                          <span className="font-bold">{produto.qtd}</span>
                         </div>
                       </div>
-                  ))}
-                </div> 
-              </div>
-              <div className='bg-green-100 p-4 rounded-2xl'>
-                <h2 className='text-2xl'>Produtos mais Lucrativos</h2>  
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {produtoMaisLucrativo.map((produto, i) => (                
-                      <div key={i}>
-                        <div className='flex flex-col justify-between border-1 border-blue-400 h-35 rounded p-2'>                  
-                            <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Lucro
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.lucro.toFixed(2)}</div>
+                    ))}
+                  </div> 
+                </div>
 
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Valor total
-                                </div>
-                                <div className='flex justify-between w-1/3'>
-                                  <div className="font-bold">{moeda}</div>
-                                  <div className="font-bold">{produto.valor.toFixed(2)}</div>
-
-                                </div>
-                            </div>
-                            <div className='flex justify-between'>
-                                <div>
-                                  Quantidade vendida
-                                </div>
-                                <div className="font-bold text-center w-1/4">{produto.qtd}</div>
-                            </div>          
+                {/* Produtos mais lucrativos */}
+                <div className="bg-green-100 p-4 rounded-2xl">
+                  <h2 className="text-2xl font-extrabold text-green-700">Produtos mais lucrativos</h2>  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {produtoMaisLucrativo.map((produto, i) => (                
+                      <div key={i} className="flex flex-col justify-between border border-green-400 h-[140px] rounded p-2">                  
+                        <p><span className="font-bold text-green-600">{produto.nome}</span></p>
+                        <div className="flex justify-between">
+                          <span>Lucro</span>
+                          <span className="font-bold">{formatarMoeda(produto.lucro)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Valor total</span>
+                          <span className="font-bold">{formatarMoeda(produto.valor)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Quantidade vendida</span>
+                          <span className="font-bold">{produto.qtd}</span>
                         </div>
                       </div>
-                  ))}
-                </div> 
+                    ))}
+                  </div> 
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>          
 
         {/* Canais */}
         <TabsContent value="canal">
