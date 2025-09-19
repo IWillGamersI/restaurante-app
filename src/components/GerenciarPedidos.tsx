@@ -100,8 +100,8 @@ export default function GerenciarPedidos() {
   };
 
 
-  const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' || 'Preparando' || 'Pronto'));
-  const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue' || 'Cancelado'));
+  const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' ));
+  const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue'));
 
   const preencherCamposPedido = (pedidoSelecionado: Pedido) => {
     setTipoFatura(pedidoSelecionado.tipoFatura);

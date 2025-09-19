@@ -56,13 +56,33 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setQuerImprimir, setNumeroMesa, setObs
   } = stados;
 
+  // dentro de usePedido
   useEffect(() => {
-    const q = query(collection(db, "pedidos"), orderBy("data", "asc"));
+    const q = query(collection(db, "pedidos"), orderBy("criadoEm", "asc")); // ordenar por criadoEm (timestamp) é mais confiável
     const unsub = onSnapshot(q, (snap) => {
-      setPedidos(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Pedido)));
+      const lista = snap.docs.map((d) => {
+        const data = d.data() as any;
+
+        // Normaliza: criadoEmDate será um Date (prefira este para cálculos e filtros)
+        const criadoEmDate =
+          data.criadoEm?.toDate ? data.criadoEm.toDate() :
+          data.data ? new Date(data.data) : // se tiver data (ISO string)
+          undefined;
+
+        return {
+          id: d.id,
+          ...data,
+          // adiciona campos normalizados para uso no front
+          criadoEm: criadoEmDate,          // Date | undefined
+          dataISO: data.data || (criadoEmDate ? criadoEmDate.toISOString() : undefined),
+        } as Pedido & { criadoEm?: Date; dataISO?: string };
+      });
+
+      setPedidos(lista);
     });
     return () => unsub();
   }, []);
+
 
 
   const salvarPedido = async ({
@@ -396,13 +416,14 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
   
   const pedidosDoDia = pedidos.filter((p) => {
-    const pData = new Date(p.criadoEm);
-    return (
-      pData.getDate() === hoje.getDate() &&
-      pData.getMonth() === hoje.getMonth() &&
-      pData.getFullYear() === hoje.getFullYear()
-    );
-  });
+  const pData = p.criadoEm instanceof Date ? p.criadoEm : (p.data ? new Date(p.data) : null);
+  if (!pData) return false;
+  return (
+    pData.getDate() === hoje.getDate() &&
+    pData.getMonth() === hoje.getMonth() &&
+    pData.getFullYear() === hoje.getFullYear()
+  );
+});
 
   return {
     pedidos,
