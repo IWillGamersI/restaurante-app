@@ -176,7 +176,8 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
             setCodigoPedido(gerarCodigoPedido(nome));
           }
         }}
-        disabled={!!idCliente}
+        disabled={!!idCliente && !!clienteTelefone}
+
       />
 
     </div>
