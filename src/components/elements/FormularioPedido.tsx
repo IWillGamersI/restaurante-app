@@ -55,31 +55,7 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
 
   return (
     <div className="flex flex-col justify-between gap-1 flex-wrap sm:flex-row">
-      {/* Impressão */}
-      <div className="flex flex-col justify-around bg-blue-600 px-4 rounded text-white">
-        <label className="flex gap-1 cursor-pointer">
-          <input
-            type="radio"
-            name="imprimir"
-            checked={querImprimir === true}
-            onChange={() => setQuerImprimir(true)}
-            className="cursor-pointer"
-            required
-          />
-          Não Imprimir
-        </label>
-        <label className="flex gap-1 cursor-pointer">
-          <input
-            type="radio"
-            name="imprimir"
-            checked={querImprimir === false}
-            onChange={() => setQuerImprimir(false)}
-            className="cursor-pointer"
-            required
-          />
-          Imprimir
-        </label>
-      </div>
+     
 
       {/* Código Pedido */}
       <input
@@ -148,9 +124,13 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
       {/* Número da mesa (só se for mesa) */}
           {tipoVenda === 'mesa' && (
             <input
-              type="text"
+              type="tel"
+              pattern="[1-9]"
+              inputMode="numeric"
+              maxLength={1}
               className="border p-3 rounded"
               placeholder="Número da Mesa"
+              onInput={(e) => {e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "")}}
               value={numeroMesa}
               onChange={(e) => setNumeroMesa(e.target.value)}
             />
@@ -158,7 +138,11 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
 
       {/* Telefone Cliente */}
       <input
-        type="text"
+        type="tel"
+        pattern="[0-9]"
+        inputMode="numeric"
+        maxLength={9}
+        onInput={(e) => {e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "")}}
         className="border p-3 rounded"
         placeholder="Telefone Cliente..."
         value={clienteTelefone}
