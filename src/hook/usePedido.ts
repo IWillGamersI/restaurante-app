@@ -57,7 +57,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   } = stados;
 
   useEffect(() => {
-    const q = query(collection(db, "pedidos"), orderBy("criadoEm", "asc"));
+    const q = query(collection(db, "pedidos"), orderBy("data", "asc"));
     const unsub = onSnapshot(q, (snap) => {
       setPedidos(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Pedido)));
     });
