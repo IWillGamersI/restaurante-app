@@ -9,6 +9,15 @@ export const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#
 
 export type FiltroPeriodo = 'hoje' | 'semana' | 'semana-passada' | 'quinzenal' | 'mes' | 'ano';
 
+export const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+export const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+export const anos = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
+
+export const moeda = '€'
+
 export interface ClasseButtonsProps {
   classes: string[];
   classeSelecionada: string;
@@ -140,4 +149,48 @@ export interface DespesasPaga {
   valorPago: number
   dataPagamento: Date | Timestamp
   formaPagamento: string
+}
+
+
+//Relatorios
+export type DiaFaturamento = {
+  dia: number | null;
+  diaSemana: string;
+  valorAlmoco: number;
+  valorJantar: number;
+  valor: number;
+};
+
+export interface FaturamentoDiario {
+  total: number;
+  produtos: { [produtoId: string]: number };
+  categorias: {menuEstudante: number, acai: number, outros: number}
+}
+
+type CategoriaResumo = {
+  valor: number
+  quantidade: number
+}
+
+type CategoriaSemanal = {
+  menuEstudante: CategoriaResumo
+  acai: CategoriaResumo
+  outros: CategoriaResumo
+}
+
+export interface FaturamentoSemanal {
+  almoco: { [semana: number]: number };
+  jantar: { [semana: number]: number };
+  semanas: number[];
+  categorias: { [semana:number]:CategoriaSemanal  };
+}
+
+
+
+export interface ResumoMensal {
+  faturamentoTotal: number;
+  totalProdutos: { [produtoId: string]: number };
+  almocoTotal: number;
+  jantarTotal: number;
+  produtos: {}
 }

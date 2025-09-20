@@ -12,6 +12,8 @@ import { somarAcumulado } from '@/utils/calculos';
 import { COLORS, FiltroPeriodo, Despesa, DespesasPaga, Pedido, imagensPorCanal, taxasPorCanal } from '@/types';
 import { useStados } from '@/hook/useStados';
 import { formatarMoeda } from '@/utils/format';
+import { Faturamento } from './elements/FaturamentoDiario';
+import { MetricasSemana } from './elements/MetricasSemana';
 
 
 
@@ -712,115 +714,9 @@ const cardsPrincipais = [
         {/* Card Faturamento Diário */}
         <TabsContent value='faturamento'>
           
-          <Card className=''>
-            <CardHeader>
-              <CardTitle>📅 Faturamento Diário</CardTitle>
-              <div className="flex gap-2">
-                <div className='w-full flex justify-between gap-3'>
-                  {/* Relatório do mês */}
-                  <div className="flex-1 flex flex-col border-2 border-gray-400 p-4 rounded-lg bg-gray-50">
-                    <div className="text-lg font-bold text-gray-800 mb-2">📊 Relatório do Mês</div>
-                    <div className="flex justify-between">
-                      <span>Faturamento Almoço:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Almoço')?.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Faturamento Jantar:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.find(r => r.refeicao === 'Jantar')?.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold mt-2">
-                      <span>Total do Mês:</span>
-                      <span>{moeda} {faturamentoPorRefeicaoMesSelecionado.reduce((acc, r) => acc + r.total, 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className='w-80 flex flex-col gap-3 justify-center items-center'>
-                    <h2>Escolha Mês e Ano</h2>
-                    <div className='w-80 flex gap-3 items-center text-center '>
-                      <Select onValueChange={(v) => setMesSelecionado(Number(v))} defaultValue={mesSelecionado.toString()}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o mês" />
-                        </SelectTrigger>
-                        <SelectContent className='bg-white text-center'>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>{i + 1}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+          
 
-                      <Select onValueChange={(v) => setAnoSelecionado(Number(v))} defaultValue={anoSelecionado.toString()}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o ano" />
-                        </SelectTrigger>
-                        <SelectContent className='bg-white text-center'>
-                          {Array.from({ length:5 }, (_, i) => {
-                            const ano = new Date().getFullYear() - i;
-                            return <SelectItem key={ano} value={ano.toString()}>{ano}</SelectItem>;
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                  </div>
-                </div>
-
-                </div>
-              </CardHeader>
-              <CardContent className="w-full grid grid-cols-9 gap-2">
-                {gerarFaturamentoDiario(mesSelecionado, anoSelecionado).map((f, idx) => {
-                  const isSemana = f.diaSemana === 'Faturamento Semanal';
-
-                  const valoresSemanaAlmoco = gerarFaturamentoDiario(mesSelecionado,anoSelecionado)
-                    .filter(d => d.diaSemana !== 'Faturamento Semanal')
-                    .map(d=>d.valorAlmoco || 0)
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex flex-col justify-between text-xs border-1 border-gray-300 p-2 ${isSemana ? 'col-span-2' : ''}`}
-                    >{!f.dia ? 
-                      <div>                        
-                        <div className='flex justify-between font-bold text-blue-600'>
-                        <div>{f.diaSemana}</div>
-                        <div>{f.dia ?? ''}</div>                       
-                      </div>
-                    </div> :
-                    <div>
-                        <div className='flex justify-between font-bold text-blue-600'>
-                          <div>{f.diaSemana}</div>
-                          <div>{f.dia ?? ''}</div>
-                        </div>
-
-                        <div className={`${isSemana ? 'text-center text-purple-600 font-semibold' : 'text-center text-green-600 font-semibold'}`}>
-                          <div className='flex justify-between'>
-                            Almoço
-                            <div>
-                              {moeda} {isSemana ? somarAcumulado(valoresSemanaAlmoco).toFixed(2): f.valorAlmoco.toFixed(2) } 
-
-                            </div>
-                          </div>
-                          <div className='flex justify-between border-b-1'>
-                            Jantar 
-                            <div>
-                              {moeda} {f.valorJantar.toFixed(2)}
-
-                            </div>
-                          </div>
-                          <div className='flex justify-between text-blue-600 font-bold'>
-                            Total 
-                            <div>
-                              {moeda} {f.valor.toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                    </div>
-                      }
-                    </div>
-                  );
-                })}
-                
-              </CardContent>
-
-            </Card>
+          <Faturamento/>
         </TabsContent>
 
         {/* Semana */}
@@ -845,90 +741,43 @@ const cardsPrincipais = [
             </Select>
           </div>
 
-          {/* Filtrando pedidos com base no filtro */}
-          {(() => {
-            const pedidosFiltrados = filtrarPedidos(filtroPeriodo, pedidos); // função que já ajustamos
+        
+          <MetricasSemana 
+            pedidos={pedidos} 
+            moeda={moeda} 
+            filtrarPedidos={(filtro, listaPedidos) => {
+              const hoje = new Date();
+              switch (filtro) {
+                case "hoje":
+                  return listaPedidos.filter(p => new Date(p.criadoEm).toDateString() === hoje.toDateString());
+                case "semana":
+                  const inicioSemana = new Date();
+                  inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+                  return listaPedidos.filter(p => new Date(p.criadoEm) >= inicioSemana);
+                case "semana-passada":
+                  const inicioSemanaPassada = new Date();
+                  inicioSemanaPassada.setDate(hoje.getDate() - hoje.getDay() - 7);
+                  const fimSemanaPassada = new Date();
+                  fimSemanaPassada.setDate(hoje.getDate() - hoje.getDay() - 1);
+                  return listaPedidos.filter(p => {
+                    const data = new Date(p.criadoEm);
+                    return data >= inicioSemanaPassada && data <= fimSemanaPassada;
+                  });
+                case "quinzenal":
+                  const quinzena = new Date();
+                  quinzena.setDate(hoje.getDate() - 14);
+                  return listaPedidos.filter(p => new Date(p.criadoEm) >= quinzena);
+                case "mes":
+                  return listaPedidos.filter(p => new Date(p.criadoEm).getMonth() === hoje.getMonth());
+                case "ano":
+                  return listaPedidos.filter(p => new Date(p.criadoEm).getFullYear() === hoje.getFullYear());
+                default:
+                  return listaPedidos;
+              }
+            }} 
+          />
 
-            // Cards da semana
-            const cardsSemana = [
-              {
-                title: "Total de Pedidos",
-                value: pedidosFiltrados.length,
-                icon: <ShoppingCartIcon className="text-blue-500" />,
-              },
-              {
-                title: "Faturamento",
-                value: pedidosFiltrados.reduce((acc, p) => acc + p.valor, 0),
-                icon: <DollarSignIcon className="text-green-500" />,
-              },
-              // Adicione outros cards se quiser
-            ];
-
-            // Dados do gráfico (por dia da semana ou período)
-            const pedidosPorDia = Array.from({ length: 7 }, (_, i) => {
-              const dia = new Date();
-              dia.setDate(dia.getDate() - (6 - i));
-
-              const totalDia = pedidosFiltrados
-                .filter((p) => new Date(p.criadoEm).toDateString() === dia.toDateString())
-                .reduce((acc, p) => acc + p.valor, 0);
-
-              const diaString = dia.toLocaleDateString("pt-BR", { weekday: "short" });
-              return { dia: diaString, faturamento: totalDia };
-            });
-
-            return (
-              <>
-                {/* Cards principais */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  {cardsSemana.map((card, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
-                    >
-                      <div
-                        className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}
-                      >
-                        {card.icon}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-gray-500 text-sm font-medium">{card.title}</span>
-                        <span className="text-2xl font-extrabold text-gray-900 mt-1">{card.value}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Gráfico */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Faturamento por dia da semana</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={pedidosPorDia}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="dia" />
-                        <YAxis />
-                        <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Faturamento']} />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="faturamento"
-                          name={`Faturamento (${moeda})`}
-                          stroke="#3b82f6"
-                          strokeWidth={3}
-                          dot={{ r: 5 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </>
-            );
-          })()}
         </TabsContent>
-
 
 
        

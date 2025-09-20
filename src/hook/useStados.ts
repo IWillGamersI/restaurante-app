@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Produto, Pedido, FiltroPeriodo,Despesa,DespesasPaga } from "@/types";
+import { Produto, Pedido, FiltroPeriodo,Despesa,DespesasPaga, FaturamentoSemanal, ResumoMensal, FaturamentoDiario } from "@/types";
 import { useProdutos } from '@/hook/useProdutos';
 
 
@@ -30,6 +30,16 @@ export function useStados() {
   const [despesasPagas,setDespesasPagas] = useState<DespesasPaga[]>([])
   const [mesSelecionado, setMesSelecionado] = useState<number>(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
+  const [resumoSemanal, setResumoSemanal] = useState<FaturamentoSemanal>({almoco:{},jantar:{},semanas:[0,0,0,0,0],categorias:{}})
+
+  const [faturamentoPorDia, setFaturamentoPorDia] = useState<{ [key: number]: {diaSemana:string; almoco: FaturamentoDiario; jantar: FaturamentoDiario } }>({});
+  const [resumoMensal, setResumoMensal] = useState<ResumoMensal>({
+    faturamentoTotal: 0,
+    totalProdutos: {},
+    almocoTotal: 0,
+    jantarTotal: 0,
+    produtos:{}
+  });
 
   const { setClasseSelecionada, classeSelecionada } = useProdutos();
 
@@ -60,6 +70,9 @@ export function useStados() {
     despesas, setDespesas,
     despesasPagas,setDespesasPagas,
     mesSelecionado, setMesSelecionado,
-    anoSelecionado, setAnoSelecionado
+    anoSelecionado, setAnoSelecionado,
+    resumoSemanal, setResumoSemanal,
+    resumoMensal, setResumoMensal,
+    faturamentoPorDia, setFaturamentoPorDia
   };
 }
