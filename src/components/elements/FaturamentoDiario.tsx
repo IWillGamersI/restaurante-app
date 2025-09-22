@@ -8,7 +8,7 @@ const produtosMonitorados = [
   { id: "T1OlBQVKqGHsOj23LMHR", nome: "Açai 500ml", valor:7.5 },
   { id: "lKIAjTOykwD8KBthcJGY", nome: "ME - Pizza Bacon", valor:5 },
   { id: "k85d75DjFHtOXjCdBq2G", nome: "ME - Pizza Chouriço", valor:5 },
-  { id: "c8gpimbu2HDkqAXdVLHz5", nome: "ME - Pizza Fiambre", valor:5 },
+  { id: "c8gpimbu2HDkqAXdVLHz", nome: "ME - Pizza Fiambre", valor:5 },
   { id: "7UaaATg9xN1l4jbR8jja", nome: "ME - Pizza Mozzarella", valor: 5 },
   { id: "iILSyuFJVroECe49aVK5", nome: "ME - Esparguete", valor:5 },
   { id: "gmahALnNJZVjJnWGdKhB", nome: "ME - Penne", valor:5 },
