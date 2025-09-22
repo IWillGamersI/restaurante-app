@@ -316,7 +316,7 @@ useEffect(() => {
                       </div>
 
                       <div className="rounded-md shadow-lg bg-blue-500 text-white text-center font-bold">
-                        Menu Estudante
+                        Menu E
                         <div>{moeda} {horarios.jantar.categorias.menuEstudante.toFixed(2)}</div>                        
                       </div>
 
