@@ -53,8 +53,8 @@ export default function SalaoCliente() {
   }, [produtosCarregados, produtos]);
 
   const pedidosPorStatus = (status: string) =>
-    pedidos.filter(p => p.status.toLowerCase() === status.toLowerCase());
-
+    pedidos.filter(p => (p.status ?? 'Fila').toLowerCase() === status.toLowerCase())
+  
   return (
     <div className="flex flex-col md:flex-row min-h-screen text-gray-800">
       <div className="w-full flex">
