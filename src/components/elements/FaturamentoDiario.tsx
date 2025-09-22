@@ -142,9 +142,9 @@ useEffect(() => {
 
     // soma no resumo mensal
     if (horario === "almoco") resumo.almocoTotal += valorPedido;
-    else resumo.jantarTotal += valorPedido;
-    resumo.faturamentoTotal += valorPedido;
-  });
+      else resumo.jantarTotal += valorPedido;
+      resumo.faturamentoTotal += valorPedido;
+    });
 
  
   // salvar nos states (ou no stados)
@@ -195,7 +195,7 @@ useEffect(() => {
           {stados.resumoSemanal.semanas.map((valor, i) => (
             <div key={i} className="rounded-md shadow-lg bg-blue-500 text-white text-center font-bold text-lg p-3">
               <div className="text-xl mb-2">Semana {i + 1}</div>
-              <div className="font-bold">Total: {stados.moeda} {valor.toFixed(2)}</div>
+              <div className="font-bold">Total: {stados.moeda} {(stados.resumoSemanal.almoco[i+1] + stados.resumoSemanal.jantar[i+1] || 0).toFixed(2)}</div>
 
               <div className="flex justify-between mt-2 text-sm space-y-1">
                 <div className="text-green-200">
@@ -216,7 +216,7 @@ useEffect(() => {
                 <div className="bg-white/20 rounded p-1">
                   
                   <div>Menu E</div>
-                  <div>{stados.moeda} {(stados.resumoSemanal.categorias[i+1]?.menuEstudante.valor || 0).toFixed(2)}</div>
+                  <div>{stados.moeda} {(stados.resumoSemanal.categorias[i+1]?.menuEstudante.valor || 0).toFixed(2)}</div>                
                   <div>Qtd: {(stados.resumoSemanal.categorias[i+1]?.menuEstudante.quantidade || 0)}</div>
                    
                 </div>
@@ -238,7 +238,14 @@ useEffect(() => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {Object.entries(stados.faturamentoPorDia).sort(([a],[b]) => Number(a) - Number(b)).map(([dia, horarios]) => (
           <div key={dia} className="bg-gray-50 rounded-xl shadow-lg p-4 space-y-4">
-            <h3 className="text-xl font-bold mb-2">Dia {dia} - {horarios.diaSemana}</h3>
+            <div className="flex justify-between">
+              <h3 className="text-xl font-bold mb-2">Dia {dia} - {horarios.diaSemana}</h3>
+              <h3 className="text-xl font-bold mb-2 ">
+                Faturamento: 
+                <span className="text-blue-600"> {moeda} {(horarios.almoco.total + horarios.jantar.total).toFixed(2)}</span>
+              </h3>
+
+            </div>
 
             {/* Sub-card Almoço */}
             <div className="bg-green-50 p-4 rounded-lg shadow space-y-2">
@@ -256,9 +263,10 @@ useEffect(() => {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       
-                      <div className="rounded-md shadow-lg bg-blue-500 text-white text-center font-bold">
+                      <div className="rounded-md shadow-lg bg-blue-500 shadow-blue-600 text-white text-center font-bold">
                         Açai
                         <div>{moeda} {horarios.almoco.categorias.acai.toFixed(2)}</div>
+                        
                       </div>
 
                       <div className="rounded-md shadow-lg bg-blue-500 text-white text-center font-bold">
@@ -279,8 +287,9 @@ useEffect(() => {
                       <span>{p.nome}</span>
                       <span>{moeda} {(p.valor * horarios.almoco.produtos[p.id]).toFixed(2)}</span>
                     </div>
-                    
+                                        
                   ))}
+
                 </>
               ) : <p className="text-gray-400 italic">Não teve faturamento</p>}
             </div>
