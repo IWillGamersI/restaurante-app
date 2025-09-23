@@ -84,7 +84,7 @@ export default function TelaCozinha() {
               <option value="Fila">Fila</option>
               <option value="Preparando">Preparando</option>
               <option value="Pronto">Pronto</option>
-              <option value="Pronto">Entregue</option>
+              <option value="Entregue">Entregue</option>
             </select>
           </div>
 
