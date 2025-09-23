@@ -36,7 +36,7 @@ export function useProdutos(){
     
     // Filtra produtos pela classe escolhida
     const produtosFiltrados = classeSelecionada
-    ? produtos.filter(p => p.classe.toLowerCase() === classeSelecionada.toLowerCase() || classeSelecionada === 'todos')
+    ? produtos.filter(p => p.classe!.toLowerCase() === classeSelecionada.toLowerCase() || classeSelecionada === 'todos')
     : produtos;
   
     

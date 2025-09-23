@@ -46,7 +46,7 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
     }
 
     if(produto.classe === 'acai') {
-      if(tipoExtra === 'acai') return 3
+      if(tipoExtra === 'acai') return 4
     }
 
     if(produto.classe === 'prato'){
