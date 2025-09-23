@@ -13,6 +13,7 @@ const produtosMonitorados = [
   { id: "iILSyuFJVroECe49aVK5", nome: "ME - Esparguete", valor:5 },
   { id: "gmahALnNJZVjJnWGdKhB", nome: "ME - Penne", valor:5 },
   { id: "GonReI3Ot7Vyt29a3vWY", nome: "ME - Tagliatelle", valor:5 },
+  { id: "x3iIQ4M0Lk595gm5GqnI", nome: "ME - Hambúrger", valor:5 },
 ];
 
 export function Faturamento() {
@@ -27,7 +28,7 @@ export function Faturamento() {
     if(["lKIAjTOykwD8KBthcJGY","k85d75DjFHtOXjCdBq2G",
         "c8gpimbu2HDkqAXdVLHz5","7UaaATg9xN1l4jbR8jja",
         "iILSyuFJVroECe49aVK5","gmahALnNJZVjJnWGdKhB",
-        "GonReI3Ot7Vyt29a3vWY"].includes(produtoId)
+        "GonReI3Ot7Vyt29a3vWY", 'x3iIQ4M0Lk595gm5GqnI'].includes(produtoId)
       )
     {
         return 'menuEstudante'
