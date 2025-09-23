@@ -21,7 +21,7 @@ export default function TelaCozinha() {
       
       const emPreparo = lista
       .filter(p => 
-        ['fila', 'preparando'].includes((p.status ?? '').toLowerCase()) && // só em andamento
+        ['fila', 'preparando', 'pronto'].includes((p.status ?? '').toLowerCase()) && // só em andamento
         p.produtos?.some((item)=>item.classe !== 'acai') // remove pedidos de açaí
       )
       .sort((a, b) => (a.criadoEm?.seconds ?? 0) - (b.criadoEm?.seconds ?? 0)); // do mais antigo para o mais novo
