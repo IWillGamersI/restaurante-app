@@ -73,7 +73,7 @@ export default function TelaCozinha() {
           <div className="flex justify-between items-center">
             <div >
               <div>{p.codigoPedido}</div>
-              <strong>{p.nomeCliente}</strong> — {new Date(p.data!).toLocaleDateString('pt-PT')}
+              <strong>{p.nomeCliente}</strong> — {new Date(p.data || p.criadoEm).toLocaleDateString('pt-PT')}
             </div>
               <div className='bg-blue-600 py-2 px-4 rounded-full text-white font-black text-3xl'>{p.ordemDiaria}</div>
             <select
