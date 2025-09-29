@@ -98,7 +98,7 @@ export default function TelaCozinha() {
                   } hover:bg-gray-100`}
                   onClick={() => toggleProdutoConcluido(p.id || '', prod.id)}
                 >
-                  <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome}</div>
+                  <div className='font-semibold text-blue-600'> {prod.quantidade} - {prod.nome} - {prod.categoria}</div>
   
                   <div>{prod.extras.map((item)=>(
                       <div key={item.id} className='ml-3'> - {item?.nome}</div>

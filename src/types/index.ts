@@ -206,7 +206,7 @@ export interface Compra {
 }
 
 export interface Cartao {
-  tipo: 'pizza-tradicional' | 'pizza-individual' | 'estudante' | 'acai' |'massa'|'prato';
+  tipo: 'pizza-tradicional' | 'pizza-individual' | 'estudante' | 'acai' | 'massa' | 'prato';
   compras: Compra[];
   ultimaZeragem: string; // ISO string
 }
