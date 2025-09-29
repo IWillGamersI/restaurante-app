@@ -7,16 +7,29 @@ export interface Compra {
   data: string;
   produto: string;
   quantidade: number;
+  categoria?: string
 }
 
 export interface CartaoFidelidade {
-  tipo: string;
-  quantidade: number; // compras não completaram a meta
+  tipo: string; // Nome do cartão (ex.: Pizza, Menu Estudante, Açai)
+  quantidade: number; // progresso atual
   premiosDisponiveis: number; // saldo disponível
-  premiosGanho: number;       // total conquistado
-  premiosResgatados: number;  // total resgatado
+  premiosGanho: number; // total conquistado
+  premiosResgatados: number; // total resgatado
   compras: Compra[];
 }
+
+// 🔹 Regras de fidelidade (categoria OU classe)
+const regrasFidelidade: {
+  [key: string]: { tipo: "classe" | "categoria"; limite: number; categorias?: string[] };
+} = {
+  Pizza: { tipo: "categoria", limite: 10, categorias: ["pizza-individual", "pizza-tradicional"] },
+  estudante: { tipo: "classe", limite: 15 },
+  acai: { tipo: "classe", limite: 15 },
+  massa: { tipo: "classe", limite: 10 },
+  prato: { tipo: "classe", limite: 10 },
+  pizza: { tipo: "classe", limite: 10 },
+};
 
 export function useCartaoFidelidade(clienteId?: string, codigoCliente?: string) {
   const [cartoes, setCartoes] = useState<CartaoFidelidade[]>([]);
@@ -33,50 +46,54 @@ export function useCartaoFidelidade(clienteId?: string, codigoCliente?: string) 
         return;
       }
 
-      const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
-      const hoje = new Date();
+      const pedidos = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Pedido[];
       const cartoesTemp: Record<string, CartaoFidelidade> = {};
 
       pedidos.forEach((pedido) => {
-        // Ignorar pedidos cancelados
-        if (pedido.status !== "Entregue") return;
+        if (pedido.status === "Cancelado") return; // Ignora pedidos cancelados
 
         pedido.produtos?.forEach((p) => {
-          const tipo = p.classe || p.nome;
-          if (!cartoesTemp[tipo]) {
-            cartoesTemp[tipo] = {
-              tipo,
-              quantidade: 0,
-              premiosDisponiveis: 0,
-              premiosGanho: 0,
-              premiosResgatados: 0,
-              compras: [],
-            };
-          }
+          // Verifica em qual cartão esse produto entra
+          Object.entries(regrasFidelidade).forEach(([nomeCartao, regra]) => {
+            let pertence = false;
 
-          // Validade por tipo
-          const validadeMeses = ["estudante", "acai"].includes(tipo) ? 1 : 3;
-          const dataCompra = new Date(pedido.data!);
-          const limiteData = new Date(dataCompra);
-          limiteData.setMonth(limiteData.getMonth() + validadeMeses);
+            if (regra.tipo === "classe" && p.classe === nomeCartao) {
+              pertence = true;
+            }
 
-          if (limiteData >= hoje) {
-            // Adicionar compra válida
-            cartoesTemp[tipo].quantidade += p.quantidade;
-            cartoesTemp[tipo].compras.push({
-              data: pedido.data!,
-              produto: p.nome,
-              quantidade: p.quantidade,
-            });
-          }
+            if (regra.tipo === "categoria" && regra.categorias?.includes(p.classe || "")) {
+              pertence = true;
+            }
+
+            if (pertence) {
+              if (!cartoesTemp[nomeCartao]) {
+                cartoesTemp[nomeCartao] = {
+                  tipo: nomeCartao,
+                  quantidade: 0,
+                  premiosDisponiveis: 0,
+                  premiosGanho: 0,
+                  premiosResgatados: 0,
+                  compras: [],
+                };
+              }
+
+              cartoesTemp[nomeCartao].quantidade += p.quantidade;
+              cartoesTemp[nomeCartao].compras.push({
+                data: pedido.data!,
+                produto: p.nome,
+                quantidade: p.quantidade,
+                categoria: p.categoria,
+              });
+            }
+          });
         });
       });
 
-      // 🔹 Calcular prêmios por tipo
-      const cartoesAtualizados = Object.values(cartoesTemp).map(c => {
-        const limite = ["estudante", "acai"].includes(c.tipo) ? 15 : 10;
+      // 🔹 Calcular prêmios com base no limite de cada regra
+      const cartoesAtualizados = Object.entries(cartoesTemp).map(([nome, c]) => {
+        const limite = regrasFidelidade[nome].limite;
 
-        const ganhos = Math.floor(c.quantidade / limite); // total de prêmios conquistados
+        const ganhos = Math.floor(c.quantidade / limite);
         const restante = c.quantidade % limite;
 
         return {
@@ -94,8 +111,11 @@ export function useCartaoFidelidade(clienteId?: string, codigoCliente?: string) 
       // 🔹 Atualizar documento do cliente
       const clienteRef = doc(db, "clientes", clienteId);
       const clienteSnap = await getDoc(clienteRef);
+
       if (clienteSnap.exists()) {
-        await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
+        await updateDoc(clienteRef, {
+          cartaoFidelidade: cartoesAtualizados,
+        });
       }
     });
 
