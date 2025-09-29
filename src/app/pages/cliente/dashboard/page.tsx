@@ -9,6 +9,7 @@ import { Pedido } from "@/types";
 import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
 import { CartaoFidelidade } from "@/components/CartaoFidelidade";
 import { AbasCompras } from "@/components/AbasCompras";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 interface Cliente {
   id: string;
@@ -156,6 +157,8 @@ export default function Dashboard() {
           <span className="text-xs">Perfil</span>
         </button>
       </div>
+
+      <PWAInstallPrompt/>
     </div>
   );
 }

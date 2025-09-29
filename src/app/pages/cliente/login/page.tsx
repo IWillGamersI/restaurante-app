@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore
 import { FiPhone, FiLock, FiKey, FiCalendar } from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 export default function LoginCliente() {
   const router = useRouter();
@@ -314,6 +315,7 @@ export default function LoginCliente() {
           {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
         </motion.div>
       </AnimatePresence>
+      <PWAInstallPrompt/>
     </div>
   );
 }
