@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 // Fontes Google
 const geistSans = Geist({
@@ -36,6 +38,8 @@ export default function RootLayout({
       >
         {children}
         <SpeedInsights />
+        <ServiceWorkerRegister/>
+        <PWAInstallPrompt/>
       </body>
     </html>
   );
