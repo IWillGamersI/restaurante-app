@@ -1,4 +1,3 @@
-'use client';
 
 import { useEffect, useState } from "react";
 import { CartaoFidelidade as CartaoFidelidadeType } from "@/hook/useCartaoFidelidade";
