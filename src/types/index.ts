@@ -50,6 +50,9 @@ export interface Cliente {
   nome: string;
   telefone: string;
   codigoCliente: string;
+  dataNascimento?: string
+  cartaoFidelidade?: Cartao[]
+  senha?: string
 }
 
 //area produto
@@ -193,4 +196,17 @@ export interface ResumoMensal {
   almocoTotal: number;
   jantarTotal: number;
   produtos: {}
+}
+
+
+export interface Compra {
+  produtoId: string;
+  quantidade: number;
+  data: string; // ISO string
+}
+
+export interface Cartao {
+  tipo: 'Pizza Tradicional' | 'Pizza Individual' | 'Menu Estudante' | 'Açai';
+  compras: Compra[];
+  ultimaZeragem: string; // ISO string
 }
