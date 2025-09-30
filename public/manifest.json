@@ -1,7 +1,7 @@
 {
   "name": "Top Pizzas",
   "short_name": "Top Pizzas",
-  "start_url": "/",
+  "start_url": "/pages/cliente/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",  
