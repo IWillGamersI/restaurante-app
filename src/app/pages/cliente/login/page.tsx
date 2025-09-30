@@ -52,10 +52,10 @@ export default function LoginCliente() {
         setCliente({ ref: snap.docs[0].ref, ...data });
         setCodigoPais(
           data.codigoPais
-            ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === data.codigoPais) || 'pt'
+            ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === data.codigoPais) || 'pt'
             : 'pt'
         );
-        setNovoCadastro(!data.senha); // se não tem senha, precisa criar
+        setNovoCadastro(!data.senha); // precisa criar senha se não tiver
         setErro('');
       }
     } catch (err) {
@@ -77,7 +77,7 @@ export default function LoginCliente() {
       let codigoCliente = '';
 
       if (!cliente) {
-        // novo cliente
+        // Novo cliente
         codigoCliente = gerarCodigoCliente(nome, telefone);
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
@@ -92,7 +92,7 @@ export default function LoginCliente() {
       } else {
         clienteRef = cliente.ref;
 
-        // Se estiver recuperando senha, checa data de nascimento
+        // Recuperação de senha exige data de nascimento correta
         if (recuperandoSenha && cliente.dataNascimento !== dataNascimento) {
           setErro('Data de nascimento não confere');
           setLoading(false);
@@ -118,6 +118,7 @@ export default function LoginCliente() {
   // Login
   const logarCliente = async () => {
     if (!senha) return setErro('Digite a senha');
+
     setLoading(true);
     try {
       if (!cliente) {
@@ -197,9 +198,7 @@ export default function LoginCliente() {
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -211,7 +210,7 @@ export default function LoginCliente() {
           {(novoCadastro || cliente || recuperandoSenha) && (
             <div className="space-y-4">
               {/* Nome apenas para novo cadastro */}
-              {novoCadastro && !cliente?.senha && (
+              {novoCadastro && (
                 <div className="relative">
                   <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
                   <input
@@ -236,7 +235,7 @@ export default function LoginCliente() {
                 />
               </div>
 
-              {/* Data de nascimento apenas se criar ou recuperar senha */}
+              {/* Data de nascimento apenas para criar ou recuperar senha */}
               {(!cliente?.senha || recuperandoSenha) && (
                 <div className="relative">
                   <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -250,20 +249,21 @@ export default function LoginCliente() {
                 </div>
               )}
 
+              {/* Botão criar/atualizar senha ou login */}
               <button
-                onClick={
-                  cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha
-                }
+                onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                {cliente?.senha && !recuperandoSenha ? 'Entrar' : recuperandoSenha ? 'Atualizar Senha' : 'Criar Senha'}
+                {cliente?.senha && !recuperandoSenha
+                  ? 'Entrar'
+                  : recuperandoSenha
+                  ? 'Atualizar Senha'
+                  : 'Criar Senha'}
               </button>
 
-              {/* Botão recuperar senha */}
+              {/* Botão recuperar senha só para clientes existentes com senha */}
               {cliente?.senha && !recuperandoSenha && (
                 <button
                   onClick={iniciarRecuperacao}
