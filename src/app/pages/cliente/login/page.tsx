@@ -211,9 +211,9 @@ export default function LoginCliente() {
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={telefone} // apenas o número local (sem +351)
+                  value={telefone}
                   onChange={(value: string, data: any) => {
-                    // value deve vir sem formatação ou com a parte local; mantemos só números
+                    // mantemos só os números digitados (sem prefixo)
                     const numbersOnly = value.replace(/\D/g, '');
                     setTelefone(numbersOnly);
                     if (data && data.countryCode) setCodigoPais(data.countryCode);
@@ -221,7 +221,10 @@ export default function LoginCliente() {
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
-                  disableCountryCode={true} // não deixa o usuário digitar o código, apenas seleciona a bandeira
+                  disableCountryCode={true}       // impede edição do código do país
+                  countryCodeEditable={false}     // impede alterar bandeira ao digitar
+                  enableAreaCodes={false}         // evita confusão de DDDs
+                  disableDropdown={false}         // dropdown continua disponível
                   placeholder="Telefone"
                 />
               </div>
