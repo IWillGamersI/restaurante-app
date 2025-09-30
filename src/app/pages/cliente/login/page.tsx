@@ -12,8 +12,9 @@ import bcrypt from 'bcryptjs';
 
 export default function LoginCliente() {
   const router = useRouter();
+  const [codigoPais, setCodigoPais] = useState('+55'); // 🇧🇷 padrão
   const [telefone, setTelefone] = useState('');
-  const [nome, setNome] = useState(''); // 🔹 Novo campo para cadastro
+  const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -25,11 +26,13 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const telefoneCompleto = `${codigoPais}${telefone}`;
+
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -55,14 +58,14 @@ export default function LoginCliente() {
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
       const snap = await getDocs(q);
 
       let clienteRef;
       if (snap.empty) {
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
-          telefone,
+          telefone: telefoneCompleto,
           nome,
           criadoEm: new Date(),
           senha: '',
@@ -80,7 +83,7 @@ export default function LoginCliente() {
       await fetch('/api/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone, pin: pinGerado }),
+        body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
       });
 
       setPinEnviado(true);
@@ -97,7 +100,7 @@ export default function LoginCliente() {
     if (!pin) return setErro('Digite o PIN recebido');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -151,7 +154,7 @@ export default function LoginCliente() {
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -179,7 +182,7 @@ export default function LoginCliente() {
     if (!senha) return setErro('Digite a senha');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -233,18 +236,31 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input telefone */}
+          {/* Input telefone com seleção de país */}
           {clienteTemSenha === null && (
             <div className="space-y-4">
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="tel"
-                  placeholder="Telefone"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
+              <div className="flex space-x-2">
+                <select
+                  value={codigoPais}
+                  onChange={(e) => setCodigoPais(e.target.value)}
+                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="+55">🇧🇷 Brasil (+55)</option>
+                  <option value="+1">🇺🇸 EUA (+1)</option>
+                  <option value="+44">🇬🇧 UK (+44)</option>
+                  <option value="+351">🇵🇹 Portugal (+351)</option>
+                </select>
+
+                <div className="relative flex-1">
+                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <input
+                    type="tel"
+                    placeholder="Telefone"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    className="w-full pl-10 pr-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
               </div>
               <button
                 onClick={verificarTelefone}
