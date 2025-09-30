@@ -69,25 +69,36 @@ export default function LoginCliente() {
 
   // Criar ou atualizar senha
   const criarOuAtualizarSenha = async () => {
-    if (!senha) return setErro('Digite a senha');
-    if (!dataNascimento) return setErro('Digite sua data de nascimento');
+    if (!senha) return setErro("Digite a senha");
+    if (!dataNascimento) return setErro("Digite sua data de nascimento");
 
     setLoading(true);
     try {
       let clienteRef;
-      let codigoCliente = '';
+      let codigoCliente = "";
 
       if (!cliente) {
         // Novo cliente
         codigoCliente = gerarCodigoCliente(nome, telefone);
-        clienteRef = doc(collection(db, 'clientes'));
+        clienteRef = doc(collection(db, "clientes"));
         await setDoc(clienteRef, {
           telefone,
-          codigoPais: countryDialCodes[codigoPais] || '351',
+          codigoPais: countryDialCodes[codigoPais] || "351",
           nome,
           criadoEm: new Date(),
           codigoCliente,
-          senha: '',
+          senha: "",
+          dataNascimento,
+        });
+
+        // Atualiza estado para cliente criado
+        setCliente({
+          ref: clienteRef,
+          telefone,
+          codigoPais: countryDialCodes[codigoPais] || "351",
+          nome,
+          codigoCliente,
+          senha: "",
           dataNascimento,
         });
       } else {
@@ -95,26 +106,31 @@ export default function LoginCliente() {
 
         // Recuperação de senha exige data de nascimento correta
         if (recuperandoSenha && cliente.dataNascimento !== dataNascimento) {
-          setErro('Data de nascimento não confere');
+          setErro("Data de nascimento não confere");
           setLoading(false);
           return;
         }
 
-        codigoCliente = cliente.codigoCliente || '';
+        codigoCliente = cliente.codigoCliente || "";
       }
 
+      // Atualiza senha
       const senhaHash = await bcrypt.hash(senha, 10);
       await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
-      localStorage.setItem('clienteCodigo', codigoCliente);
-      router.push('/pages/cliente/dashboard');
+      // Atualiza localStorage
+      localStorage.setItem("clienteCodigo", codigoCliente);
+
+      // Redireciona para dashboard
+      router.push("/pages/cliente/dashboard");
     } catch (err) {
       console.error(err);
-      setErro('Erro ao criar ou atualizar senha');
+      setErro("Erro ao criar ou atualizar senha");
     } finally {
       setLoading(false);
     }
   };
+
 
   // Login
   const logarCliente = async () => {

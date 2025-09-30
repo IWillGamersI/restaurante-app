@@ -78,9 +78,27 @@ export default function Dashboard() {
   }, [cliente]);
 
   const logOut = () => {
+    // Limpa dados de sessão
     localStorage.removeItem("clienteCodigo");
-    router.push("/pages/cliente/login");
+
+    // Detecta se está em modo PWA standalone
+    const isPWA =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (window.navigator as any).standalone === true;
+
+
+    if (isPWA) {
+      // Tenta fechar a janela (funciona em alguns dispositivos)
+      window.close();
+
+      // Fallback: redireciona para login se window.close não funcionar
+      window.location.href = "/pages/cliente/login";
+    } else {
+      // No navegador normal, apenas redireciona
+      router.push("/pages/cliente/login");
+    }
   };
+
 
   // 🔹 Aba Dados
   const Dados = () => (
