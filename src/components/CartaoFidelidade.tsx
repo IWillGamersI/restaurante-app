@@ -65,7 +65,15 @@ export function CartaoFidelidade({ cartao }: Props) {
           <ul className="ml-0 list-disc space-y-1 mt-1">
             {cartao.compras.slice(-3).map((compra, i) => (
               <li key={i}>
-                {compra.produto} - {compra.quantidade} unidade(s) em {new Date(compra.data).toLocaleDateString()} - {compra.categoria}
+                <div>
+                  {new Date(compra.data).toLocaleDateString()} {compra.quantidade}x {compra.produto} {cartao.tipo !== 'estudante' ? `- ${compra.categoria}`:''}
+                  
+
+                </div>
+                <div>
+                  
+
+                </div>
               </li>
             ))}
           </ul>
