@@ -10,16 +10,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import bcrypt from 'bcryptjs';
 
-const paises = [
-  { nome: 'BR', codigo: '+55' },
-  { nome: 'PT', codigo: '+351' },
-  { nome: 'US', codigo: '+1' },
-  // Adicione outros países conforme necessário
+// Lista de países com emoji de bandeira
+const countries = [
+  { code: '55', flag: '🇧🇷' },
+  { code: '1', flag: '🇺🇸' },
+  { code: '351', flag: '🇵🇹' },
 ];
 
 export default function LoginCliente() {
   const router = useRouter();
-  const [pais, setPais] = useState(paises[0].codigo);
+  const [pais, setPais] = useState('55');
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
@@ -33,7 +33,7 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const telefoneCompleto = `${pais}${telefone}`;
+  const telefoneCompleto = `+${pais}${telefone.replace(/\D/g, '')}`;
 
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
@@ -62,7 +62,6 @@ export default function LoginCliente() {
 
   const enviarPin = async () => {
     if (novoCadastro && !nome) return setErro('Digite seu nome para cadastro');
-
     setLoading(true);
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
@@ -93,16 +92,16 @@ export default function LoginCliente() {
         body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.message || 'Erro ao enviar PIN via WhatsApp');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao enviar PIN');
       }
 
       setPinEnviado(true);
       setErro('');
-    } catch (err) {
-      console.error(err);
-      setErro('Erro ao enviar PIN: ' + (err as Error).message);
+    } catch (err: any) {
+      console.error('Erro ao enviar PIN:', err);
+      setErro(err.message || 'Erro ao enviar PIN');
     } finally {
       setLoading(false);
     }
@@ -163,7 +162,6 @@ export default function LoginCliente() {
   const criarSenha = async () => {
     if (!senha) return setErro('Digite a senha');
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
-
     setLoading(true);
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
@@ -177,7 +175,6 @@ export default function LoginCliente() {
 
       const clienteRef = snap.docs[0].ref;
       const senhaHash = await bcrypt.hash(senha, 10);
-
       await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
       localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
@@ -248,18 +245,18 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input telefone com select de país */}
+          {/* Input telefone com bandeira */}
           {clienteTemSenha === null && (
             <div className="space-y-4">
               <div className="flex gap-2">
                 <select
                   value={pais}
                   onChange={(e) => setPais(e.target.value)}
-                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xl"
                 >
-                  {paises.map((p) => (
-                    <option key={p.codigo} value={p.codigo}>
-                      {p.nome} ({p.codigo})
+                  {countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag}
                     </option>
                   ))}
                 </select>
@@ -287,8 +284,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Restante do componente continua igual, mantendo cadastro, login, PIN, criação de senha e animações */}
-
+          {/* Cadastro Nome */}
           {novoCadastro && clienteTemSenha === false && !pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -304,6 +300,7 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Cliente com senha: login */}
           {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
@@ -335,6 +332,7 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Cliente sem senha: envio PIN */}
           {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
             <div className="space-y-4 text-center">
               <button
@@ -350,6 +348,7 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Tela de verificação de PIN */}
           {pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -375,6 +374,7 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Tela de criação de senha */}
           {precisaCriarSenha && (
             <div className="space-y-4">
               <div className="relative">

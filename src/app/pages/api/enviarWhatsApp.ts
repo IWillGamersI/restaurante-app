@@ -10,7 +10,7 @@ const whatsappFrom = 'whatsapp:+14155238886'; // número oficial Twilio
 const client = twilio(accountSid, authToken);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
   const { telefone, pin } = req.body;
 
@@ -25,9 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       contentVariables: JSON.stringify({ "1": pin }),
     });
 
-    return res.status(200).json({ sid: message.sid });
-  } catch (err) {
+    // Retorna um JSON consistente
+    return res.status(200).json({ success: true, sid: message.sid });
+  } catch (err: any) {
     console.error('Erro Twilio:', err);
-    return res.status(500).json({ error: 'Erro ao enviar WhatsApp' });
+    // Retorna mensagem detalhada de erro
+    return res.status(500).json({ error: err?.message || 'Erro ao enviar WhatsApp' });
   }
 }
