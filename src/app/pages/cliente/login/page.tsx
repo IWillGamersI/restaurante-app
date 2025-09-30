@@ -239,7 +239,7 @@ export default function LoginCliente() {
           {/* Input telefone integrado com select de país */}
           {clienteTemSenha === null && (
             <div className="space-y-4 relative">
-              <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+              
               <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                 <select
                   value={codigoPais}
