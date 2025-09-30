@@ -12,31 +12,33 @@ import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
-import Head from 'next/head';
 
 const countryDialCodes: Record<string, string> = {
   pt: '351',
   br: '55',
   us: '1',
+  // adicione outros se quiser
 };
 
 export default function LoginCliente() {
   const { gerarCodigoCliente } = useCodigos();
   const router = useRouter();
 
-  const [telefone, setTelefone] = useState('');
-  const [codigoPais, setCodigoPais] = useState('pt');
+  // estados
+  const [telefone, setTelefone] = useState(''); // somente número local (sem +351)
+  const [codigoPais, setCodigoPais] = useState('pt'); // alpha2: 'pt', 'br', ...
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
-  const [cliente, setCliente] = useState<any | null>(null);
+  const [cliente, setCliente] = useState<any | null>(null); // objeto do cliente vindo do Firestore (inclui .ref)
   const [novoCadastro, setNovoCadastro] = useState(false);
   const [recuperandoSenha, setRecuperandoSenha] = useState(false);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Verifica se telefone existe
+  // Verifica se telefone existe no Firestore
   const verificarTelefone = async () => {
+    setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
     try {
@@ -44,20 +46,25 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Novo cadastro
+        // novo cadastro
         setCliente(null);
         setNovoCadastro(true);
-        setErro('');
+        setRecuperandoSenha(false);
       } else {
-        const data = snap.docs[0].data();
-        setCliente({ ref: snap.docs[0].ref, ...data });
+        // já existe cliente
+        const docSnap = snap.docs[0];
+        const data = docSnap.data();
+        // salvar ref + dados no estado
+        setCliente({ ref: docSnap.ref, ...data });
+        // ajusta country alpha2 a partir do codigo numérico salvo (se houver)
         setCodigoPais(
           data.codigoPais
-            ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === data.codigoPais) || 'pt'
+            ? (Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === data.codigoPais) || 'pt')
             : 'pt'
         );
-        setNovoCadastro(!data.senha); // precisa criar senha se não tiver
-        setErro('');
+        // se já tem senha cadastrada -> mostrar login; se não tem -> mostrar criar senha
+        setNovoCadastro(!data.senha);
+        setRecuperandoSenha(false);
       }
     } catch (err) {
       console.error(err);
@@ -67,75 +74,85 @@ export default function LoginCliente() {
     }
   };
 
-  // Criar ou atualizar senha
+  // Criar novo cliente ou atualizar senha (criar/recuperar)
   const criarOuAtualizarSenha = async () => {
-    if (!senha) return setErro("Digite a senha");
-    if (!dataNascimento) return setErro("Digite sua data de nascimento");
+    setErro('');
+    if (!senha) return setErro('Digite a senha');
+    // se for criar nova senha (novo cadastro) ou recuperar -> dataNascimento obrigatória
+    if (!dataNascimento) return setErro('Digite sua data de nascimento');
 
     setLoading(true);
     try {
       let clienteRef;
-      let codigoCliente = "";
+      let codigoCliente = '';
 
       if (!cliente) {
-        // Novo cliente
+        // novo cliente real
         codigoCliente = gerarCodigoCliente(nome, telefone);
-        clienteRef = doc(collection(db, "clientes"));
+        clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
           telefone,
-          codigoPais: countryDialCodes[codigoPais] || "351",
+          codigoPais: countryDialCodes[codigoPais] || '351',
           nome,
           criadoEm: new Date(),
           codigoCliente,
-          senha: "",
+          senha: '', // será atualizado abaixo
           dataNascimento,
         });
 
-        // Atualiza estado para cliente criado
+        // atualizar estado local com os dados do novo cliente
         setCliente({
           ref: clienteRef,
           telefone,
-          codigoPais: countryDialCodes[codigoPais] || "351",
+          codigoPais: countryDialCodes[codigoPais] || '351',
           nome,
           codigoCliente,
-          senha: "",
+          senha: '',
           dataNascimento,
         });
       } else {
+        // cliente já existe: se estiver em recuperação, validar dataNascimento
         clienteRef = cliente.ref;
-
-        // Recuperação de senha exige data de nascimento correta
-        if (recuperandoSenha && cliente.dataNascimento !== dataNascimento) {
-          setErro("Data de nascimento não confere");
-          setLoading(false);
-          return;
+        if (recuperandoSenha) {
+          // cliente.dataNascimento pode ser string ou timestamp; normalizamos ambos
+          const existente = cliente.dataNascimento;
+          const existenteStr = existente
+            ? (typeof existente === 'string' ? existente : existente.toDate ? existente.toDate().toISOString().slice(0, 10) : String(existente))
+            : '';
+          const informada = dataNascimento;
+          if (existenteStr !== informada) {
+            setErro('Data de nascimento não confere');
+            setLoading(false);
+            return;
+          }
         }
-
-        codigoCliente = cliente.codigoCliente || "";
+        codigoCliente = cliente.codigoCliente || '';
       }
 
-      // Atualiza senha
+      // atualiza senha (hash) e dataNascimento (garante campo)
       const senhaHash = await bcrypt.hash(senha, 10);
       await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
-      // Atualiza localStorage
-      localStorage.setItem("clienteCodigo", codigoCliente);
+      // atualiza localStorage com codigoCliente (se houver)
+      const finalCodigo = codigoCliente || (cliente ? cliente.codigoCliente : '') || '';
+      if (finalCodigo) localStorage.setItem('clienteCodigo', finalCodigo);
 
-      // Redireciona para dashboard
-      router.push("/pages/cliente/dashboard");
+      // reset flags e redireciona
+      setNovoCadastro(false);
+      setRecuperandoSenha(false);
+      router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
-      setErro("Erro ao criar ou atualizar senha");
+      setErro('Erro ao criar ou atualizar senha');
     } finally {
       setLoading(false);
     }
   };
 
-
-  // Login
+  // Login normal com senha
   const logarCliente = async () => {
+    setErro('');
     if (!senha) return setErro('Digite a senha');
-
     setLoading(true);
     try {
       if (!cliente) {
@@ -145,9 +162,8 @@ export default function LoginCliente() {
       }
 
       const senhaValida = await bcrypt.compare(senha, cliente.senha);
-
       if (senhaValida) {
-        localStorage.setItem('clienteCodigo', cliente.codigoCliente);
+        if (cliente.codigoCliente) localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
         setErro('Senha incorreta');
@@ -175,135 +191,119 @@ export default function LoginCliente() {
   };
 
   return (
-    <>
-      <Head>
-        <title>Login Cliente - Top Pizzas</title>
-        <meta name="description" content="Área de login do cliente Top Pizzas" />
-        <link rel="manifest" href="/manifest-cliente.json" />
-        <meta name="theme-color" content="#1976d2" />
-      </Head>
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${cliente?.senha}-${novoCadastro}-${recuperandoSenha}`}
-            className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={cardVariants}
-            transition={{ duration: 0.4 }}
-          >
-            <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${cliente?.senha ?? ''}-${novoCadastro}-${recuperandoSenha}`}
+          className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={cardVariants}
+          transition={{ duration: 0.4 }}
+        >
+          <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-            {/* Input Telefone */}
-            {!cliente && !novoCadastro && !recuperandoSenha && (
-              <div className="space-y-4">
+          {/* INPUT TELEFONE (aparece quando não temos cliente selecionado e não estamos no fluxo de novo cadastro/recuperacao) */}
+          {!cliente && !novoCadastro && !recuperandoSenha && (
+            <div className="space-y-4">
+              <div className="relative">
+                <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <PhoneInput
+                  country={codigoPais}
+                  value={telefone} // apenas o número local (sem +351)
+                  onChange={(value: string, data: any) => {
+                    // value deve vir sem formatação ou com a parte local; mantemos só números
+                    const numbersOnly = value.replace(/\D/g, '');
+                    setTelefone(numbersOnly);
+                    if (data && data.countryCode) setCodigoPais(data.countryCode);
+                  }}
+                  inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  buttonClass="rounded-l-lg"
+                  enableSearch
+                  disableCountryCode={true} // não deixa o usuário digitar o código, apenas seleciona a bandeira
+                  placeholder="Telefone"
+                />
+              </div>
+
+              <button
+                onClick={verificarTelefone}
+                disabled={loading}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                Continuar
+              </button>
+            </div>
+          )}
+
+          {/* CAMPOS: cadastro / recuperação / login (quando já temos cliente ou novoCadastro ou recuperandoSenha) */}
+          {(novoCadastro || cliente || recuperandoSenha) && (
+            <div className="space-y-4">
+              {/* Nome só para novo cadastro real */}
+              {novoCadastro && (
                 <div className="relative">
-                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
-                  <PhoneInput
-                    country={codigoPais}
-                    value={`+${countryDialCodes[codigoPais] || '351'}${telefone}`}
-                    onChange={(value: string, data: any) => {
-                      const dialCode = data.dialCode || '';
-                      const numbersOnly = value.replace(/\D/g, '');
-                      const localNumber = numbersOnly.startsWith(dialCode)
-                        ? numbersOnly.slice(dialCode.length)
-                        : numbersOnly;
-                      setTelefone(localNumber);
-                      setCodigoPais(data.countryCode);
-                    }}
-                    inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    buttonClass="rounded-l-lg"
-                    enableSearch
-                    disableCountryCode={true}
-                    placeholder="Telefone"
+                  <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <input
+                    type="text"
+                    placeholder="Digite seu nome"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
-                <button
-                  onClick={verificarTelefone}
-                  disabled={loading}
-                  className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                  Continuar
-                </button>
+              )}
+
+              {/* Campo senha (login ou criar/atualizar) */}
+              <div className="relative">
+                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="password"
+                  placeholder={recuperandoSenha ? 'Nova senha' : 'Senha'}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                />
               </div>
-            )}
 
-            {/* Campos de cadastro, recuperação ou login */}
-            {(novoCadastro || cliente || recuperandoSenha) && (
-              <div className="space-y-4">
-                {/* Nome apenas para novo cadastro */}
-                {novoCadastro && (
-                  <div className="relative">
-                    <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
-                    <input
-                      type="text"
-                      placeholder="Digite seu nome"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    />
-                  </div>
-                )}
-
-                {/* Senha */}
+              {/* Data de nascimento só quando criar/recuperar senha */}
+              {(!cliente?.senha || recuperandoSenha) && (
                 <div className="relative">
-                  <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
                   <input
-                    type="password"
-                    placeholder={recuperandoSenha ? 'Nova senha' : 'Senha'}
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
+                    type="date"
+                    placeholder="Data de nascimento"
+                    value={dataNascimento}
+                    onChange={(e) => setDataNascimento(e.target.value)}
                     className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                   />
                 </div>
+              )}
 
-                {/* Data de nascimento apenas para criar ou recuperar senha */}
-                {(!cliente?.senha || recuperandoSenha) && (
-                  <div className="relative">
-                    <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                    <input
-                      type="date"
-                      placeholder="Data de nascimento"
-                      value={dataNascimento}
-                      onChange={(e) => setDataNascimento(e.target.value)}
-                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                    />
-                  </div>
-                )}
+              {/* Botão principal: login ou criar/atualizar senha */}
+              <button
+                onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
+                disabled={loading}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                {cliente?.senha && !recuperandoSenha ? 'Entrar' : recuperandoSenha ? 'Atualizar Senha' : 'Criar Senha'}
+              </button>
 
-                {/* Botão criar/atualizar senha ou login */}
-                <button
-                  onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
-                  disabled={loading}
-                  className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                  {cliente?.senha && !recuperandoSenha
-                    ? 'Entrar'
-                    : recuperandoSenha
-                    ? 'Atualizar Senha'
-                    : 'Criar Senha'}
+              {/* Botão para iniciar recuperação apenas quando cliente existe e tem senha */}
+              {cliente?.senha && !recuperandoSenha && (
+                <button onClick={iniciarRecuperacao} className="w-full text-blue-600 font-semibold hover:underline">
+                  Esqueci minha senha
                 </button>
+              )}
+            </div>
+          )}
 
-                {/* Botão recuperar senha só para clientes existentes com senha */}
-                {cliente?.senha && !recuperandoSenha && (
-                  <button
-                    onClick={iniciarRecuperacao}
-                    className="w-full text-blue-600 font-semibold hover:underline"
-                  >
-                    Esqueci minha senha
-                  </button>
-                )}
-              </div>
-            )}
+          {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
+        </motion.div>
+      </AnimatePresence>
 
-            {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
-          </motion.div>
-        </AnimatePresence>
-        <PWAInstallPrompt />
-      </div>
-    </>
+      <PWAInstallPrompt />
+    </div>
   );
 }
