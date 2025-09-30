@@ -8,6 +8,7 @@ import { FiPhone, FiLock, FiCalendar, FiUser } from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
@@ -18,20 +19,11 @@ const countryDialCodes: Record<string, string> = {
   us: '1',
 };
 
-// Função para gerar hash usando crypto.subtle
-async function gerarHashSenha(senha: string) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(senha);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
 export default function LoginCliente() {
   const { gerarCodigoCliente } = useCodigos();
   const router = useRouter();
 
-  const [telefone, setTelefone] = useState('');
+  const [telefone, setTelefone] = useState(''); // número local
   const [codigoPais, setCodigoPais] = useState('pt');
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
@@ -42,10 +34,13 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Verifica se telefone existe
+  // ------------------------------
+  // VERIFICAR TELEFONE
+  // ------------------------------
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
+
     setLoading(true);
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
@@ -61,12 +56,12 @@ export default function LoginCliente() {
         setCliente({ ref: docSnap.ref, ...data });
 
         if (data.telefone) setTelefone(String(data.telefone));
-
         setCodigoPais(
           data.codigoPais
-            ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
+            ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
             : 'pt'
         );
+
         setNovoCadastro(!data.senha);
         setRecuperandoSenha(false);
       }
@@ -78,7 +73,9 @@ export default function LoginCliente() {
     }
   };
 
-  // Criar ou atualizar senha usando crypto.subtle
+  // ------------------------------
+  // CRIAR OU ATUALIZAR SENHA
+  // ------------------------------
   const criarOuAtualizarSenha = async () => {
     setErro('');
     if (!senha) return setErro('Digite a senha');
@@ -90,6 +87,7 @@ export default function LoginCliente() {
       let codigoCliente = '';
 
       if (!cliente) {
+        // NOVO CLIENTE
         codigoCliente = gerarCodigoCliente(nome, telefone);
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
@@ -98,7 +96,7 @@ export default function LoginCliente() {
           nome,
           criadoEm: new Date(),
           codigoCliente,
-          senha: '',
+          senha: '', // cria vazio primeiro
           dataNascimento,
         });
 
@@ -132,9 +130,20 @@ export default function LoginCliente() {
         codigoCliente = cliente.codigoCliente || '';
       }
 
-      const senhaHash = await gerarHashSenha(senha);
-      await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
+      // Hash da senha
+      const senhaHash = await bcrypt.hash(senha, 10);
 
+      // Atualiza senha no Firestore
+      if (clienteRef) {
+        await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
+      } else {
+        console.error('clienteRef indefinido');
+        setErro('Erro interno ao salvar dados');
+        setLoading(false);
+        return;
+      }
+
+      // salva no localStorage
       const finalCodigo = codigoCliente || (cliente ? cliente.codigoCliente : '') || '';
       if (finalCodigo) localStorage.setItem('clienteCodigo', finalCodigo);
 
@@ -143,16 +152,19 @@ export default function LoginCliente() {
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
-      setErro('Erro ao criar ou atualizar senha');
+      setErro('Erro ao criar ou atualizar a senha');
     } finally {
       setLoading(false);
     }
   };
 
-  // Login
+  // ------------------------------
+  // LOGIN
+  // ------------------------------
   const logarCliente = async () => {
     setErro('');
     if (!senha) return setErro('Digite a senha');
+
     setLoading(true);
     try {
       if (!cliente) {
@@ -161,8 +173,8 @@ export default function LoginCliente() {
         return;
       }
 
-      const senhaHash = await gerarHashSenha(senha);
-      if (senhaHash === cliente.senha) {
+      const senhaValida = await bcrypt.compare(senha, cliente.senha);
+      if (senhaValida) {
         if (cliente.codigoCliente) localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
@@ -204,33 +216,34 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
+          {/* INPUT TELEFONE */}
           {!cliente && !novoCadastro && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={telefone}
+                  value={telefone} // só número local
                   onChange={(value: string, data: any) => {
                     const numbersOnly = value.replace(/\D/g, '');
-                    const dial = (data && data.dialCode) || countryDialCodes[codigoPais] || '';
-                    const localNumber = dial && numbersOnly.startsWith(dial) ? numbersOnly.slice(dial.length) : numbersOnly;
-                    setTelefone(localNumber);
+                    setTelefone(numbersOnly);
                     if (data && data.countryCode) setCodigoPais(data.countryCode);
                   }}
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
-                  disableCountryCode={true}
+                  disableCountryCode
+                  countryCodeEditable={false}
                   placeholder="Telefone"
-                  disableCountryGuess={true}
                 />
               </div>
 
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -238,6 +251,7 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Cadastro / Recuperação / Login */}
           {(novoCadastro || cliente || recuperandoSenha) && (
             <div className="space-y-4">
               {novoCadastro && (
@@ -279,7 +293,9 @@ export default function LoginCliente() {
               <button
                 onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 {cliente?.senha && !recuperandoSenha
@@ -290,7 +306,10 @@ export default function LoginCliente() {
               </button>
 
               {cliente?.senha && !recuperandoSenha && (
-                <button onClick={iniciarRecuperacao} className="w-full text-blue-600 font-semibold hover:underline">
+                <button
+                  onClick={iniciarRecuperacao}
+                  className="w-full text-blue-600 font-semibold hover:underline"
+                >
                   Esqueci minha senha
                 </button>
               )}
