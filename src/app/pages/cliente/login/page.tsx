@@ -8,7 +8,6 @@ import { FiPhone, FiLock, FiCalendar, FiUser } from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
-import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
@@ -19,12 +18,21 @@ const countryDialCodes: Record<string, string> = {
   us: '1',
 };
 
+// Função para gerar hash usando crypto.subtle
+async function gerarHashSenha(senha: string) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(senha);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function LoginCliente() {
   const { gerarCodigoCliente } = useCodigos();
   const router = useRouter();
 
-  const [telefone, setTelefone] = useState(''); // número local (sem DDI)
-  const [codigoPais, setCodigoPais] = useState('pt'); // alpha2
+  const [telefone, setTelefone] = useState('');
+  const [codigoPais, setCodigoPais] = useState('pt');
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -44,7 +52,6 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // novo cadastro
         setCliente(null);
         setNovoCadastro(true);
         setRecuperandoSenha(false);
@@ -53,17 +60,14 @@ export default function LoginCliente() {
         const data = docSnap.data();
         setCliente({ ref: docSnap.ref, ...data });
 
-        // popula o input com o telefone salvo (local)
         if (data.telefone) setTelefone(String(data.telefone));
 
-        // ajusta country alpha2 a partir do codigo numérico salvo (se houver)
         setCodigoPais(
           data.codigoPais
-            ? (Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt')
+            ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
             : 'pt'
         );
-
-        setNovoCadastro(!data.senha); // se não tem senha, mostra criar senha
+        setNovoCadastro(!data.senha);
         setRecuperandoSenha(false);
       }
     } catch (err) {
@@ -74,11 +78,10 @@ export default function LoginCliente() {
     }
   };
 
-  // Criar ou atualizar senha
+  // Criar ou atualizar senha usando crypto.subtle
   const criarOuAtualizarSenha = async () => {
     setErro('');
     if (!senha) return setErro('Digite a senha');
-    // quando criando ou recuperando, data de nascimento é obrigatória
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
 
     setLoading(true);
@@ -87,7 +90,6 @@ export default function LoginCliente() {
       let codigoCliente = '';
 
       if (!cliente) {
-        // novo cliente real
         codigoCliente = gerarCodigoCliente(nome, telefone);
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
@@ -100,7 +102,6 @@ export default function LoginCliente() {
           dataNascimento,
         });
 
-        // atualizar estado local
         setCliente({
           ref: clienteRef,
           telefone,
@@ -113,7 +114,6 @@ export default function LoginCliente() {
       } else {
         clienteRef = cliente.ref;
 
-        // Recuperação: valida data de nascimento se solicitado
         if (recuperandoSenha) {
           const existente = cliente.dataNascimento;
           const existenteStr = existente
@@ -132,7 +132,7 @@ export default function LoginCliente() {
         codigoCliente = cliente.codigoCliente || '';
       }
 
-      const senhaHash = await bcrypt.hash(senha, 10);
+      const senhaHash = await gerarHashSenha(senha);
       await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
       const finalCodigo = codigoCliente || (cliente ? cliente.codigoCliente : '') || '';
@@ -161,8 +161,8 @@ export default function LoginCliente() {
         return;
       }
 
-      const senhaValida = await bcrypt.compare(senha, cliente.senha);
-      if (senhaValida) {
+      const senhaHash = await gerarHashSenha(senha);
+      if (senhaHash === cliente.senha) {
         if (cliente.codigoCliente) localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
@@ -204,16 +204,14 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* INPUT TELEFONE */}
           {!cliente && !novoCadastro && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={telefone} // passamos só o número local para o input
+                  value={telefone}
                   onChange={(value: string, data: any) => {
-                    // value pode trazer o DDI; queremos só os dígitos locais.
                     const numbersOnly = value.replace(/\D/g, '');
                     const dial = (data && data.dialCode) || countryDialCodes[codigoPais] || '';
                     const localNumber = dial && numbersOnly.startsWith(dial) ? numbersOnly.slice(dial.length) : numbersOnly;
@@ -223,7 +221,7 @@ export default function LoginCliente() {
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
-                  disableCountryCode={true} // oculta o +351 visualmente no input
+                  disableCountryCode={true}
                   placeholder="Telefone"
                   disableCountryGuess={true}
                 />
@@ -232,9 +230,7 @@ export default function LoginCliente() {
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -242,10 +238,8 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cadastro / Recuperação / Login */}
           {(novoCadastro || cliente || recuperandoSenha) && (
             <div className="space-y-4">
-              {/* Nome apenas para novo cadastro real */}
               {novoCadastro && (
                 <div className="relative">
                   <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -259,7 +253,6 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* Senha */}
               <div className="relative">
                 <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <input
@@ -271,7 +264,6 @@ export default function LoginCliente() {
                 />
               </div>
 
-              {/* Data de nascimento apenas para criar/recuperar */}
               {(!cliente?.senha || recuperandoSenha) && (
                 <div className="relative">
                   <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -287,9 +279,7 @@ export default function LoginCliente() {
               <button
                 onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 {cliente?.senha && !recuperandoSenha
