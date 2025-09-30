@@ -86,7 +86,7 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      const response = await fetch('/api/send-whatsapp', {
+      const response = await fetch('/api/enviarWhatsApp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
