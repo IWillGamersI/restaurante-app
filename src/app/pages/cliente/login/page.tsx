@@ -12,6 +12,14 @@ import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
+// Mapa de códigos de discagem (exemplo parcial, pode adicionar todos)
+const countryDialCodes: Record<string, string> = {
+  pt: '351',
+  br: '55',
+  us: '1',
+  // ...adicionar outros países que precisar
+};
+
 export default function LoginCliente() {
   const router = useRouter();
   const [telefone, setTelefone] = useState('');
@@ -28,22 +36,11 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const countryDialCodes: { [key: string]: string } = {
-    pt: '351',
-    br: '55',
-    us: '1',
-    // adicione outros países aqui
-  };
-
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'clientes'),
-        where('telefone', '==', telefone),
-        where('codigoPais', '==', codigoPais)
-      );
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -53,6 +50,7 @@ export default function LoginCliente() {
       } else {
         const cliente = snap.docs[0].data();
         setClienteTemSenha(!!cliente.senha);
+        setCodigoPais(cliente.codigoPais || 'pt'); // fallback para Portugal
         setNovoCadastro(false);
         setErro('');
       }
@@ -68,11 +66,7 @@ export default function LoginCliente() {
     if (novoCadastro && !nome) return setErro('Digite seu nome para cadastro');
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'clientes'),
-        where('telefone', '==', telefone),
-        where('codigoPais', '==', codigoPais)
-      );
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       let clienteRef;
@@ -80,7 +74,7 @@ export default function LoginCliente() {
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
           telefone,
-          codigoPais,
+          codigoPais: codigoPais || 'pt', // salva Portugal como padrão se vazio
           nome,
           criadoEm: new Date(),
           senha: '',
@@ -95,8 +89,8 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      // Envia o PIN usando o código do país
-      const telefoneCompleto = `+${countryDialCodes[codigoPais] || ''}${telefone}`;
+      // Gera o telefone completo usando código do país ou Portugal como fallback
+      const telefoneCompleto = `+${countryDialCodes[codigoPais] || countryDialCodes['pt']}${telefone}`;
 
       const response = await fetch('/api/enviarWhatsApp', {
         method: 'POST',
@@ -121,11 +115,7 @@ export default function LoginCliente() {
     if (!pin) return setErro('Digite o PIN recebido');
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'clientes'),
-        where('telefone', '==', telefone),
-        where('codigoPais', '==', codigoPais)
-      );
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -179,11 +169,7 @@ export default function LoginCliente() {
 
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'clientes'),
-        where('telefone', '==', telefone),
-        where('codigoPais', '==', codigoPais)
-      );
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -195,7 +181,11 @@ export default function LoginCliente() {
       const clienteRef = snap.docs[0].ref;
       const senhaHash = await bcrypt.hash(senha, 10);
 
-      await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
+      await updateDoc(clienteRef, {
+        senha: senhaHash,
+        dataNascimento,
+        codigoPais: snap.docs[0].data().codigoPais || 'pt', // garante que sempre tenha código
+      });
 
       localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
       router.push('/pages/cliente/dashboard');
@@ -211,11 +201,7 @@ export default function LoginCliente() {
     if (!senha) return setErro('Digite a senha');
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'clientes'),
-        where('telefone', '==', telefone),
-        where('codigoPais', '==', codigoPais)
-      );
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -298,8 +284,125 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Resto do JSX permanece igual: cadastro, PIN, login, criação de senha */}
-          {/* ... */}
+          {/* Cadastro - Nome */}
+          {novoCadastro && clienteTemSenha === false && !pinEnviado && (
+            <div className="space-y-4">
+              <div className="relative">
+                <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="text"
+                  placeholder="Digite seu nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Cliente já possui senha: login */}
+          {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
+            <div className="space-y-4">
+              <div className="relative">
+                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="password"
+                  placeholder="Senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                />
+              </div>
+              <button
+                onClick={logarCliente}
+                disabled={loading}
+                className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-green-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                Entrar
+              </button>
+              <button
+                onClick={iniciarRecuperacao}
+                className="w-full text-blue-600 font-semibold hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
+          )}
+
+          {/* Cliente sem senha: envio PIN */}
+          {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
+            <div className="space-y-4 text-center">
+              <button
+                onClick={enviarPin}
+                disabled={loading}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
+              </button>
+            </div>
+          )}
+
+          {/* Tela de verificação de PIN */}
+          {pinEnviado && (
+            <div className="space-y-4">
+              <div className="relative">
+                <FiKey className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="number"
+                  placeholder="Digite o PIN"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+                />
+              </div>
+              <button
+                onClick={verificarPin}
+                disabled={loading}
+                className={`w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-yellow-600 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                Confirmar PIN
+              </button>
+            </div>
+          )}
+
+          {/* Tela de criação de senha */}
+          {precisaCriarSenha && (
+            <div className="space-y-4">
+              <div className="relative">
+                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="password"
+                  placeholder="Crie sua senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                />
+              </div>
+              <div className="relative">
+                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="date"
+                  placeholder="Data de nascimento"
+                  value={dataNascimento}
+                  onChange={(e) => setDataNascimento(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                />
+              </div>
+              <button
+                onClick={criarSenha}
+                disabled={loading}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                Criar Senha
+              </button>
+            </div>
+          )}
+
+          {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
         </motion.div>
       </AnimatePresence>
       <PWAInstallPrompt />
