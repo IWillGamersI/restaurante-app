@@ -10,9 +10,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import bcrypt from 'bcryptjs';
 
+const paises = [
+  { nome: 'Brasil', codigo: '+55' },
+  { nome: 'Portugal', codigo: '+351' },
+  { nome: 'Estados Unidos', codigo: '+1' },
+  // Adicione outros países conforme necessário
+];
+
 export default function LoginCliente() {
   const router = useRouter();
-  const [codigoPais, setCodigoPais] = useState('+55');
+  const [pais, setPais] = useState(paises[0].codigo);
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
@@ -26,7 +33,7 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const telefoneCompleto = `${codigoPais}${telefone}`;
+  const telefoneCompleto = `${pais}${telefone}`;
 
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
@@ -80,17 +87,22 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      await fetch('/api/send-whatsapp', {
+      const response = await fetch('/api/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
       });
 
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.message || 'Erro ao enviar PIN via WhatsApp');
+      }
+
       setPinEnviado(true);
       setErro('');
     } catch (err) {
       console.error(err);
-      setErro('Erro ao enviar PIN');
+      setErro('Erro ao enviar PIN: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -236,28 +248,31 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input telefone integrado com select de país */}
+          {/* Input telefone com select de país */}
           {clienteTemSenha === null && (
-            <div className="space-y-4 relative">
-              
-              <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+            <div className="space-y-4">
+              <div className="flex gap-2">
                 <select
-                  value={codigoPais}
-                  onChange={(e) => setCodigoPais(e.target.value)}
-                  className="px-3 py-3 bg-gray-100 text-gray-700 outline-none border-r"
+                  value={pais}
+                  onChange={(e) => setPais(e.target.value)}
+                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 >
-                  <option value="+55">🇧🇷 +55</option>
-                  <option value="+1">🇺🇸 +1</option>
-                  <option value="+44">🇬🇧 +44</option>
-                  <option value="+351">🇵🇹 +351</option>
+                  {paises.map((p) => (
+                    <option key={p.codigo} value={p.codigo}>
+                      {p.nome} ({p.codigo})
+                    </option>
+                  ))}
                 </select>
-                <input
-                  type="tel"
-                  placeholder="Telefone"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  className="flex-1 px-3 py-3 outline-none"
-                />
+                <div className="relative flex-1">
+                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <input
+                    type="tel"
+                    placeholder="Telefone"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    className="w-full pl-10 pr-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
               </div>
               <button
                 onClick={verificarTelefone}
@@ -272,7 +287,8 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cadastro - Nome */}
+          {/* Restante do componente continua igual, mantendo cadastro, login, PIN, criação de senha e animações */}
+
           {novoCadastro && clienteTemSenha === false && !pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -288,7 +304,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente já possui senha: login */}
           {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
@@ -320,7 +335,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente sem senha: envio PIN */}
           {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
             <div className="space-y-4 text-center">
               <button
@@ -336,7 +350,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Tela de verificação de PIN */}
           {pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -362,7 +375,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Tela de criação de senha */}
           {precisaCriarSenha && (
             <div className="space-y-4">
               <div className="relative">
