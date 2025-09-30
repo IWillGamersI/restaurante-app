@@ -12,12 +12,12 @@ import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-// Mapa de códigos de discagem (exemplo parcial, pode adicionar todos)
+// Mapa de códigos numéricos de discagem
 const countryDialCodes: Record<string, string> = {
   pt: '351',
   br: '55',
   us: '1',
-  // ...adicionar outros países que precisar
+  // adicione outros países que precisar
 };
 
 export default function LoginCliente() {
@@ -36,6 +36,7 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Verifica se o telefone já está cadastrado
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
@@ -50,7 +51,8 @@ export default function LoginCliente() {
       } else {
         const cliente = snap.docs[0].data();
         setClienteTemSenha(!!cliente.senha);
-        setCodigoPais(cliente.codigoPais || 'pt'); // fallback para Portugal
+        // Se não tiver código do país no Firestore, fallback para Portugal
+        setCodigoPais(cliente.codigoPais ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === cliente.codigoPais) || 'pt' : 'pt');
         setNovoCadastro(false);
         setErro('');
       }
@@ -62,6 +64,7 @@ export default function LoginCliente() {
     }
   };
 
+  // Envia PIN via WhatsApp
   const enviarPin = async () => {
     if (novoCadastro && !nome) return setErro('Digite seu nome para cadastro');
     setLoading(true);
@@ -74,7 +77,7 @@ export default function LoginCliente() {
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
           telefone,
-          codigoPais: codigoPais || 'pt', // salva Portugal como padrão se vazio
+          codigoPais: countryDialCodes[codigoPais] || '351', // salva código numérico
           nome,
           criadoEm: new Date(),
           senha: '',
@@ -89,8 +92,8 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      // Gera o telefone completo usando código do país ou Portugal como fallback
-      const telefoneCompleto = `+${countryDialCodes[codigoPais] || countryDialCodes['pt']}${telefone}`;
+      // Gera telefone completo com código numérico
+      const telefoneCompleto = `+${countryDialCodes[codigoPais] || '351'}${telefone}`;
 
       const response = await fetch('/api/enviarWhatsApp', {
         method: 'POST',
@@ -111,6 +114,7 @@ export default function LoginCliente() {
     }
   };
 
+  // Verifica o PIN digitado
   const verificarPin = async () => {
     if (!pin) return setErro('Digite o PIN recebido');
     setLoading(true);
@@ -163,6 +167,7 @@ export default function LoginCliente() {
     }
   };
 
+  // Cria a senha do cliente
   const criarSenha = async () => {
     if (!senha) return setErro('Digite a senha');
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
@@ -184,7 +189,7 @@ export default function LoginCliente() {
       await updateDoc(clienteRef, {
         senha: senhaHash,
         dataNascimento,
-        codigoPais: snap.docs[0].data().codigoPais || 'pt', // garante que sempre tenha código
+        codigoPais: snap.docs[0].data().codigoPais || '351', // garante código numérico
       });
 
       localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
@@ -197,6 +202,7 @@ export default function LoginCliente() {
     }
   };
 
+  // Login com senha
   const logarCliente = async () => {
     if (!senha) return setErro('Digite a senha');
     setLoading(true);
@@ -276,7 +282,9 @@ export default function LoginCliente() {
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -316,15 +324,14 @@ export default function LoginCliente() {
               <button
                 onClick={logarCliente}
                 disabled={loading}
-                className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-green-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-green-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Entrar
               </button>
-              <button
-                onClick={iniciarRecuperacao}
-                className="w-full text-blue-600 font-semibold hover:underline"
-              >
+              <button onClick={iniciarRecuperacao} className="w-full text-blue-600 font-semibold hover:underline">
                 Esqueci minha senha
               </button>
             </div>
@@ -336,7 +343,9 @@ export default function LoginCliente() {
               <button
                 onClick={enviarPin}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
@@ -360,7 +369,9 @@ export default function LoginCliente() {
               <button
                 onClick={verificarPin}
                 disabled={loading}
-                className={`w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-yellow-600 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-yellow-600 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Confirmar PIN
@@ -394,7 +405,9 @@ export default function LoginCliente() {
               <button
                 onClick={criarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Criar Senha
