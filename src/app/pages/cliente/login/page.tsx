@@ -11,9 +11,9 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import bcrypt from 'bcryptjs';
 
 const paises = [
-  { nome: 'Brasil', codigo: '+55' },
-  { nome: 'Portugal', codigo: '+351' },
-  { nome: 'Estados Unidos', codigo: '+1' },
+  { nome: 'BR', codigo: '+55' },
+  { nome: 'PT', codigo: '+351' },
+  { nome: 'US', codigo: '+1' },
   // Adicione outros países conforme necessário
 ];
 
