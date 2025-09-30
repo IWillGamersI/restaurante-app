@@ -245,10 +245,10 @@ export default function LoginCliente() {
                   onChange={(e) => setCodigoPais(e.target.value)}
                   className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 >
-                  <option value="+55">🇧🇷 Brasil (+55)</option>
-                  <option value="+1">🇺🇸 EUA (+1)</option>
-                  <option value="+44">🇬🇧 UK (+44)</option>
-                  <option value="+351">🇵🇹 Portugal (+351)</option>
+                  <option value="+55">🇧🇷 (+55)</option>
+                  <option value="+1">🇺🇸 (+1)</option>
+                  <option value="+44">🇬🇧 (+44)</option>
+                  <option value="+351">🇵🇹 (+351)</option>
                 </select>
 
                 <div className="relative flex-1">
