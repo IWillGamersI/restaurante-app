@@ -9,17 +9,11 @@ import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import bcrypt from 'bcryptjs';
-
-// Lista de países com emoji de bandeira
-const countries = [
-  { code: '55', flag: '🇧🇷' },
-  { code: '1', flag: '🇺🇸' },
-  { code: '351', flag: '🇵🇹' },
-];
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 export default function LoginCliente() {
   const router = useRouter();
-  const [pais, setPais] = useState('55');
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
@@ -33,13 +27,11 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const telefoneCompleto = `+${pais}${telefone.replace(/\D/g, '')}`;
-
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -64,14 +56,14 @@ export default function LoginCliente() {
     if (novoCadastro && !nome) return setErro('Digite seu nome para cadastro');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       let clienteRef;
       if (snap.empty) {
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
-          telefone: telefoneCompleto,
+          telefone,
           nome,
           criadoEm: new Date(),
           senha: '',
@@ -89,19 +81,17 @@ export default function LoginCliente() {
       const response = await fetch('/api/enviarWhatsApp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
+        body: JSON.stringify({ telefone, pin: pinGerado }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Erro ao enviar PIN');
-      }
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Erro ao enviar PIN');
 
       setPinEnviado(true);
       setErro('');
     } catch (err: any) {
       console.error('Erro ao enviar PIN:', err);
-      setErro(err.message || 'Erro ao enviar PIN');
+      setErro(`Erro ao enviar PIN: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -111,7 +101,7 @@ export default function LoginCliente() {
     if (!pin) return setErro('Digite o PIN recebido');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -162,9 +152,10 @@ export default function LoginCliente() {
   const criarSenha = async () => {
     if (!senha) return setErro('Digite a senha');
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
+
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -175,6 +166,7 @@ export default function LoginCliente() {
 
       const clienteRef = snap.docs[0].ref;
       const senhaHash = await bcrypt.hash(senha, 10);
+
       await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
       localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
@@ -191,7 +183,7 @@ export default function LoginCliente() {
     if (!senha) return setErro('Digite a senha');
     setLoading(true);
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefoneCompleto));
+      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
@@ -248,35 +240,22 @@ export default function LoginCliente() {
           {/* Input telefone com bandeira */}
           {clienteTemSenha === null && (
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <select
-                  value={pais}
-                  onChange={(e) => setPais(e.target.value)}
-                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xl"
-                >
-                  {countries.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.flag}
-                    </option>
-                  ))}
-                </select>
-                <div className="relative flex-1">
-                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
-                  <input
-                    type="tel"
-                    placeholder="Telefone"
-                    value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                </div>
+              <div className="relative">
+                <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <PhoneInput
+                  country={'pt'}
+                  value={telefone}
+                  onChange={setTelefone}
+                  inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  buttonClass="rounded-l-lg"
+                  enableSearch
+                  placeholder="Telefone"
+                />
               </div>
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -284,7 +263,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cadastro Nome */}
+          {/* Cadastro - Nome */}
           {novoCadastro && clienteTemSenha === false && !pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -300,7 +279,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente com senha: login */}
+          {/* Cliente já possui senha: login */}
           {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
@@ -316,9 +295,7 @@ export default function LoginCliente() {
               <button
                 onClick={logarCliente}
                 disabled={loading}
-                className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-green-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-green-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Entrar
@@ -338,9 +315,7 @@ export default function LoginCliente() {
               <button
                 onClick={enviarPin}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
@@ -364,9 +339,7 @@ export default function LoginCliente() {
               <button
                 onClick={verificarPin}
                 disabled={loading}
-                className={`w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-yellow-600 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-yellow-600 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Confirmar PIN
@@ -400,9 +373,7 @@ export default function LoginCliente() {
               <button
                 onClick={criarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Criar Senha
