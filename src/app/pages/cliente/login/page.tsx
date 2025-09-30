@@ -223,18 +223,20 @@ export default function LoginCliente() {
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={telefone} // só número local
+                  value={telefone}
                   onChange={(value: string, data: any) => {
                     const numbersOnly = value.replace(/\D/g, '');
-                    setTelefone(numbersOnly);
+                    const dial = (data && data.dialCode) || countryDialCodes[codigoPais] || '';
+                    const localNumber = dial && numbersOnly.startsWith(dial) ? numbersOnly.slice(dial.length) : numbersOnly;
+                    setTelefone(localNumber);
                     if (data && data.countryCode) setCodigoPais(data.countryCode);
                   }}
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
-                  disableCountryCode
-                  countryCodeEditable={false}
+                  disableCountryCode={true}
                   placeholder="Telefone"
+                  disableCountryGuess={true}
                 />
               </div>
 
