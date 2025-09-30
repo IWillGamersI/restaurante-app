@@ -3,21 +3,25 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { FiPhone, FiLock, FiKey, FiCalendar } from 'react-icons/fi';
+import { collection, query, where, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
+import { FiPhone, FiLock, FiKey, FiCalendar, FiUser } from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import bcrypt from 'bcryptjs';
 
 export default function LoginCliente() {
   const router = useRouter();
   const [telefone, setTelefone] = useState('');
+  const [nome, setNome] = useState(''); // 🔹 novo campo
   const [pin, setPin] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [clienteTemSenha, setClienteTemSenha] = useState<boolean | null>(null);
   const [pinEnviado, setPinEnviado] = useState(false);
   const [precisaCriarSenha, setPrecisaCriarSenha] = useState(false);
+  const [recuperandoSenha, setRecuperandoSenha] = useState(false);
+  const [novoCadastro, setNovoCadastro] = useState(false);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,11 +33,13 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        setErro('Número de telefone não encontrado');
-        setClienteTemSenha(null);
+        setNovoCadastro(true);
+        setClienteTemSenha(false);
+        setErro('');
       } else {
         const cliente = snap.docs[0].data();
         setClienteTemSenha(!!cliente.senha);
+        setNovoCadastro(false);
         setErro('');
       }
     } catch (err) {
@@ -45,22 +51,41 @@ export default function LoginCliente() {
   };
 
   const enviarPin = async () => {
+    if (novoCadastro && !nome) {
+      setErro('Digite seu nome para continuar');
+      return;
+    }
+
     setLoading(true);
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
+      let clienteRef;
       if (snap.empty) {
-        setErro('Número de telefone não encontrado');
-        setLoading(false);
-        return;
+        clienteRef = doc(collection(db, 'clientes'));
+        await setDoc(clienteRef, {
+          telefone,
+          nome, // 🔹 salva o nome no cadastro
+          criadoEm: new Date(),
+          senha: '',
+        });
+      } else {
+        clienteRef = snap.docs[0].ref;
       }
 
-      const clienteRef = snap.docs[0].ref;
       const pinGerado = Math.floor(100000 + Math.random() * 900000).toString();
-      console.log('PIN enviado para WhatsApp:', pinGerado);
+      const pinHash = await bcrypt.hash(pinGerado, 10);
+      const expira = new Date(Date.now() + 10 * 60 * 1000);
 
-      await updateDoc(clienteRef, { pinTemp: pinGerado });
+      await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
+
+      await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone, pin: pinGerado }),
+      });
+
       setPinEnviado(true);
       setErro('');
     } catch (err) {
@@ -87,12 +112,33 @@ export default function LoginCliente() {
       const clienteRef = snap.docs[0].ref;
       const cliente = snap.docs[0].data();
 
-      if (cliente.pinTemp === pin) {
+      if (!cliente.pinTempHash || !cliente.pinExpira) {
+        setErro('Nenhum PIN foi enviado');
+        setLoading(false);
+        return;
+      }
+
+      if (new Date() > cliente.pinExpira.toDate()) {
+        setErro('PIN expirado');
+        setLoading(false);
+        return;
+      }
+
+      const valido = await bcrypt.compare(pin, cliente.pinTempHash);
+
+      if (valido) {
+        await updateDoc(clienteRef, { pinTempHash: '', tentativasPin: 0 });
         setPrecisaCriarSenha(true);
         setPinEnviado(false);
-        await updateDoc(clienteRef, { pinTemp: '' });
+        setErro('');
       } else {
-        setErro('PIN incorreto');
+        const tentativas = (cliente.tentativasPin || 0) + 1;
+        await updateDoc(clienteRef, { tentativasPin: tentativas });
+        if (tentativas >= 5) {
+          setErro('Número bloqueado por tentativas excessivas. Tente novamente mais tarde.');
+        } else {
+          setErro('PIN incorreto');
+        }
       }
     } catch (err) {
       console.error(err);
@@ -117,13 +163,11 @@ export default function LoginCliente() {
       }
 
       const clienteRef = snap.docs[0].ref;
-      const cliente = snap.docs[0].data();
+      const senhaHash = await bcrypt.hash(senha, 10);
 
-      await updateDoc(clienteRef, { senha, dataNascimento });
+      await updateDoc(clienteRef, { senha: senhaHash, dataNascimento });
 
-      // Salvar código do cliente para o Dashboard
-      localStorage.setItem('clienteCodigo', cliente.codigoCliente);
-
+      localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
@@ -147,8 +191,9 @@ export default function LoginCliente() {
       }
 
       const cliente = snap.docs[0].data();
-      if (cliente.senha === senha) {
-        // Salvar código do cliente para o Dashboard
+      const senhaValida = await bcrypt.compare(senha, cliente.senha);
+
+      if (senhaValida) {
         localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
@@ -162,6 +207,14 @@ export default function LoginCliente() {
     }
   };
 
+  const iniciarRecuperacao = () => {
+    setRecuperandoSenha(true);
+    setClienteTemSenha(false);
+    setPinEnviado(false);
+    setPrecisaCriarSenha(false);
+    setSenha('');
+  };
+
   const cardVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0 },
@@ -172,7 +225,7 @@ export default function LoginCliente() {
     <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${clienteTemSenha}-${pinEnviado}-${precisaCriarSenha}`}
+          key={`${clienteTemSenha}-${pinEnviado}-${precisaCriarSenha}-${recuperandoSenha}-${novoCadastro}`}
           className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
           initial="hidden"
           animate="visible"
@@ -209,7 +262,7 @@ export default function LoginCliente() {
           )}
 
           {/* Cliente já possui senha: login */}
-          {clienteTemSenha && !precisaCriarSenha && (
+          {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -231,12 +284,33 @@ export default function LoginCliente() {
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Entrar
               </button>
+              <button
+                onClick={iniciarRecuperacao}
+                className="w-full text-blue-600 font-semibold hover:underline"
+              >
+                Esqueci minha senha
+              </button>
             </div>
           )}
 
-          {/* Cliente sem senha: envio PIN */}
+          {/* Cliente sem senha: envio PIN ou cadastro */}
           {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
-            <div className="space-y-4">
+            <div className="space-y-4 text-center">
+              {novoCadastro && (
+                <>
+                  <p className="text-gray-600">Número não encontrado. Vamos criar sua conta! 📱</p>
+                  <div className="relative">
+                    <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
+                    <input
+                      type="text"
+                      placeholder="Nome completo"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    />
+                  </div>
+                </>
+              )}
               <button
                 onClick={enviarPin}
                 disabled={loading}
@@ -245,7 +319,7 @@ export default function LoginCliente() {
                 }`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Enviar PIN
+                {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
               </button>
             </div>
           )}
@@ -315,7 +389,7 @@ export default function LoginCliente() {
           {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
         </motion.div>
       </AnimatePresence>
-      <PWAInstallPrompt/>
+      <PWAInstallPrompt />
     </div>
   );
 }
