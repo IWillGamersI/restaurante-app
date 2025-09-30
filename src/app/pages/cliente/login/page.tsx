@@ -13,7 +13,7 @@ import bcrypt from 'bcryptjs';
 export default function LoginCliente() {
   const router = useRouter();
   const [telefone, setTelefone] = useState('');
-  const [nome, setNome] = useState(''); // 🔹 novo campo
+  const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -66,7 +66,7 @@ export default function LoginCliente() {
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
           telefone,
-          nome, // 🔹 salva o nome no cadastro
+          nome,
           criadoEm: new Date(),
           senha: '',
         });
@@ -80,11 +80,20 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      await fetch('/api/send-whatsapp', {
+      // 🔹 Formatar telefone no padrão E.164 (ex: Brasil +55)
+      let phoneFormatted = telefone.trim();
+      if (!phoneFormatted.startsWith('+')) {
+        phoneFormatted = `+55${phoneFormatted}`;
+      }
+
+      // 🔹 Chamar API Next.js que envia via Twilio template
+      const response = await fetch('/api/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone, pin: pinGerado }),
+        body: JSON.stringify({ telefone: phoneFormatted, pin: pinGerado }),
       });
+
+      if (!response.ok) throw new Error('Erro ao enviar PIN');
 
       setPinEnviado(true);
       setErro('');
@@ -261,6 +270,39 @@ export default function LoginCliente() {
             </div>
           )}
 
+          {/* Cliente sem senha: cadastro + PIN */}
+          {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
+            <div className="space-y-4 text-center">
+              {novoCadastro && (
+                <>
+                  <div className="relative">
+                    <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
+                    <input
+                      type="text"
+                      placeholder="Seu nome"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    />
+                  </div>
+                  <p className="text-gray-600">
+                    Número não encontrado. Vamos criar sua conta! 📱
+                  </p>
+                </>
+              )}
+              <button
+                onClick={enviarPin}
+                disabled={loading}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
+              >
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
+              </button>
+            </div>
+          )}
+
           {/* Cliente já possui senha: login */}
           {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
@@ -293,38 +335,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente sem senha: envio PIN ou cadastro */}
-          {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
-            <div className="space-y-4 text-center">
-              {novoCadastro && (
-                <>
-                  <p className="text-gray-600">Número não encontrado. Vamos criar sua conta! 📱</p>
-                  <div className="relative">
-                    <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
-                    <input
-                      type="text"
-                      placeholder="Nome completo"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    />
-                  </div>
-                </>
-              )}
-              <button
-                onClick={enviarPin}
-                disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                {novoCadastro ? 'Cadastrar e Enviar PIN' : 'Enviar PIN'}
-              </button>
-            </div>
-          )}
-
-          {/* Tela de verificação de PIN */}
+          {/* PIN enviado */}
           {pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -350,7 +361,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Tela de criação de senha */}
+          {/* Criação de senha */}
           {precisaCriarSenha && (
             <div className="space-y-4">
               <div className="relative">
