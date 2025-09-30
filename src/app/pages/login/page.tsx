@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
+import Head from 'next/head';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -56,34 +57,43 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 justify-center min-h-screen bg-gray-100 text-gray-500">
-      <img src="/logo.png" alt="Logo Top Pizzas" width={250} height={250} className="rounded-full border-6 text-orange-500" />
-      <div className="bg-white p-6 rounded shadow-md w-96">
-        <h1 className="text-xl mb-4 font-bold text-center">Login</h1>
+    <>
+      <Head>
+        <title>Login Cliente - Top Pizzas</title>
+        <meta name="description" content="Área de login da Top Pizzas" />
+        <link rel="manifest" href="/manifest-estabelecimento.json" />
+        <meta name="theme-color" content="#1976d2" />
+      </Head>
+    
+      <div className="flex flex-col items-center gap-3 justify-center min-h-screen bg-gray-100 text-gray-500">
+        <img src="/logo.png" alt="Logo Top Pizzas" width={250} height={250} className="rounded-full border-6 text-orange-500" />
+        <div className="bg-white p-6 rounded shadow-md w-96">
+          <h1 className="text-xl mb-4 font-bold text-center">Login</h1>
 
-        <input
-          type="email"
-          className="w-full mb-2 p-2 border rounded"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <input
+            type="email"
+            className="w-full mb-2 p-2 border rounded"
+            placeholder="Email"
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          type="password"
-          className="w-full mb-2 p-2 border rounded"
-          placeholder="Senha"
-          onChange={(e) => setSenha(e.target.value)}
-        />
+          <input
+            type="password"
+            className="w-full mb-2 p-2 border rounded"
+            placeholder="Senha"
+            onChange={(e) => setSenha(e.target.value)}
+          />
 
-        {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
+          {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
 
-        <button
-          onClick={login}
-          className="w-full bg-blue-600 text-white p-2 rounded cursor-pointer hover:bg-blue-700"
-        >
-          Entrar
-        </button>
+          <button
+            onClick={login}
+            className="w-full bg-blue-600 text-white p-2 rounded cursor-pointer hover:bg-blue-700"
+          >
+            Entrar
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
+import Head from 'next/head';
 
 const countryDialCodes: Record<string, string> = {
   pt: '351',
@@ -158,127 +159,135 @@ export default function LoginCliente() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${cliente?.senha}-${novoCadastro}-${recuperandoSenha}`}
-          className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          variants={cardVariants}
-          transition={{ duration: 0.4 }}
-        >
-          <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
+    <>
+      <Head>
+        <title>Login Cliente - Top Pizzas</title>
+        <meta name="description" content="Área de login do cliente Top Pizzas" />
+        <link rel="manifest" href="/manifest-cliente.json" />
+        <meta name="theme-color" content="#1976d2" />
+      </Head>
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${cliente?.senha}-${novoCadastro}-${recuperandoSenha}`}
+            className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={cardVariants}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input Telefone */}
-          {!cliente && !novoCadastro && !recuperandoSenha && (
-            <div className="space-y-4">
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <PhoneInput
-                  country={codigoPais}
-                  value={`+${countryDialCodes[codigoPais] || '351'}${telefone}`}
-                  onChange={(value: string, data: any) => {
-                    const dialCode = data.dialCode || '';
-                    const numbersOnly = value.replace(/\D/g, '');
-                    const localNumber = numbersOnly.startsWith(dialCode)
-                      ? numbersOnly.slice(dialCode.length)
-                      : numbersOnly;
-                    setTelefone(localNumber);
-                    setCodigoPais(data.countryCode);
-                  }}
-                  inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  buttonClass="rounded-l-lg"
-                  enableSearch
-                  disableCountryCode={true}
-                  placeholder="Telefone"
-                />
-              </div>
-              <button
-                onClick={verificarTelefone}
-                disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Continuar
-              </button>
-            </div>
-          )}
-
-          {/* Campos de cadastro, recuperação ou login */}
-          {(novoCadastro || cliente || recuperandoSenha) && (
-            <div className="space-y-4">
-              {/* Nome apenas para novo cadastro */}
-              {novoCadastro && (
+            {/* Input Telefone */}
+            {!cliente && !novoCadastro && !recuperandoSenha && (
+              <div className="space-y-4">
                 <div className="relative">
-                  <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
-                  <input
-                    type="text"
-                    placeholder="Digite seu nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <PhoneInput
+                    country={codigoPais}
+                    value={`+${countryDialCodes[codigoPais] || '351'}${telefone}`}
+                    onChange={(value: string, data: any) => {
+                      const dialCode = data.dialCode || '';
+                      const numbersOnly = value.replace(/\D/g, '');
+                      const localNumber = numbersOnly.startsWith(dialCode)
+                        ? numbersOnly.slice(dialCode.length)
+                        : numbersOnly;
+                      setTelefone(localNumber);
+                      setCodigoPais(data.countryCode);
+                    }}
+                    inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    buttonClass="rounded-l-lg"
+                    enableSearch
+                    disableCountryCode={true}
+                    placeholder="Telefone"
                   />
                 </div>
-              )}
-
-              {/* Senha */}
-              <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="password"
-                  placeholder={recuperandoSenha ? 'Nova senha' : 'Senha'}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <button
+                  onClick={verificarTelefone}
+                  disabled={loading}
+                  className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                  Continuar
+                </button>
               </div>
+            )}
 
-              {/* Data de nascimento apenas para criar ou recuperar senha */}
-              {(!cliente?.senha || recuperandoSenha) && (
+            {/* Campos de cadastro, recuperação ou login */}
+            {(novoCadastro || cliente || recuperandoSenha) && (
+              <div className="space-y-4">
+                {/* Nome apenas para novo cadastro */}
+                {novoCadastro && (
+                  <div className="relative">
+                    <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
+                    <input
+                      type="text"
+                      placeholder="Digite seu nome"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    />
+                  </div>
+                )}
+
+                {/* Senha */}
                 <div className="relative">
-                  <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
                   <input
-                    type="date"
-                    placeholder="Data de nascimento"
-                    value={dataNascimento}
-                    onChange={(e) => setDataNascimento(e.target.value)}
+                    type="password"
+                    placeholder={recuperandoSenha ? 'Nova senha' : 'Senha'}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
                     className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                   />
                 </div>
-              )}
 
-              {/* Botão criar/atualizar senha ou login */}
-              <button
-                onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
-                disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                {cliente?.senha && !recuperandoSenha
-                  ? 'Entrar'
-                  : recuperandoSenha
-                  ? 'Atualizar Senha'
-                  : 'Criar Senha'}
-              </button>
+                {/* Data de nascimento apenas para criar ou recuperar senha */}
+                {(!cliente?.senha || recuperandoSenha) && (
+                  <div className="relative">
+                    <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                    <input
+                      type="date"
+                      placeholder="Data de nascimento"
+                      value={dataNascimento}
+                      onChange={(e) => setDataNascimento(e.target.value)}
+                      className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                    />
+                  </div>
+                )}
 
-              {/* Botão recuperar senha só para clientes existentes com senha */}
-              {cliente?.senha && !recuperandoSenha && (
+                {/* Botão criar/atualizar senha ou login */}
                 <button
-                  onClick={iniciarRecuperacao}
-                  className="w-full text-blue-600 font-semibold hover:underline"
+                  onClick={cliente?.senha && !recuperandoSenha ? logarCliente : criarOuAtualizarSenha}
+                  disabled={loading}
+                  className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  Esqueci minha senha
+                  {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
+                  {cliente?.senha && !recuperandoSenha
+                    ? 'Entrar'
+                    : recuperandoSenha
+                    ? 'Atualizar Senha'
+                    : 'Criar Senha'}
                 </button>
-              )}
-            </div>
-          )}
 
-          {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
-        </motion.div>
-      </AnimatePresence>
-      <PWAInstallPrompt />
-    </div>
+                {/* Botão recuperar senha só para clientes existentes com senha */}
+                {cliente?.senha && !recuperandoSenha && (
+                  <button
+                    onClick={iniciarRecuperacao}
+                    className="w-full text-blue-600 font-semibold hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
+              </div>
+            )}
+
+            {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
+          </motion.div>
+        </AnimatePresence>
+        <PWAInstallPrompt />
+      </div>
+    </>
   );
 }

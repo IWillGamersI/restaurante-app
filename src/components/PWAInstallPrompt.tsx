@@ -1,36 +1,44 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showButton, setShowButton] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
+    // Cria dinamicamente o link do manifest correto
+    const manifestLink = document.createElement("link");
+    manifestLink.rel = "manifest";
+
+    if (window.location.pathname.startsWith("/pages/cliente")) {
+      manifestLink.href = "/manifest-cliente.json";
+    } else if (window.location.pathname.startsWith("/pages/estabelecimento")) {
+      manifestLink.href = "/manifest-estabelecimento.json";
+    }
+
+    document.head.appendChild(manifestLink);
+
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowButton(true); // exibe botão customizado
+      setShowButton(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      document.head.removeChild(manifestLink);
+    };
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log("Instalação resultado:", outcome);
+    await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShowButton(false);
-
-    if (outcome === "accepted") {
-      // Redireciona automaticamente para login do cliente
-      router.push("/pages/cliente/login");
-    }
+    // Não precisa redirecionar, o start_url do manifest define a rota inicial
   };
 
   if (!showButton) return null;
