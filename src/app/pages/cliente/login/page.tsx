@@ -24,7 +24,7 @@ export default function LoginCliente() {
   const router = useRouter();
 
   const [telefone, setTelefone] = useState(''); // número local (sem DDI)
-  const [codigoPais, setCodigoPais] = useState('pt'); // alpha2: pt, br, us
+  const [codigoPais, setCodigoPais] = useState('pt'); // alpha2
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -53,12 +53,17 @@ export default function LoginCliente() {
         const data = docSnap.data();
         setCliente({ ref: docSnap.ref, ...data });
 
+        // popula o input com o telefone salvo (local)
+        if (data.telefone) setTelefone(String(data.telefone));
+
+        // ajusta country alpha2 a partir do codigo numérico salvo (se houver)
         setCodigoPais(
           data.codigoPais
-            ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === data.codigoPais) || 'pt'
+            ? (Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt')
             : 'pt'
         );
-        setNovoCadastro(!data.senha);
+
+        setNovoCadastro(!data.senha); // se não tem senha, mostra criar senha
         setRecuperandoSenha(false);
       }
     } catch (err) {
@@ -73,6 +78,7 @@ export default function LoginCliente() {
   const criarOuAtualizarSenha = async () => {
     setErro('');
     if (!senha) return setErro('Digite a senha');
+    // quando criando ou recuperando, data de nascimento é obrigatória
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
 
     setLoading(true);
@@ -81,7 +87,7 @@ export default function LoginCliente() {
       let codigoCliente = '';
 
       if (!cliente) {
-        // novo cliente
+        // novo cliente real
         codigoCliente = gerarCodigoCliente(nome, telefone);
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
@@ -94,6 +100,7 @@ export default function LoginCliente() {
           dataNascimento,
         });
 
+        // atualizar estado local
         setCliente({
           ref: clienteRef,
           telefone,
@@ -105,6 +112,8 @@ export default function LoginCliente() {
         });
       } else {
         clienteRef = cliente.ref;
+
+        // Recuperação: valida data de nascimento se solicitado
         if (recuperandoSenha) {
           const existente = cliente.dataNascimento;
           const existenteStr = existente
@@ -195,31 +204,28 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input Telefone */}
+          {/* INPUT TELEFONE */}
           {!cliente && !novoCadastro && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={`${countryDialCodes[codigoPais] || ''}${telefone}`}
+                  value={telefone} // passamos só o número local para o input
                   onChange={(value: string, data: any) => {
+                    // value pode trazer o DDI; queremos só os dígitos locais.
                     const numbersOnly = value.replace(/\D/g, '');
-                    const dialCode = data.dialCode || countryDialCodes[codigoPais];
-                    const localNumber = numbersOnly.startsWith(dialCode)
-                      ? numbersOnly.slice(dialCode.length)
-                      : numbersOnly;
+                    const dial = (data && data.dialCode) || countryDialCodes[codigoPais] || '';
+                    const localNumber = dial && numbersOnly.startsWith(dial) ? numbersOnly.slice(dial.length) : numbersOnly;
                     setTelefone(localNumber);
                     if (data && data.countryCode) setCodigoPais(data.countryCode);
                   }}
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
-                  disableCountryCode={true}
-                  countryCodeEditable={false}
-                  enableAreaCodes={false}
-                  disableDropdown={false}
+                  disableCountryCode={true} // oculta o +351 visualmente no input
                   placeholder="Telefone"
+                  disableCountryGuess={true}
                 />
               </div>
 
@@ -239,6 +245,7 @@ export default function LoginCliente() {
           {/* Cadastro / Recuperação / Login */}
           {(novoCadastro || cliente || recuperandoSenha) && (
             <div className="space-y-4">
+              {/* Nome apenas para novo cadastro real */}
               {novoCadastro && (
                 <div className="relative">
                   <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -252,6 +259,7 @@ export default function LoginCliente() {
                 </div>
               )}
 
+              {/* Senha */}
               <div className="relative">
                 <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <input
@@ -263,6 +271,7 @@ export default function LoginCliente() {
                 />
               </div>
 
+              {/* Data de nascimento apenas para criar/recuperar */}
               {(!cliente?.senha || recuperandoSenha) && (
                 <div className="relative">
                   <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -291,10 +300,7 @@ export default function LoginCliente() {
               </button>
 
               {cliente?.senha && !recuperandoSenha && (
-                <button
-                  onClick={iniciarRecuperacao}
-                  className="w-full text-blue-600 font-semibold hover:underline"
-                >
+                <button onClick={iniciarRecuperacao} className="w-full text-blue-600 font-semibold hover:underline">
                   Esqueci minha senha
                 </button>
               )}
