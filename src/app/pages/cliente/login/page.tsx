@@ -11,19 +11,22 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import bcrypt from 'bcryptjs';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import { useCodigos } from '@/hook/useCodigos';
 
-// Mapa de códigos numéricos de discagem
 const countryDialCodes: Record<string, string> = {
   pt: '351',
   br: '55',
   us: '1',
-  // adicione outros países que precisar
+  // outros países se necessário
 };
 
 export default function LoginCliente() {
+
+  const {gerarCodigoCliente} = useCodigos()
+
   const router = useRouter();
   const [telefone, setTelefone] = useState('');
-  const [codigoPais, setCodigoPais] = useState('pt'); // Código do país separado
+  const [codigoPais, setCodigoPais] = useState('pt'); // código do país alpha2
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
   const [senha, setSenha] = useState('');
@@ -36,7 +39,6 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Verifica se o telefone já está cadastrado
   const verificarTelefone = async () => {
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
@@ -51,8 +53,11 @@ export default function LoginCliente() {
       } else {
         const cliente = snap.docs[0].data();
         setClienteTemSenha(!!cliente.senha);
-        // Se não tiver código do país no Firestore, fallback para Portugal
-        setCodigoPais(cliente.codigoPais ? Object.keys(countryDialCodes).find(k => countryDialCodes[k] === cliente.codigoPais) || 'pt' : 'pt');
+        setCodigoPais(
+          cliente.codigoPais
+            ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === cliente.codigoPais) || 'pt'
+            : 'pt'
+        );
         setNovoCadastro(false);
         setErro('');
       }
@@ -64,9 +69,10 @@ export default function LoginCliente() {
     }
   };
 
-  // Envia PIN via WhatsApp
   const enviarPin = async () => {
+
     if (novoCadastro && !nome) return setErro('Digite seu nome para cadastro');
+    if (!telefone) return setErro('Digite seu telefone');
     setLoading(true);
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
@@ -74,12 +80,14 @@ export default function LoginCliente() {
 
       let clienteRef;
       if (snap.empty) {
+        const codigoCliente = gerarCodigoCliente(nome,telefone)
         clienteRef = doc(collection(db, 'clientes'));
         await setDoc(clienteRef, {
-          telefone,
-          codigoPais: countryDialCodes[codigoPais] || '351', // salva código numérico
+          telefone, // salva só o número local
+          codigoPais: countryDialCodes[codigoPais] || '351',
           nome,
           criadoEm: new Date(),
+          codigoCliente,
           senha: '',
         });
       } else {
@@ -92,8 +100,8 @@ export default function LoginCliente() {
 
       await updateDoc(clienteRef, { pinTempHash: pinHash, pinExpira: expira, tentativasPin: 0 });
 
-      // Gera telefone completo com código numérico
       const telefoneCompleto = `+${countryDialCodes[codigoPais] || '351'}${telefone}`;
+      console.log('Enviando PIN para:', telefoneCompleto, 'PIN:', pinGerado);
 
       const response = await fetch('/api/enviarWhatsApp', {
         method: 'POST',
@@ -101,6 +109,7 @@ export default function LoginCliente() {
         body: JSON.stringify({ telefone: telefoneCompleto, pin: pinGerado }),
       });
 
+      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Erro ao enviar PIN');
 
@@ -114,7 +123,6 @@ export default function LoginCliente() {
     }
   };
 
-  // Verifica o PIN digitado
   const verificarPin = async () => {
     if (!pin) return setErro('Digite o PIN recebido');
     setLoading(true);
@@ -167,7 +175,6 @@ export default function LoginCliente() {
     }
   };
 
-  // Cria a senha do cliente
   const criarSenha = async () => {
     if (!senha) return setErro('Digite a senha');
     if (!dataNascimento) return setErro('Digite sua data de nascimento');
@@ -189,7 +196,7 @@ export default function LoginCliente() {
       await updateDoc(clienteRef, {
         senha: senhaHash,
         dataNascimento,
-        codigoPais: snap.docs[0].data().codigoPais || '351', // garante código numérico
+        codigoPais: snap.docs[0].data().codigoPais || '351',
       });
 
       localStorage.setItem('clienteCodigo', snap.docs[0].data().codigoCliente || '');
@@ -202,7 +209,6 @@ export default function LoginCliente() {
     }
   };
 
-  // Login com senha
   const logarCliente = async () => {
     if (!senha) return setErro('Digite a senha');
     setLoading(true);
@@ -268,14 +274,20 @@ export default function LoginCliente() {
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
                 <PhoneInput
                   country={codigoPais}
-                  value={telefone}
-                  onChange={(value, data: any) => {
-                    setTelefone(value.replace(`+${data.dialCode}`, ''));
+                  value={`+${countryDialCodes[codigoPais] || '351'}${telefone}`}
+                  onChange={(value: string, data: any) => {
+                    const dialCode = data.dialCode || '';
+                    const numbersOnly = value.replace(/\D/g, '');
+                    const localNumber = numbersOnly.startsWith(dialCode)
+                      ? numbersOnly.slice(dialCode.length)
+                      : numbersOnly;
+                    setTelefone(localNumber);
                     setCodigoPais(data.countryCode);
                   }}
                   inputClass="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   buttonClass="rounded-l-lg"
                   enableSearch
+                  disableCountryCode={true}
                   placeholder="Telefone"
                 />
               </div>
@@ -292,7 +304,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cadastro - Nome */}
+          {/* restante da UI permanece igual */}
           {novoCadastro && clienteTemSenha === false && !pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -308,7 +320,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente já possui senha: login */}
           {clienteTemSenha && !precisaCriarSenha && !recuperandoSenha && (
             <div className="space-y-4">
               <div className="relative">
@@ -337,7 +348,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Cliente sem senha: envio PIN */}
           {clienteTemSenha === false && !pinEnviado && !precisaCriarSenha && (
             <div className="space-y-4 text-center">
               <button
@@ -353,7 +363,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Tela de verificação de PIN */}
           {pinEnviado && (
             <div className="space-y-4">
               <div className="relative">
@@ -379,7 +388,6 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* Tela de criação de senha */}
           {precisaCriarSenha && (
             <div className="space-y-4">
               <div className="relative">

@@ -180,6 +180,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
           nome: clienteNome || "Cliente CLNT",
           telefone: clienteTelefone,
           codigoCliente: novoCodigo,
+          codigoPais: '351'
         });
         clienteIdFinal = docRef.id;
         codigoClienteFinal = novoCodigo;
