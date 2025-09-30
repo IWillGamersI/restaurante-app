@@ -12,7 +12,7 @@ import bcrypt from 'bcryptjs';
 
 export default function LoginCliente() {
   const router = useRouter();
-  const [codigoPais, setCodigoPais] = useState('+55'); // 🇧🇷 padrão
+  const [codigoPais, setCodigoPais] = useState('+55');
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState('');
@@ -236,31 +236,28 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* Input telefone com seleção de país */}
+          {/* Input telefone integrado com select de país */}
           {clienteTemSenha === null && (
-            <div className="space-y-4">
-              <div className="flex space-x-2">
+            <div className="space-y-4 relative">
+              <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
+              <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                 <select
                   value={codigoPais}
                   onChange={(e) => setCodigoPais(e.target.value)}
-                  className="px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="px-3 py-3 bg-gray-100 text-gray-700 outline-none border-r"
                 >
-                  <option value="+55">🇧🇷 (+55)</option>
-                  <option value="+1">🇺🇸 (+1)</option>
-                  <option value="+44">🇬🇧 (+44)</option>
-                  <option value="+351">🇵🇹 (+351)</option>
+                  <option value="+55">🇧🇷 +55</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+351">🇵🇹 +351</option>
                 </select>
-
-                <div className="relative flex-1">
-                  <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
-                  <input
-                    type="tel"
-                    placeholder="Telefone"
-                    value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full pl-10 pr-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                </div>
+                <input
+                  type="tel"
+                  placeholder="Telefone"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  className="flex-1 px-3 py-3 outline-none"
+                />
               </div>
               <button
                 onClick={verificarTelefone}
