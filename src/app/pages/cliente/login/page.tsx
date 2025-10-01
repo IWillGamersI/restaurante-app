@@ -62,8 +62,8 @@ export default function LoginCliente() {
             : 'pt'
         );
 
-        setNovoCadastro(!data.senha);
-        setRecuperandoSenha(false);
+        setNovoCadastro(false);
+        setRecuperandoSenha(!data.senha);
       }
     } catch (err) {
       console.error(err);
