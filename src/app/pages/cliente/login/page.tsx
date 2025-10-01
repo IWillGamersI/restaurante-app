@@ -70,6 +70,7 @@ export default function LoginCliente() {
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
+        // Guardar apenas códigoCliente para futuras operações
         setCliente({ ref: docSnap.ref, codigoCliente: data.codigoCliente });
 
         if (!data.senha) {
@@ -134,18 +135,6 @@ export default function LoginCliente() {
     try {
       if (!cliente) {
         setErro('Cliente não encontrado');
-        setLoading(false);
-        return;
-      }
-
-      const clienteData = (await getDocs(query(
-        collection(db, 'clientes'),
-        where('codigoCliente', '==', cliente.codigoCliente)
-      ))).docs[0].data();
-
-      // Se já existe dataNascimento no banco, validar
-      if (clienteData.dataNascimento && clienteData.dataNascimento !== dataNascimento) {
-        setErro('Data de nascimento não confere');
         setLoading(false);
         return;
       }
@@ -222,7 +211,9 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* INPUT TELEFONE */}
+          {/* ------------------------------------------------------ */}
+          {/* 1️⃣ INÍCIO: Apenas telefone */}
+          {/* ------------------------------------------------------ */}
           {!cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -257,8 +248,10 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DE CADASTRO COMPLETO */}
-          {modo === 'novo' && cliente === null && (
+          {/* ------------------------------------------------------ */}
+          {/* 2️⃣ CADASTRO COMPLETO */}
+          {/* ------------------------------------------------------ */}
+          {modo === 'novo' && cliente && (
             <div className="space-y-4">
               <div className="relative">
                 <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -303,7 +296,9 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO LOGIN */}
+          {/* ------------------------------------------------------ */}
+          {/* 3️⃣ LOGIN */}
+          {/* ------------------------------------------------------ */}
           {modo === 'login' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -335,7 +330,9 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DEFINIR / RECUPERAR SENHA */}
+          {/* ------------------------------------------------------ */}
+          {/* 4️⃣ DEFINIR / RECUPERAR SENHA */}
+          {/* ------------------------------------------------------ */}
           {modo === 'recuperar' && cliente && (
             <div className="space-y-4">
               <div className="relative">
