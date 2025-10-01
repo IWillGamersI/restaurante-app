@@ -46,7 +46,6 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Novo cliente
         setCliente(null);
         setNovoCadastro(true);
         setRedefinirSenha(false);
@@ -61,14 +60,11 @@ export default function LoginCliente() {
         }
 
         setCliente({ ref: docSnap.ref, ...data });
-
         setCodigoPais(
-          data.codigoPais
-            ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
-            : 'pt'
+          Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
         );
 
-        // Se já tiver senha, mostrar login normal
+        // Se já tiver senha, mostrar login
         // Se não tiver senha, mostrar criar senha
         if (!data.senha) {
           setNovoCadastro(false);
@@ -238,9 +234,7 @@ export default function LoginCliente() {
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />} Continuar
               </button>
