@@ -29,7 +29,6 @@ export default function LoginCliente() {
   const [dataNascimento, setDataNascimento] = useState('');
   const [cliente, setCliente] = useState<any | null>(null);
   const [novoCadastro, setNovoCadastro] = useState(false);
-  const [cadastrarSenha, setCadastrarSenha] = useState(false); // para cliente existente sem senha
   const [redefinirSenha, setRedefinirSenha] = useState(false);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,38 +39,44 @@ export default function LoginCliente() {
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
-
     setLoading(true);
+
     try {
       const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Novo cliente real
+        // Novo cliente
         setCliente(null);
         setNovoCadastro(true);
-        setCadastrarSenha(false);
         setRedefinirSenha(false);
       } else {
         const docSnap = snap.docs[0];
         const data = docSnap.data();
+
+        // Garantir codigoPais
+        if (!data.codigoPais) {
+          await updateDoc(docSnap.ref, { codigoPais: '351' });
+          data.codigoPais = '351';
+        }
+
         setCliente({ ref: docSnap.ref, ...data });
 
-        if (data.telefone) setTelefone(String(data.telefone));
         setCodigoPais(
           data.codigoPais
             ? Object.keys(countryDialCodes).find((k) => countryDialCodes[k] === String(data.codigoPais)) || 'pt'
             : 'pt'
         );
 
+        // Se já tiver senha, mostrar login normal
+        // Se não tiver senha, mostrar criar senha
         if (!data.senha) {
-          setCadastrarSenha(true); // cliente existe, precisa criar senha
+          setNovoCadastro(false);
+          setRedefinirSenha(true);
         } else {
-          setCadastrarSenha(false);
+          setNovoCadastro(false);
+          setRedefinirSenha(false);
         }
-
-        setNovoCadastro(false);
-        setRedefinirSenha(false);
       }
     } catch (err) {
       console.error(err);
@@ -82,122 +87,73 @@ export default function LoginCliente() {
   };
 
   // ------------------------------
-  // CADASTRAR NOVO CLIENTE
+  // CRIAR NOVO CLIENTE
   // ------------------------------
-  const cadastrarNovoCliente = async () => {
+  const criarCliente = async () => {
     setErro('');
-    if (!telefone || !nome || !senha || !dataNascimento) {
-      setErro('Preencha todos os campos');
-      return;
-    }
+    if (!nome) return setErro('Digite seu nome');
+    if (!telefone) return setErro('Digite seu telefone');
+    if (!dataNascimento) return setErro('Digite sua data de nascimento');
+    if (!senha) return setErro('Digite uma senha');
 
     setLoading(true);
     try {
       const codigoCliente = gerarCodigoCliente(nome, telefone);
       const clienteRef = doc(collection(db, 'clientes'));
       await setDoc(clienteRef, {
+        codigoCliente,
+        nome,
         telefone,
         codigoPais: countryDialCodes[codigoPais] || '351',
-        nome,
+        dataNascimento,
+        senha,
+        cartaoFidelidade: [],
         criadoEm: new Date(),
-        codigoCliente,
-        senha,
-        dataNascimento,
       });
 
-      setCliente({
-        ref: clienteRef,
-        telefone,
-        codigoPais: countryDialCodes[codigoPais] || '351',
-        nome,
-        codigoCliente,
-        senha,
-        dataNascimento,
-      });
-
+      setCliente({ ref: clienteRef, codigoCliente, nome, telefone, codigoPais, dataNascimento, senha, cartaoFidelidade: [] });
       localStorage.setItem('clienteCodigo', codigoCliente);
-      setNovoCadastro(false);
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
-      setErro('Erro ao cadastrar cliente');
+      setErro('Erro ao criar cliente');
     } finally {
       setLoading(false);
     }
   };
 
   // ------------------------------
-  // CADASTRAR SENHA PARA CLIENTE EXISTENTE
+  // REDIFINIR SENHA
   // ------------------------------
-  const cadastrarSenhaCliente = async () => {
+  const atualizarSenha = async () => {
     setErro('');
-    if (!senha || !dataNascimento) {
-      setErro('Preencha todos os campos');
-      return;
-    }
-
-    if (!cliente) {
-      setErro('Cliente não encontrado');
-      return;
-    }
+    if (!senha) return setErro('Digite sua senha');
+    if (!dataNascimento) return setErro('Digite sua data de nascimento');
 
     setLoading(true);
     try {
-      const clienteRef = cliente.ref;
-      await updateDoc(clienteRef, { senha, dataNascimento });
+      const existente = cliente.dataNascimento;
+      const existenteStr = existente
+        ? typeof existente === 'string'
+          ? existente
+          : existente.toDate
+          ? existente.toDate().toISOString().slice(0, 10)
+          : String(existente)
+        : '';
 
-      setCliente({ ...cliente, senha, dataNascimento });
-      localStorage.setItem('clienteCodigo', cliente.codigoCliente || '');
-      setCadastrarSenha(false);
-      router.push('/pages/cliente/dashboard');
-    } catch (err) {
-      console.error(err);
-      setErro('Erro ao cadastrar senha');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (existenteStr && existenteStr !== dataNascimento) {
+        setErro('Data de nascimento não confere');
+        setLoading(false);
+        return;
+      }
 
-  // ------------------------------
-  // REDEFINIR SENHA
-  // ------------------------------
-  const redefinirSenhaCliente = async () => {
-    setErro('');
-    if (!senha || !dataNascimento) {
-      setErro('Preencha todos os campos');
-      return;
-    }
-
-    if (!cliente) {
-      setErro('Cliente não encontrado');
-      return;
-    }
-
-    // valida data de nascimento existente
-    const existente = cliente.dataNascimento;
-    const existenteStr = existente
-      ? typeof existente === 'string'
-        ? existente
-        : existente.toDate
-        ? existente.toDate().toISOString().slice(0, 10)
-        : String(existente)
-      : '';
-
-    if (existenteStr !== dataNascimento) {
-      setErro('Data de nascimento não confere');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const clienteRef = cliente.ref;
-      await updateDoc(clienteRef, { senha });
-      setCliente({ ...cliente, senha });
+      await updateDoc(cliente.ref, { senha, dataNascimento });
+      localStorage.setItem('clienteCodigo', cliente.codigoCliente);
       setRedefinirSenha(false);
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
-      setErro('Erro ao redefinir senha');
+      setErro('Erro ao atualizar senha');
     } finally {
       setLoading(false);
     }
@@ -209,8 +165,8 @@ export default function LoginCliente() {
   const logarCliente = async () => {
     setErro('');
     if (!senha) return setErro('Digite a senha');
-
     setLoading(true);
+
     try {
       if (!cliente) {
         setErro('Telefone não cadastrado');
@@ -219,7 +175,7 @@ export default function LoginCliente() {
       }
 
       if (cliente.senha === senha) {
-        if (cliente.codigoCliente) localStorage.setItem('clienteCodigo', cliente.codigoCliente);
+        localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
         setErro('Senha incorreta');
@@ -232,26 +188,21 @@ export default function LoginCliente() {
     }
   };
 
-  const iniciarRedefinicao = () => {
+  const iniciarRecuperacao = () => {
     setRedefinirSenha(true);
-    setCadastrarSenha(false);
     setNovoCadastro(false);
     setSenha('');
     setDataNascimento('');
     setErro('');
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -50 },
-  };
+  const cardVariants = { hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -50 } };
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${cliente?.senha ?? ''}-${novoCadastro}-${cadastrarSenha}-${redefinirSenha}`}
+          key={`${cliente?.senha ?? ''}-${novoCadastro}-${redefinirSenha}`}
           className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
           initial="hidden"
           animate="visible"
@@ -261,8 +212,8 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* INPUT TELEFONE */}
-          {!cliente && !novoCadastro && !cadastrarSenha && !redefinirSenha && (
+          {/* Input Telefone */}
+          {!cliente && !novoCadastro && !redefinirSenha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -284,163 +235,74 @@ export default function LoginCliente() {
                   disableCountryGuess={true}
                 />
               </div>
-
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Continuar
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />} Continuar
               </button>
             </div>
           )}
 
-          {/* NOVO CADASTRO */}
+          {/* Novo cadastro */}
           {novoCadastro && (
             <div className="space-y-4">
               <div className="relative">
                 <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="text"
-                  placeholder="Digite seu nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-
-              <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="password"
-                  placeholder="Senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <input type="text" placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
               </div>
 
               <div className="relative">
                 <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="date"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
               </div>
 
-              <button
-                onClick={cadastrarNovoCliente}
-                disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Criar Conta
-              </button>
-            </div>
-          )}
-
-          {/* CADASTRAR SENHA */}
-          {cadastrarSenha && (
-            <div className="space-y-4">
               <div className="relative">
                 <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="password"
-                  placeholder="Senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
               </div>
 
-              <div className="relative">
-                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="date"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
-              </div>
-
-              <button
-                onClick={cadastrarSenhaCliente}
-                disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Criar Senha
+              <button onClick={criarCliente} disabled={loading} className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />} Criar Cliente
               </button>
             </div>
           )}
 
-          {/* REDEFINIR SENHA */}
+          {/* Redefinir senha */}
           {redefinirSenha && (
             <div className="space-y-4">
               <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="password"
-                  placeholder="Nova Senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
               </div>
 
               <div className="relative">
-                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="date"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input type="password" placeholder="Nova Senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
               </div>
 
-              <button
-                onClick={redefinirSenhaCliente}
-                disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Atualizar Senha
+              <button onClick={atualizarSenha} disabled={loading} className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />} Atualizar Senha
               </button>
             </div>
           )}
 
-          {/* LOGIN */}
-          {!novoCadastro && !cadastrarSenha && !redefinirSenha && cliente?.senha && (
+          {/* Login */}
+          {!novoCadastro && !redefinirSenha && cliente?.senha && (
             <div className="space-y-4">
               <div className="relative">
                 <FiLock className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="password"
-                  placeholder="Senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
+                <input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
               </div>
 
-              <button
-                onClick={logarCliente}
-                disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Entrar
+              <button onClick={logarCliente} disabled={loading} className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />} Entrar
               </button>
 
-              <button
-                onClick={iniciarRedefinicao}
-                className="w-full text-blue-600 font-semibold hover:underline"
-              >
-                Esqueci minha senha
-              </button>
+              <button onClick={iniciarRecuperacao} className="w-full text-blue-600 font-semibold hover:underline">Esqueci minha senha</button>
             </div>
           )}
 
@@ -452,4 +314,3 @@ export default function LoginCliente() {
     </div>
   );
 }
-
