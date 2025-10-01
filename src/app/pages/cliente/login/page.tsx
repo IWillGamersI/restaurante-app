@@ -56,32 +56,44 @@ export default function LoginCliente() {
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
+
+    const codigoPaisValue = countryDialCodes[codigoPais] || '351';
+    if (!codigoPaisValue) return setErro('Código do país inválido');
+
     setLoading(true);
 
     try {
+      // Query segura para telefone + código do país
       const q = query(
         collection(db, 'clientes'),
-        where('codigoPais', '==', countryDialCodes[codigoPais] || '351'),
+        where('codigoPais', '==', codigoPaisValue),
         where('telefone', '==', telefone)
       );
 
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Cliente não existe → cadastro completo
+        // Cliente não existe → modo cadastro
         setCliente(null);
         setModo('novo');
       } else {
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
-        // Guardar apenas códigoCliente para futuras operações
+        // Se não tiver codigoPais, atualiza
+        if (!data.codigoPais) {
+          await updateDoc(docSnap.ref, { codigoPais: codigoPaisValue });
+          data.codigoPais = codigoPaisValue;
+        }
+
+        // Guardar referência e códigoCliente apenas (não expor dados sensíveis)
         setCliente({ ref: docSnap.ref, codigoCliente: data.codigoCliente });
 
+        // Determinar o modo correto
         if (!data.senha) {
-          setModo('recuperar'); // definir senha
+          setModo('recuperar'); // precisa definir senha
         } else {
-          setModo('login'); // login normal
+          setModo('login'); // já tem senha → login
         }
       }
     } catch (err) {
@@ -91,6 +103,7 @@ export default function LoginCliente() {
       setLoading(false);
     }
   };
+
 
   // ------------------------------
   // CRIAR NOVO CLIENTE
