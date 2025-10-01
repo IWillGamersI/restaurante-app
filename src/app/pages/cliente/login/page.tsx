@@ -60,6 +60,7 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
+        // cliente não existe → cadastro novo
         setCliente(null);
         setModo('novo');
       } else {
@@ -77,8 +78,8 @@ export default function LoginCliente() {
           Object.keys(countryDialCodes).find(k => countryDialCodes[k] === data.codigoPais) || 'pt'
         );
 
-        if (!data.senha) setModo('recuperar');
-        else setModo('login');
+        if (!data.senha) setModo('recuperar'); // criar senha
+        else setModo('login'); // login normal
       }
     } catch (err) {
       console.error(err);
@@ -136,6 +137,13 @@ export default function LoginCliente() {
     try {
       if (!cliente) {
         setErro('Cliente não encontrado');
+        setLoading(false);
+        return;
+      }
+
+      // Se já existe dataNascimento no banco, validar
+      if (cliente.dataNascimento && cliente.dataNascimento !== dataNascimento) {
+        setErro('Data de nascimento não confere');
         setLoading(false);
         return;
       }
@@ -214,7 +222,7 @@ export default function LoginCliente() {
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
           {/* INPUT TELEFONE */}
-          {modo === 'novo' && !cliente && (
+          {!cliente && (
             <div className="space-y-4">
               <div className="relative">
                 <FiPhone className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -249,7 +257,7 @@ export default function LoginCliente() {
           )}
 
           {/* FORMULÁRIO DE NOVO CLIENTE */}
-          {modo === 'novo' && cliente && (
+          {modo === 'novo' && cliente === null && (
             <div className="space-y-4">
               <div className="relative">
                 <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -326,7 +334,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DE REDEFINIR SENHA */}
+          {/* FORMULÁRIO DE DEFINIR / RECUPERAR SENHA */}
           {modo === 'recuperar' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -340,16 +348,19 @@ export default function LoginCliente() {
                 />
               </div>
 
-              <div className="relative">
-                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                <input
-                  type="date"
-                  placeholder="Data de nascimento"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
-                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                />
-              </div>
+              {/* Só mostra campo de data se já existir no banco */}
+              {cliente.dataNascimento && (
+                <div className="relative">
+                  <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                  <input
+                    type="date"
+                    placeholder="Data de nascimento"
+                    value={dataNascimento}
+                    onChange={(e) => setDataNascimento(e.target.value)}
+                    className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                  />
+                </div>
+              )}
 
               <button
                 onClick={cadastrarOuAtualizarSenha}
@@ -357,7 +368,7 @@ export default function LoginCliente() {
                 className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
-                Atualizar Senha
+                Salvar Senha
               </button>
             </div>
           )}
