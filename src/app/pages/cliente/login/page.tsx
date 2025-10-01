@@ -40,46 +40,43 @@ export default function LoginCliente() {
   useEffect(() => {
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
-    manifestLink.href = '/manifest-cliente.json'; // sempre cliente
+    manifestLink.href = '/manifest-cliente.json'; 
     document.head.appendChild(manifestLink);
-
-    return () => {
-      document.head.removeChild(manifestLink);
-    };
+    return () => document.head.removeChild(manifestLink);
   }, []);
 
   // ------------------------------
-  // VERIFICAR TELEFONE
+  // VERIFICAR TELEFONE (somente código do país + telefone)
   // ------------------------------
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
     setLoading(true);
+
     try {
-      const q = query(collection(db, 'clientes'), where('telefone', '==', telefone));
+      const q = query(
+        collection(db, 'clientes'),
+        where('codigoPais', '==', countryDialCodes[codigoPais] || '351'),
+        where('telefone', '==', telefone)
+      );
+
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // cliente não existe → cadastro novo
+        // Cliente não existe → cadastro completo
         setCliente(null);
         setModo('novo');
       } else {
         const docSnap = snap.docs[0];
-        let data = docSnap.data();
+        const data = docSnap.data();
 
-        if (!data.codigoPais) {
-          data.codigoPais = '351';
-          await updateDoc(docSnap.ref, { codigoPais: '351' });
+        setCliente({ ref: docSnap.ref, codigoCliente: data.codigoCliente });
+
+        if (!data.senha) {
+          setModo('recuperar'); // definir senha
+        } else {
+          setModo('login'); // login normal
         }
-
-        setCliente({ ref: docSnap.ref, ...data });
-        setNome(data.nome || '');
-        setCodigoPais(
-          Object.keys(countryDialCodes).find(k => countryDialCodes[k] === data.codigoPais) || 'pt'
-        );
-
-        if (!data.senha) setModo('recuperar'); // criar senha
-        else setModo('login'); // login normal
       }
     } catch (err) {
       console.error(err);
@@ -114,7 +111,7 @@ export default function LoginCliente() {
         cartaoFidelidade: [],
       });
 
-      setCliente({ ref: clienteRef, telefone, codigoPais, nome, codigoCliente, senha, dataNascimento });
+      setCliente({ ref: clienteRef, codigoCliente });
       localStorage.setItem('clienteCodigo', codigoCliente);
       router.push('/pages/cliente/dashboard');
     } catch (err) {
@@ -126,7 +123,7 @@ export default function LoginCliente() {
   };
 
   // ------------------------------
-  // CADASTRAR OU ATUALIZAR SENHA
+  // DEFINIR OU ATUALIZAR SENHA
   // ------------------------------
   const cadastrarOuAtualizarSenha = async () => {
     setErro('');
@@ -141,15 +138,19 @@ export default function LoginCliente() {
         return;
       }
 
+      const clienteData = (await getDocs(query(
+        collection(db, 'clientes'),
+        where('codigoCliente', '==', cliente.codigoCliente)
+      ))).docs[0].data();
+
       // Se já existe dataNascimento no banco, validar
-      if (cliente.dataNascimento && cliente.dataNascimento !== dataNascimento) {
+      if (clienteData.dataNascimento && clienteData.dataNascimento !== dataNascimento) {
         setErro('Data de nascimento não confere');
         setLoading(false);
         return;
       }
 
       await updateDoc(cliente.ref, { senha, dataNascimento });
-      setCliente({ ...cliente, senha, dataNascimento });
       localStorage.setItem('clienteCodigo', cliente.codigoCliente);
       router.push('/pages/cliente/dashboard');
     } catch (err) {
@@ -175,12 +176,12 @@ export default function LoginCliente() {
         return;
       }
 
-      if (!cliente.codigoPais) {
-        await updateDoc(cliente.ref, { codigoPais: '351' });
-        cliente.codigoPais = '351';
-      }
+      const clienteData = (await getDocs(query(
+        collection(db, 'clientes'),
+        where('codigoCliente', '==', cliente.codigoCliente)
+      ))).docs[0].data();
 
-      if (senha === cliente.senha) {
+      if (senha === clienteData.senha) {
         localStorage.setItem('clienteCodigo', cliente.codigoCliente);
         router.push('/pages/cliente/dashboard');
       } else {
@@ -211,7 +212,7 @@ export default function LoginCliente() {
     <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${cliente?.senha ?? ''}-${modo}`}
+          key={`${cliente?.codigoCliente ?? ''}-${modo}`}
           className="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl space-y-6"
           initial="hidden"
           animate="visible"
@@ -256,7 +257,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DE NOVO CLIENTE */}
+          {/* FORMULÁRIO DE CADASTRO COMPLETO */}
           {modo === 'novo' && cliente === null && (
             <div className="space-y-4">
               <div className="relative">
@@ -302,7 +303,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DE LOGIN */}
+          {/* FORMULÁRIO LOGIN */}
           {modo === 'login' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -334,7 +335,7 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* FORMULÁRIO DE DEFINIR / RECUPERAR SENHA */}
+          {/* FORMULÁRIO DEFINIR / RECUPERAR SENHA */}
           {modo === 'recuperar' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -348,19 +349,16 @@ export default function LoginCliente() {
                 />
               </div>
 
-              {/* Só mostra campo de data se já existir no banco */}
-              {cliente.dataNascimento && (
-                <div className="relative">
-                  <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
-                  <input
-                    type="date"
-                    placeholder="Data de nascimento"
-                    value={dataNascimento}
-                    onChange={(e) => setDataNascimento(e.target.value)}
-                    className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                  />
-                </div>
-              )}
+              <div className="relative">
+                <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
+                <input
+                  type="date"
+                  placeholder="Data de nascimento"
+                  value={dataNascimento}
+                  onChange={(e) => setDataNascimento(e.target.value)}
+                  className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                />
+              </div>
 
               <button
                 onClick={cadastrarOuAtualizarSenha}
