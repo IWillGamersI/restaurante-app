@@ -38,32 +38,26 @@ export default function LoginCliente() {
   // ADICIONAR MANIFEST DO CLIENTE
   // ------------------------------
   useEffect(() => {
-  const manifestLink = document.createElement('link');
-  manifestLink.rel = 'manifest';
-  manifestLink.href = '/manifest-cliente.json';
-  document.head.appendChild(manifestLink);
-
-  // ✅ Retorna uma função que remove o link
-  return () => {
-    document.head.removeChild(manifestLink);
-  };
-}, []);
-
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = '/manifest-cliente.json';
+    document.head.appendChild(manifestLink);
+    return () => {
+      document.head.removeChild(manifestLink);
+    };
+  }, []);
 
   // ------------------------------
-  // VERIFICAR TELEFONE (somente código do país + telefone)
+  // VERIFICAR TELEFONE (seguro)
   // ------------------------------
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
 
     const codigoPaisValue = countryDialCodes[codigoPais] || '351';
-    if (!codigoPaisValue) return setErro('Código do país inválido');
-
     setLoading(true);
 
     try {
-      // Query segura para telefone + código do país
       const q = query(
         collection(db, 'clientes'),
         where('codigoPais', '==', codigoPaisValue),
@@ -73,28 +67,21 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Cliente não existe → modo cadastro
         setCliente(null);
         setModo('novo');
       } else {
         const docSnap = snap.docs[0];
         const data = docSnap.data();
 
-        // Se não tiver codigoPais, atualiza
         if (!data.codigoPais) {
           await updateDoc(docSnap.ref, { codigoPais: codigoPaisValue });
           data.codigoPais = codigoPaisValue;
         }
 
-        // Guardar referência e códigoCliente apenas (não expor dados sensíveis)
         setCliente({ ref: docSnap.ref, codigoCliente: data.codigoCliente });
 
-        // Determinar o modo correto
-        if (!data.senha) {
-          setModo('recuperar'); // precisa definir senha
-        } else {
-          setModo('login'); // já tem senha → login
-        }
+        if (!data.senha) setModo('recuperar');
+        else setModo('login');
       }
     } catch (err) {
       console.error(err);
@@ -103,7 +90,6 @@ export default function LoginCliente() {
       setLoading(false);
     }
   };
-
 
   // ------------------------------
   // CRIAR NOVO CLIENTE
@@ -183,10 +169,20 @@ export default function LoginCliente() {
         return;
       }
 
-      const clienteData = (await getDocs(query(
-        collection(db, 'clientes'),
-        where('codigoCliente', '==', cliente.codigoCliente)
-      ))).docs[0].data();
+      const clienteDataSnap = await getDocs(
+        query(
+          collection(db, 'clientes'),
+          where('codigoCliente', '==', cliente.codigoCliente)
+        )
+      );
+
+      if (clienteDataSnap.empty) {
+        setErro('Cliente não encontrado');
+        setLoading(false);
+        return;
+      }
+
+      const clienteData = clienteDataSnap.docs[0].data();
 
       if (senha === clienteData.senha) {
         localStorage.setItem('clienteCodigo', cliente.codigoCliente);
@@ -229,9 +225,9 @@ export default function LoginCliente() {
         >
           <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-          {/* ------------------------------------------------------ */}
-          {/* 1️⃣ INÍCIO: Apenas telefone */}
-          {/* ------------------------------------------------------ */}
+          {/* ----------------------- */}
+          {/* 1️⃣ Apenas telefone */}
+          {/* ----------------------- */}
           {!cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -266,9 +262,9 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* ------------------------------------------------------ */}
-          {/* 2️⃣ CADASTRO COMPLETO */}
-          {/* ------------------------------------------------------ */}
+          {/* ----------------------- */}
+          {/* 2️⃣ Cadastro completo */}
+          {/* ----------------------- */}
           {modo === 'novo' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -314,9 +310,9 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* ------------------------------------------------------ */}
-          {/* 3️⃣ LOGIN */}
-          {/* ------------------------------------------------------ */}
+          {/* ----------------------- */}
+          {/* 3️⃣ Login */}
+          {/* ----------------------- */}
           {modo === 'login' && cliente && (
             <div className="space-y-4">
               <div className="relative">
@@ -348,9 +344,9 @@ export default function LoginCliente() {
             </div>
           )}
 
-          {/* ------------------------------------------------------ */}
-          {/* 4️⃣ DEFINIR / RECUPERAR SENHA */}
-          {/* ------------------------------------------------------ */}
+          {/* ----------------------- */}
+          {/* 4️⃣ Recuperar / definir senha */}
+          {/* ----------------------- */}
           {modo === 'recuperar' && cliente && (
             <div className="space-y-4">
               <div className="relative">
