@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
@@ -35,6 +35,20 @@ export default function LoginCliente() {
   const [loading, setLoading] = useState(false);
 
   // ------------------------------
+  // ADICIONAR MANIFEST DO CLIENTE
+  // ------------------------------
+  useEffect(() => {
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = '/manifest-cliente.json'; // sempre cliente
+    document.head.appendChild(manifestLink);
+
+    return () => {
+      document.head.removeChild(manifestLink);
+    };
+  }, []);
+
+  // ------------------------------
   // VERIFICAR TELEFONE
   // ------------------------------
   const verificarTelefone = async () => {
@@ -46,14 +60,12 @@ export default function LoginCliente() {
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        // Novo cliente
         setCliente(null);
         setModo('novo');
       } else {
         const docSnap = snap.docs[0];
         let data = docSnap.data();
 
-        // Se cliente antigo não tiver codigoPais, adiciona PT 351
         if (!data.codigoPais) {
           data.codigoPais = '351';
           await updateDoc(docSnap.ref, { codigoPais: '351' });
@@ -65,11 +77,8 @@ export default function LoginCliente() {
           Object.keys(countryDialCodes).find(k => countryDialCodes[k] === data.codigoPais) || 'pt'
         );
 
-        if (!data.senha) {
-          setModo('recuperar'); // precisa cadastrar senha
-        } else {
-          setModo('login'); // cliente já tem senha
-        }
+        if (!data.senha) setModo('recuperar');
+        else setModo('login');
       }
     } catch (err) {
       console.error(err);
@@ -106,7 +115,6 @@ export default function LoginCliente() {
 
       setCliente({ ref: clienteRef, telefone, codigoPais, nome, codigoCliente, senha, dataNascimento });
       localStorage.setItem('clienteCodigo', codigoCliente);
-      setModo('login');
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
@@ -117,7 +125,7 @@ export default function LoginCliente() {
   };
 
   // ------------------------------
-  // CADASTRAR OU ATUALIZAR SENHA EXISTENTE
+  // CADASTRAR OU ATUALIZAR SENHA
   // ------------------------------
   const cadastrarOuAtualizarSenha = async () => {
     setErro('');
@@ -134,6 +142,7 @@ export default function LoginCliente() {
 
       await updateDoc(cliente.ref, { senha, dataNascimento });
       setCliente({ ...cliente, senha, dataNascimento });
+      localStorage.setItem('clienteCodigo', cliente.codigoCliente);
       router.push('/pages/cliente/dashboard');
     } catch (err) {
       console.error(err);
@@ -158,7 +167,6 @@ export default function LoginCliente() {
         return;
       }
 
-      // Se cliente antigo não tiver codigoPais, adiciona PT 351
       if (!cliente.codigoPais) {
         await updateDoc(cliente.ref, { codigoPais: '351' });
         cliente.codigoPais = '351';
@@ -232,9 +240,7 @@ export default function LoginCliente() {
               <button
                 onClick={verificarTelefone}
                 disabled={loading}
-                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-blue-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-blue-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Continuar
@@ -243,7 +249,7 @@ export default function LoginCliente() {
           )}
 
           {/* FORMULÁRIO DE NOVO CLIENTE */}
-          {(modo === 'novo' && cliente) && (
+          {modo === 'novo' && cliente && (
             <div className="space-y-4">
               <div className="relative">
                 <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
@@ -280,9 +286,7 @@ export default function LoginCliente() {
               <button
                 onClick={criarCliente}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Criar Cliente
@@ -307,9 +311,7 @@ export default function LoginCliente() {
               <button
                 onClick={logarCliente}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Entrar
@@ -352,9 +354,7 @@ export default function LoginCliente() {
               <button
                 onClick={cadastrarOuAtualizarSenha}
                 disabled={loading}
-                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${
-                  loading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+                className={`w-full bg-purple-600 text-white py-3 rounded-lg font-semibold flex justify-center items-center gap-2 hover:bg-purple-700 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {loading && <AiOutlineLoading3Quarters className="animate-spin text-xl" />}
                 Atualizar Senha

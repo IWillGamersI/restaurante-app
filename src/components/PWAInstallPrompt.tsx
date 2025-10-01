@@ -6,17 +6,27 @@ export function PWAInstallPrompt() {
   const [showButton, setShowButton] = useState(false);
 
   useEffect(() => {
-    // Cria dinamicamente o link do manifest correto
-    const manifestLink = document.createElement("link");
-    manifestLink.rel = "manifest";
+    // Detecta manifest correto
+    const getManifestHref = () => {
+      if (window.location.pathname.startsWith("/pages/cliente")) {
+        return "/manifest-cliente.json";
+      } else if (window.location.pathname.startsWith("/pages/estabelecimento")) {
+        return "/manifest-estabelecimento.json";
+      }
+      return null;
+    };
 
-    if (window.location.pathname.startsWith("/pages/cliente")) {
-      manifestLink.href = "/manifest-cliente.json";
-    } else if (window.location.pathname.startsWith("/pages/estabelecimento")) {
-      manifestLink.href = "/manifest-estabelecimento.json";
+    const href = getManifestHref();
+    if (href) {
+      // Remove manifest antigo se existir
+      const oldManifest = document.querySelector('link[rel="manifest"]');
+      if (oldManifest) oldManifest.remove();
+
+      const manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      manifestLink.href = href;
+      document.head.appendChild(manifestLink);
     }
-
-    document.head.appendChild(manifestLink);
 
     const handler = (e: any) => {
       e.preventDefault();
@@ -28,7 +38,6 @@ export function PWAInstallPrompt() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
-      document.head.removeChild(manifestLink);
     };
   }, []);
 
@@ -38,7 +47,6 @@ export function PWAInstallPrompt() {
     await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShowButton(false);
-    // Não precisa redirecionar, o start_url do manifest define a rota inicial
   };
 
   if (!showButton) return null;
