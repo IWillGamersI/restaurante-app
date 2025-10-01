@@ -38,12 +38,17 @@ export default function LoginCliente() {
   // ADICIONAR MANIFEST DO CLIENTE
   // ------------------------------
   useEffect(() => {
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = '/manifest-cliente.json'; 
-    document.head.appendChild(manifestLink);
-    return () => document.head.removeChild(manifestLink);
-  }, []);
+  const manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = '/manifest-cliente.json';
+  document.head.appendChild(manifestLink);
+
+  // ✅ Retorna uma função que remove o link
+  return () => {
+    document.head.removeChild(manifestLink);
+  };
+}, []);
+
 
   // ------------------------------
   // VERIFICAR TELEFONE (somente código do país + telefone)
