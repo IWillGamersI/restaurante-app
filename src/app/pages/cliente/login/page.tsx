@@ -265,7 +265,7 @@ export default function LoginCliente() {
           {/* ----------------------- */}
           {/* 2️⃣ Cadastro completo */}
           {/* ----------------------- */}
-          {modo === 'novo' && cliente && (
+          {modo === 'novo' && (
             <div className="space-y-4">
               <div className="relative">
                 <FiUser className="absolute left-3 top-3 text-gray-400 text-xl" />
