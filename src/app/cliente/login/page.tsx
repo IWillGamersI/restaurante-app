@@ -11,6 +11,7 @@ import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
 import Head from 'next/head';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 const countryDialCodes: Record<string, string> = { pt: '351', br: '55', us: '1' };
 type Modo = 'telefone' | 'novo' | 'login' | 'recuperar' | 'definirSenha';
@@ -30,95 +31,13 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // -------- PWA Install --------
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallButton, setShowInstallButton] = useState(false);
-  const [installing, setInstalling] = useState(false);
-  const [installed, setInstalled] = useState(false);
-  const [appReady, setAppReady] = useState(false);
-  const [counter, setCounter] = useState(10);
-  const [message, setMessage] = useState('');
+  // -------- Detecta se está rodando dentro do PWA --------
+  const [isStandalone, setIsStandalone] = useState(false);
 
-  // -------- Detect PWA & Manifest --------
   useEffect(() => {
-    const getManifestHref = () => {
-      if (window.location.pathname.startsWith('/cliente')) return '/manifest-cliente.json';
-      if (window.location.pathname.startsWith('/estabelecimento')) return '/manifest-estabelecimento.json';
-      return null;
-    };
-
-    const href = getManifestHref();
-    if (href) {
-      const oldManifest = document.querySelector('link[rel="manifest"]');
-      if (oldManifest) oldManifest.remove();
-      const manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      manifestLink.href = href;
-      document.head.appendChild(manifestLink);
-    }
-
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallButton(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone;
-
-    if (isStandalone) {
-      setInstalled(false);
-      setAppReady(true);
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsStandalone(standalone);
   }, []);
-
-  useEffect(() => {
-    if (installing && counter > 0) {
-      const timer = setTimeout(() => setCounter(counter - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [installing, counter]);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    setInstalling(true);
-    setMessage('Aguarde, app em instalação...');
-    setCounter(3);
-
-    deferredPrompt.prompt();
-    const choiceResult = await deferredPrompt.userChoice;
-
-    if (choiceResult.outcome === 'accepted') {
-      const timer = setInterval(() => {
-        setCounter(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setInstalling(false);
-            setInstalled(false);
-            setAppReady(true);
-            setMessage('');
-            return 0;
-          }
-          setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
-          return prev - 1;
-        });
-      }, 20000);
-    } else {
-      setInstalling(false);
-      setMessage('Instalação cancelada.');
-    }
-
-    setDeferredPrompt(null);
-    setShowInstallButton(false);
-  };
-
-  const openApp = () => {
-    setMessage('Abra o app pela tela inicial do seu celular.');
-  };
 
   // -------- Funções de login/cadastro --------
   const verificarTelefone = async () => {
@@ -236,49 +155,18 @@ export default function LoginCliente() {
     <>
       <Head>
         <title>Área do Cliente - Top Pizzas</title>
-        <link rel="manifest" href="/manifest-cliente.json" />
       </Head>
 
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
         {/* ------------------------- */}
-        {/* Prompt de instalação PWA */}
+        {/* PWA Install Prompt */}
         {/* ------------------------- */}
-        {!appReady && (
-          <div className="fixed inset-0 flex flex-col items-center justify-center bg-white bg-opacity-95 p-6 rounded-2xl shadow-lg w-80">
-            <img src="/logo.png" alt="Logo" className="w-24 h-24 mb-4 animate-bounce rounded-full" />
-            {showInstallButton && (
-              <button
-                onClick={handleInstall}
-                disabled={installing}
-                className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full flex justify-center items-center gap-2"
-              >
-                {installing && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
-                {installing ? `Instalando... ${counter}s` : '📲 Instalar App'}
-              </button>
-            )}
-            {message && <p className="text-sm text-center text-gray-700 mt-2">{message}</p>}
-            {installed && (
-              <button onClick={openApp} className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 w-full mt-2">
-                Abrir App
-              </button>
-            )}
-
-            {/* Barra de progresso */}
-            {installing && (
-              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mt-4">
-                <div
-                  className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                  style={{ width: `${((10 - counter) / 10) * 100}%` }}
-                ></div>
-              </div>
-            )}
-          </div>
-        )}
+        {!isStandalone && <PWAInstallPrompt />}
 
         {/* ------------------------- */}
-        {/* Tela de login */}
+        {/* Tela de login só dentro do PWA */}
         {/* ------------------------- */}
-        {appReady && (
+        {isStandalone && (
           <AnimatePresence mode="wait">
             <motion.div
               key={`${cliente?.codigoCliente ?? ''}-${modo}`}
@@ -291,7 +179,6 @@ export default function LoginCliente() {
             >
               <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
-              {/* ----------------------- */}
               {/* 1️⃣ Apenas telefone */}
               {modo === 'telefone' && (
                 <div className="space-y-4">
@@ -327,8 +214,10 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* ----------------------- */}
-              {/* 2️⃣ Cadastro completo */}
+              {/* ------------------------- */}
+              {/* Outras telas (novo, login, definirSenha, recuperar) */}
+              {/* Mesmas da versão anterior */}
+              {/* ------------------------- */}
               {modo === 'novo' && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -374,8 +263,7 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* ----------------------- */}
-              {/* 3️⃣ Login */}
+              {/* Login, definirSenha, recuperar... mesmas funções */}
               {modo === 'login' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -407,8 +295,6 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* ----------------------- */}
-              {/* 4️⃣ Definir senha */}
               {modo === 'definirSenha' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -444,8 +330,6 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* ----------------------- */}
-              {/* 5️⃣ Recuperar senha */}
               {modo === 'recuperar' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
