@@ -109,19 +109,41 @@ useEffect(() => {
 
   // 🔹 Aba Dados
   const Dados = () => (
-    <div className="p-4 space-y-4">
-      <div className="text-lg font-semibold">👤 {cliente?.nome || "Cliente"}</div>
-      <p className="text-gray-500">📱 {cliente?.telefone}</p>
-      <p className="text-gray-500">🎂 {cliente?.dataNascimento}</p>
-      <p className="text-gray-500">🆔 {cliente?.codigoCliente}</p>
-      <button
-        onClick={()=>logOut('/cliente/login')}
-        className="bg-red-500 text-white py-2 px-4 rounded flex items-center gap-2 hover:bg-red-600"
-      >
-        Sair
-      </button>
+    <div className="p-6 flex flex-col items-center">
+      <div className="bg-white shadow-md rounded-2xl p-6 w-full max-w-sm space-y-6">
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center">
+          <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center text-3xl font-bold text-purple-600 shadow">
+            {cliente?.nome?.charAt(0).toUpperCase() || "C"}
+          </div>
+          <h2 className="mt-3 text-xl font-semibold">{cliente?.nome || "Cliente"}</h2>
+          <p className="text-sm text-gray-500">Código: {cliente?.codigoCliente}</p>
+        </div>
+
+        {/* Dados do usuário */}
+        <div className="divide-y divide-gray-200 text-gray-700">
+          <div className="flex justify-between py-2">
+            <span className="font-medium">📱 Telefone</span>
+            <span>{cliente?.telefone}</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span className="font-medium">🎂 Nascimento</span>
+            <span>{cliente?.dataNascimento || "Não informado"}</span>
+          </div>
+        </div>
+
+        {/* Botão de sair */}
+        <button
+          onClick={() => logOut('/cliente/login')}
+          className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-600 transition"
+        >
+          🚪 Sair
+        </button>
+      </div>
     </div>
   );
+
 
   // 🔹 Aba Fidelidade
   const Fidelidade = () => {
