@@ -71,7 +71,7 @@ export function PWAInstallPrompt() {
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 1000); // 1s por decremento
+      }, 10000); // 1s por decremento
     } else {
       setInstalling(false);
       setMessage("Instalação cancelada.");

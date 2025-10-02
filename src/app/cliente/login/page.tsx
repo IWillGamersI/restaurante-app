@@ -106,7 +106,7 @@ export default function LoginCliente() {
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 1000);
+      }, 10000);
     } else {
       setInstalling(false);
       setMessage('Instalação cancelada.');
