@@ -8,6 +8,7 @@ export function PWAInstallPrompt() {
   const [installed, setInstalled] = useState(false);
   const [counter, setCounter] = useState(20);
   const [message, setMessage] = useState("");
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // Detecta manifest correto por rota
   const getManifestHref = () => {
@@ -16,7 +17,16 @@ export function PWAInstallPrompt() {
   };
 
   useEffect(() => {
-    // Aplica o manifest correto
+    // Detecta se já está rodando como PWA
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone;
+    setIsStandalone(standalone);
+
+    // ⚡ Se já está no PWA → não faz nada
+    if (standalone) return;
+
+    // Só aplica manifest e eventos quando estiver no navegador
     const href = getManifestHref();
     if (href) {
       const oldManifest = document.querySelector('link[rel="manifest"]');
@@ -27,7 +37,6 @@ export function PWAInstallPrompt() {
       document.head.appendChild(manifestLink);
     }
 
-    // PWA antes de instalar
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -35,20 +44,12 @@ export function PWAInstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Detecta se já está rodando como PWA
-    if (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone
-    ) {
-      setInstalled(true);
-    }
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
 
-  // Contagem regressiva para instalação
+  // Contagem regressiva
   useEffect(() => {
     if (installing && counter > 0) {
       const timer = setTimeout(() => setCounter(counter - 1), 1000);
@@ -68,12 +69,12 @@ export function PWAInstallPrompt() {
 
     if (choiceResult.outcome === "accepted") {
       const timer = setInterval(() => {
-        setCounter(prev => {
+        setCounter((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
             setInstalling(false);
             setInstalled(true);
-            setMessage("🎉 App instalado! Clique no botão abaixo para abrir o aplicativo.");
+            setMessage("🎉 App instalado! Feche esta tela e entre pelo aplicativo.");
             return 0;
           }
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
@@ -89,19 +90,14 @@ export function PWAInstallPrompt() {
     setShowButton(false);
   };
 
-  const openApp = () => {
-    // Redireciona para a rota inicial da PWA
-    if (window.location.pathname.startsWith("/cliente")) {
-      window.location.href = "/cliente/login";
-    } else {
-      window.location.href = "/estabelecimento/dashboard";
-    }
-  };
+  // 🚀 Se já está no PWA → não renderiza nada (deixa o login aparecer)
+  if (isStandalone) return null;
 
+  // Fora do PWA → mostra instalação ou mensagens
   if (!showButton && !installing && !installed) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-700 via-purple-700 to-pink-600 bg-opacity-95 z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-700 via-purple-700 to-pink-600 z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center gap-4 w-80">
         <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce rounded-full" />
 
@@ -133,15 +129,12 @@ export function PWAInstallPrompt() {
           </>
         )}
 
-        
+        {/* Mensagem final */}
         {installed && (
-          <>
-            <p className="text-gray-700 text-center mt-2">
-              ✅ Feche esta tela e entre pelo app instalado na tela inicial do seu celular.
-            </p>
-          </>
+          <p className="text-gray-700 text-center mt-2">
+            ✅ Feche esta tela e entre pelo app instalado na tela inicial do seu celular.
+          </p>
         )}
-
       </div>
     </div>
   );
