@@ -7,16 +7,13 @@ export function PWAInstallPrompt() {
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [message, setMessage] = useState("");
-  const [counter, setCounter] = useState(3);
+  const [counter, setCounter] = useState(5);
 
   useEffect(() => {
     // Detecta manifest correto
     const getManifestHref = () => {
-      if (window.location.pathname.startsWith("/cliente")) {
-        return "/manifest-cliente.json";
-      } else if (window.location.pathname.startsWith("/pages/estabelecimento")) {
-        return "/manifest-estabelecimento.json";
-      }
+      if (window.location.pathname.startsWith("/cliente")) return "/manifest-cliente.json";
+      if (window.location.pathname.startsWith("/pages/estabelecimento")) return "/manifest-estabelecimento.json";
       return null;
     };
 
@@ -36,7 +33,6 @@ export function PWAInstallPrompt() {
       setDeferredPrompt(e);
       setShowButton(true);
     };
-
     window.addEventListener("beforeinstallprompt", handler);
 
     // Detecta se já está rodando como PWA
@@ -52,38 +48,29 @@ export function PWAInstallPrompt() {
     };
   }, []);
 
-  // Contagem regressiva para simular instalação
-  useEffect(() => {
-    if (installing && counter > 0) {
-      const timer = setTimeout(() => setCounter(counter - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [installing, counter]);
-
   const handleInstall = async () => {
     if (!deferredPrompt) return;
 
     setInstalling(true);
-    setMessage("Aguarde, app em instalação...");
     setCounter(5);
-
+    setMessage("Aguarde, app em instalação...");
     deferredPrompt.prompt();
+
     const choiceResult = await deferredPrompt.userChoice;
 
     if (choiceResult.outcome === "accepted") {
-      // Simula 3s de instalação
       const timer = setInterval(() => {
-        if (counter <= 1) {
-          clearInterval(timer);
-          setInstalling(false);
-          setInstalled(true);
-          setMessage(
-            "App instalado! Clique no botão abaixo para abrir o aplicativo."
-          );
-        } else {
-          setCounter((prev) => prev - 1);
-          setMessage(`Aguarde, app em instalação... ${counter - 1}s`);
-        }
+        setCounter((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setInstalling(false);
+            setInstalled(true);
+            setMessage("🎉 App instalado! Clique no botão abaixo para abrir o aplicativo.");
+            return 0;
+          }
+          setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
+          return prev - 1;
+        });
       }, 1000);
     } else {
       setInstalling(false);
@@ -98,37 +85,57 @@ export function PWAInstallPrompt() {
     window.location.href = "/cliente/login";
   };
 
-  if (installed) {
-    return (
-      <div className="fixed bottom-4 right-4 flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-lg w-60">
-        <img src="/logo.png" alt="Logo" className="w-16 h-16 mb-2" />
-        <button
-          onClick={openApp}
-          className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 w-full"
-        >
-          Abrir App
-        </button>
-        {message && <p className="text-sm text-center text-gray-700">{message}</p>}
-      </div>
-    );
-  }
-
-  if (!showButton) return null;
+  if (!showButton && !installed) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-lg w-60">
-      <img src="/logo.png" alt="Logo" className="w-16 h-16 mb-2" />
-      <button
-        onClick={handleInstall}
-        className={`bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full flex justify-center items-center gap-2`}
-        disabled={installing}
-      >
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-700 via-purple-700 to-pink-600 bg-opacity-95 z-50 p-4"
+    >
+      <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center gap-4 w-80">
+        <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce" />
+
+        {/* Barra de progresso */}
         {installing && (
-          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <>
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+              <div
+                className="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                style={{ width: `${(5 - counter) * 20}%` }}
+              ></div>
+            </div>
+            <p className="text-gray-700 text-center mt-2">{message}</p>
+          </>
         )}
-        {installing ? `Instalando... ${counter}s` : "📲 Instalar App"}
-      </button>
-      {message && <p className="text-sm text-center text-gray-700">{message}</p>}
+
+        {/* Botão instalar */}
+        {!installing && !installed && (
+          <>
+            <p className="text-gray-700 text-center">
+              Instale nosso aplicativo para uma experiência completa!
+            </p>
+            <button
+              onClick={handleInstall}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 w-full transform transition-transform hover:scale-105 flex justify-center items-center gap-2"
+            >
+              📲 Instalar App
+            </button>
+            {message && <p className="text-sm text-center text-gray-700">{message}</p>}
+          </>
+        )}
+
+        {/* Botão abrir app */}
+        {installed && (
+          <>
+            <p className="text-gray-700 text-center">{message}</p>
+            <button
+              onClick={openApp}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700 w-full transform transition-transform hover:scale-105"
+            >
+              Abrir App
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
