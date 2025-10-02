@@ -30,32 +30,56 @@ export default function Dashboard() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
 
-  // 🔹 Hook Cartão Fidelidade
-  const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.id, cliente?.codigoCliente);
+ // 🔹 Listener de pedidos
+useEffect(() => {
+  if (!cliente) return;
+  setLoadingPedidos(true);
 
-  // 🔹 Buscar cliente
-  useEffect(() => {
-    const fetchCliente = async () => {
-      const codigoCliente = localStorage.getItem("clienteCodigo");
-      if (!codigoCliente) return router.push("/pages/cliente/login");
+  const q = query(collection(db, "pedidos"), where("codigoCliente", "==", cliente.codigoCliente));
+  const unsubscribe = onSnapshot(
+    q,
+    (snap) => {
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
+      lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
+      setPedidos(lista);
+      setLoadingPedidos(false);
+    },
+    (err) => {
+      console.error("Erro ao escutar pedidos:", err);
+      setLoadingPedidos(false);
+    }
+  );
 
-      setLoadingCliente(true);
-      try {
-        const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          setCliente({ id: snap.docs[0].id, ...snap.docs[0].data() } as Cliente);
-        } else {
-          setCliente(null);
-        }
-      } catch (err) {
-        console.error("Erro ao buscar cliente:", err);
-      } finally {
-        setLoadingCliente(false);
+  return () => unsubscribe();
+}, [cliente]);
+
+// 🔹 Hook Cartão Fidelidade
+const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.id, cliente?.codigoCliente);
+
+// 🔹 Buscar cliente
+useEffect(() => {
+  const fetchCliente = async () => {
+    const codigoCliente = localStorage.getItem("clienteCodigo");
+    if (!codigoCliente) return router.push("/cliente/login");
+
+    setLoadingCliente(true);
+    try {
+      const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        setCliente({ id: snap.docs[0].id, ...snap.docs[0].data() } as Cliente);
+      } else {
+        setCliente(null);
       }
-    };
-    fetchCliente();
-  }, [router]);
+    } catch (err) {
+      console.error("Erro ao buscar cliente:", err);
+    } finally {
+      setLoadingCliente(false);
+    }
+  };
+  fetchCliente();
+}, [router]);
+
 
   // 🔹 Listener de pedidos
   useEffect(() => {
