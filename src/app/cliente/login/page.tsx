@@ -87,7 +87,7 @@ export default function LoginCliente() {
     if (!deferredPrompt) return;
     setInstalling(true);
     setMessage('Aguarde, app em instalação...');
-    setCounter(10);
+    setCounter(20);
 
     deferredPrompt.prompt();
     const choiceResult = await deferredPrompt.userChoice;
@@ -106,7 +106,7 @@ export default function LoginCliente() {
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 10000);
+      }, 20000);
     } else {
       setInstalling(false);
       setMessage('Instalação cancelada.');

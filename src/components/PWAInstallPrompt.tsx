@@ -52,7 +52,7 @@ export function PWAInstallPrompt() {
     if (!deferredPrompt) return;
 
     setInstalling(true);
-    setCounter(10);
+    setCounter(20);
     setMessage("Aguarde, app em instalação...");
     deferredPrompt.prompt();
 
@@ -71,7 +71,7 @@ export function PWAInstallPrompt() {
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 10000); // 1s por decremento
+      }, 20000); // 1s por decremento
     } else {
       setInstalling(false);
       setMessage("Instalação cancelada.");
