@@ -20,7 +20,6 @@ export default function LoginCliente() {
   const { gerarCodigoCliente } = useCodigos();
   const router = useRouter();
 
-  // -------- Campos do login --------
   const [telefone, setTelefone] = useState('');
   const [codigoPais, setCodigoPais] = useState('pt');
   const [nome, setNome] = useState('');
@@ -31,11 +30,11 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // -------- Detecta se está rodando dentro do PWA --------
   const [isStandalone, setIsStandalone] = useState(false);
-
   useEffect(() => {
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone;
     setIsStandalone(standalone);
   }, []);
 
@@ -158,14 +157,10 @@ export default function LoginCliente() {
       </Head>
 
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
-        {/* ------------------------- */}
-        {/* PWA Install Prompt */}
-        {/* ------------------------- */}
+        {/* PWAInstallPrompt fora do PWA */}
         {!isStandalone && <PWAInstallPrompt />}
 
-        {/* ------------------------- */}
-        {/* Tela de login só dentro do PWA */}
-        {/* ------------------------- */}
+        {/* Login/Cadastro dentro do PWA */}
         {isStandalone && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -179,6 +174,7 @@ export default function LoginCliente() {
             >
               <h1 className="text-3xl font-bold text-center text-blue-700">Área do Cliente</h1>
 
+              {/* ----------------------- */}
               {/* 1️⃣ Apenas telefone */}
               {modo === 'telefone' && (
                 <div className="space-y-4">
@@ -214,10 +210,8 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* ------------------------- */}
-              {/* Outras telas (novo, login, definirSenha, recuperar) */}
-              {/* Mesmas da versão anterior */}
-              {/* ------------------------- */}
+              {/* ----------------------- */}
+              {/* 2️⃣ Cadastro completo */}
               {modo === 'novo' && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -263,7 +257,8 @@ export default function LoginCliente() {
                 </div>
               )}
 
-              {/* Login, definirSenha, recuperar... mesmas funções */}
+              {/* ----------------------- */}
+              {/* 3️⃣ Login */}
               {modo === 'login' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -295,6 +290,8 @@ export default function LoginCliente() {
                 </div>
               )}
 
+              {/* ----------------------- */}
+              {/* 4️⃣ Definir senha */}
               {modo === 'definirSenha' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -330,6 +327,8 @@ export default function LoginCliente() {
                 </div>
               )}
 
+              {/* ----------------------- */}
+              {/* 5️⃣ Recuperar senha */}
               {modo === 'recuperar' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
