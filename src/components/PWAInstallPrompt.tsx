@@ -71,7 +71,7 @@ export function PWAInstallPrompt() {
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 1000);
+      }, 5000);
     } else {
       setInstalling(false);
       setMessage("Instalação cancelada.");
@@ -92,7 +92,7 @@ export function PWAInstallPrompt() {
       className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-700 via-purple-700 to-pink-600 bg-opacity-95 z-50 p-4"
     >
       <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center gap-4 w-80">
-        <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce" />
+        <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce rounded-full" />
 
         {/* Barra de progresso */}
         {installing && (
