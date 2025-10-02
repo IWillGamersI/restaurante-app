@@ -52,7 +52,7 @@ export function PWAInstallPrompt() {
     if (!deferredPrompt) return;
 
     setInstalling(true);
-    setCounter(20);
+    setCounter(3);
     setMessage("Aguarde, app em instalação...");
     deferredPrompt.prompt();
 
@@ -101,7 +101,7 @@ export function PWAInstallPrompt() {
             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
               <div
                 className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                style={{ width: `${((10 - counter) / 10) * 100}%` }}
+                style={{ width: `${((20 - counter) / 20) * 100}%` }}
               ></div>
             </div>
             <p className="text-gray-700 text-center mt-2">{message}</p>

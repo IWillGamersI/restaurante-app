@@ -87,7 +87,7 @@ export default function LoginCliente() {
     if (!deferredPrompt) return;
     setInstalling(true);
     setMessage('Aguarde, app em instalação...');
-    setCounter(20);
+    setCounter(3);
 
     deferredPrompt.prompt();
     const choiceResult = await deferredPrompt.userChoice;
