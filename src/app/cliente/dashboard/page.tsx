@@ -10,6 +10,9 @@ import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
 import { CartaoFidelidade } from "@/components/CartaoFidelidade";
 import { AbasCompras } from "@/components/AbasCompras";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import Head from "next/head";
+import { useLogOut } from "@/hook/useLogOut";
+
 
 interface Cliente {
   id: string;
@@ -77,27 +80,7 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [cliente]);
 
-  const logOut = () => {
-    // Limpa dados de sessão
-    localStorage.removeItem("clienteCodigo");
-
-    // Detecta se está em modo PWA standalone
-    const isPWA =
-  window.matchMedia("(display-mode: standalone)").matches ||
-  (window.navigator as any).standalone === true;
-
-
-    if (isPWA) {
-      // Tenta fechar a janela (funciona em alguns dispositivos)
-      window.close();
-
-      // Fallback: redireciona para login se window.close não funcionar
-      window.location.href = "/pages/cliente/login";
-    } else {
-      // No navegador normal, apenas redireciona
-      router.push("/pages/cliente/login");
-    }
-  };
+  const logOut = useLogOut()
 
 
   // 🔹 Aba Dados
@@ -108,7 +91,7 @@ export default function Dashboard() {
       <p className="text-gray-500">🎂 {cliente?.dataNascimento}</p>
       <p className="text-gray-500">🆔 {cliente?.codigoCliente}</p>
       <button
-        onClick={logOut}
+        onClick={()=>logOut('/cliente/login')}
         className="bg-red-500 text-white py-2 px-4 rounded flex items-center gap-2 hover:bg-red-600"
       >
         Sair
@@ -132,51 +115,57 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* 🔹 Topo */}
-      <div className="h-16 bg-white flex items-center justify-center shadow-md fixed top-0 w-full z-10">
-        {loadingCliente ? (
-          <span className="font-semibold text-lg">Carregando...</span>
-        ) : (
-          <span className="font-semibold text-lg">Olá, {cliente?.nome || "Cliente"}</span>
-        )}
+    <>
+      <Head>
+        <title>Área do Cliente - Top Pizzas</title>
+        <link rel="manifest" href="/manifest-cliente.json" />
+      </Head>
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* 🔹 Topo */}
+        <div className="h-16 bg-white flex items-center justify-center shadow-md fixed top-0 w-full z-10">
+          {loadingCliente ? (
+            <span className="font-semibold text-lg">Carregando...</span>
+          ) : (
+            <span className="font-semibold text-lg">Olá, {cliente?.nome || "Cliente"}</span>
+          )}
+        </div>
+
+        {/* 🔹 Conteúdo */}
+        <div className="flex-1 overflow-y-auto pt-16 pb-20">
+          {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade />}
+          {!loadingCliente && aba === "compras" && <AbasCompras pedidos={pedidos} loading={loadingPedidos} />}
+          {!loadingCliente && aba === "dados" && <Dados />}
+        </div>
+
+        {/* 🔹 Barra inferior */}
+        <div className="h-16 bg-white border-t flex justify-around items-center fixed bottom-0 w-full">
+          <button
+            onClick={() => setAba("fidelidade")}
+            className={`flex flex-col items-center ${aba === "fidelidade" ? "text-blue-600" : "text-gray-500"}`}
+          >
+            <CreditCard />
+            <span className="text-xs">Fidelidade</span>
+          </button>
+
+          <button
+            onClick={() => setAba("compras")}
+            className={`flex flex-col items-center ${aba === "compras" ? "text-blue-600" : "text-gray-500"}`}
+          >
+            <ShoppingBag className="w-6 h-6" />
+            <span className="text-xs">Compras</span>
+          </button>
+
+          <button
+            onClick={() => setAba("dados")}
+            className={`flex flex-col items-center ${aba === "dados" ? "text-blue-600" : "text-gray-500"}`}
+          >
+            <User className="w-6 h-6" />
+            <span className="text-xs">Perfil</span>
+          </button>
+        </div>
+
+        <PWAInstallPrompt/>
       </div>
-
-      {/* 🔹 Conteúdo */}
-      <div className="flex-1 overflow-y-auto pt-16 pb-20">
-        {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade />}
-        {!loadingCliente && aba === "compras" && <AbasCompras pedidos={pedidos} loading={loadingPedidos} />}
-        {!loadingCliente && aba === "dados" && <Dados />}
-      </div>
-
-      {/* 🔹 Barra inferior */}
-      <div className="h-16 bg-white border-t flex justify-around items-center fixed bottom-0 w-full">
-        <button
-          onClick={() => setAba("fidelidade")}
-          className={`flex flex-col items-center ${aba === "fidelidade" ? "text-blue-600" : "text-gray-500"}`}
-        >
-          <CreditCard />
-          <span className="text-xs">Fidelidade</span>
-        </button>
-
-        <button
-          onClick={() => setAba("compras")}
-          className={`flex flex-col items-center ${aba === "compras" ? "text-blue-600" : "text-gray-500"}`}
-        >
-          <ShoppingBag className="w-6 h-6" />
-          <span className="text-xs">Compras</span>
-        </button>
-
-        <button
-          onClick={() => setAba("dados")}
-          className={`flex flex-col items-center ${aba === "dados" ? "text-blue-600" : "text-gray-500"}`}
-        >
-          <User className="w-6 h-6" />
-          <span className="text-xs">Perfil</span>
-        </button>
-      </div>
-
-      <PWAInstallPrompt/>
-    </div>
+    </>
   );
 }
