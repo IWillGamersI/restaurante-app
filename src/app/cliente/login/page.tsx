@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { FiPhone, FiLock, FiCalendar, FiUser } from 'react-icons/fi';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ import 'react-phone-input-2/lib/style.css';
 import { useCodigos } from '@/hook/useCodigos';
 import Head from 'next/head';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { Cliente } from '@/types';
 
 const countryDialCodes: Record<string, string> = { pt: '351', br: '55', us: '1' };
 type Modo = 'telefone' | 'novo' | 'login' | 'recuperar' | 'definirSenha';
@@ -98,6 +99,7 @@ export default function LoginCliente() {
     }
   };
 
+  
   const cadastrarOuAtualizarSenha = async () => {
     setErro('');
     if (!senha || !dataNascimento) return setErro('Preencha todos os campos');
@@ -105,9 +107,33 @@ export default function LoginCliente() {
 
     try {
       if (!cliente) return setErro('Cliente não encontrado');
-      await updateDoc(cliente.ref, { senha, dataNascimento });
+
+      const clienteSnap = await getDoc(cliente.ref);
+
+      if (!clienteSnap.exists()) {
+        setErro("Cliente não encontrado no banco.");
+        return;
+      }
+
+      const dadosCliente = clienteSnap.data() as Cliente;
+
+      if (!dadosCliente.dataNascimento) {
+        // 🚀 Primeiro acesso: ainda não existe data de nascimento no Firebase
+        await updateDoc(cliente.ref, { senha, dataNascimento });
+      } else {
+        // 🔒 Recuperação de senha: precisa validar a data
+        if (dadosCliente.dataNascimento !== dataNascimento) {
+          setErro("Data de nascimento incorreta.");
+          return;
+        }
+
+        // Atualiza apenas a senha (não sobrescreve a data de nascimento)
+        await updateDoc(cliente.ref, { senha });
+      }
+
       localStorage.setItem('clienteCodigo', cliente.codigoCliente);
       router.push('/cliente/dashboard');
+
     } catch (err) {
       console.error(err);
       setErro('Erro ao atualizar senha');
@@ -115,6 +141,7 @@ export default function LoginCliente() {
       setLoading(false);
     }
   };
+
 
   const logarCliente = async () => {
     setErro('');
