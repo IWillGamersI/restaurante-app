@@ -7,7 +7,7 @@ export function PWAInstallPrompt() {
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [message, setMessage] = useState("");
-  const [counter, setCounter] = useState(5);
+  const [counter, setCounter] = useState(10); // contagem de 10 segundos
 
   useEffect(() => {
     // Detecta manifest correto
@@ -52,7 +52,7 @@ export function PWAInstallPrompt() {
     if (!deferredPrompt) return;
 
     setInstalling(true);
-    setCounter(5);
+    setCounter(10);
     setMessage("Aguarde, app em instalação...");
     deferredPrompt.prompt();
 
@@ -65,13 +65,13 @@ export function PWAInstallPrompt() {
             clearInterval(timer);
             setInstalling(false);
             setInstalled(true);
-            setMessage("🎉 App instalado! Clique no botão abaixo para abrir o aplicativo.");
+            setMessage("🎉 App instalado! Abra o aplicativo pela tela inicial do seu celular.");
             return 0;
           }
           setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
           return prev - 1;
         });
-      }, 5000);
+      }, 1000); // 1s por decremento
     } else {
       setInstalling(false);
       setMessage("Instalação cancelada.");
@@ -82,7 +82,8 @@ export function PWAInstallPrompt() {
   };
 
   const openApp = () => {
-    window.location.href = "/cliente/login";
+    // PWA não permite abrir automaticamente, orienta usuário
+    setMessage("Abra o app pela tela inicial do seu celular.");
   };
 
   if (!showButton && !installed) return null;
@@ -100,7 +101,7 @@ export function PWAInstallPrompt() {
             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
               <div
                 className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                style={{ width: `${(5 - counter) * 20}%` }}
+                style={{ width: `${((10 - counter) / 10) * 100}%` }}
               ></div>
             </div>
             <p className="text-gray-700 text-center mt-2">{message}</p>

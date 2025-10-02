@@ -19,6 +19,7 @@ export default function LoginCliente() {
   const { gerarCodigoCliente } = useCodigos();
   const router = useRouter();
 
+  // -------- Campos do login --------
   const [telefone, setTelefone] = useState('');
   const [codigoPais, setCodigoPais] = useState('pt');
   const [nome, setNome] = useState('');
@@ -29,17 +30,16 @@ export default function LoginCliente() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // -------- PWA Install --------
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [appReady, setAppReady] = useState(false);
-  const [counter, setCounter] = useState(3);
+  const [counter, setCounter] = useState(10);
   const [message, setMessage] = useState('');
 
-  // ------------------------------
-  // PWA Install prompt
-  // ------------------------------
+  // -------- Detect PWA & Manifest --------
   useEffect(() => {
     const getManifestHref = () => {
       if (window.location.pathname.startsWith('/cliente')) return '/manifest-cliente.json';
@@ -87,24 +87,26 @@ export default function LoginCliente() {
     if (!deferredPrompt) return;
     setInstalling(true);
     setMessage('Aguarde, app em instalação...');
-    setCounter(5);
+    setCounter(10);
 
     deferredPrompt.prompt();
     const choiceResult = await deferredPrompt.userChoice;
 
     if (choiceResult.outcome === 'accepted') {
       const timer = setInterval(() => {
-        if (counter <= 1) {
-          clearInterval(timer);
-          setInstalling(false);
-          setInstalled(false);
-          setAppReady(true);
-          setMessage('');
-        } else {
-          setCounter(prev => prev - 1);
-          setMessage(`Aguarde, app em instalação... ${counter - 1}s`);
-        }
-      }, 5000);
+        setCounter(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setInstalling(false);
+            setInstalled(false);
+            setAppReady(true);
+            setMessage('');
+            return 0;
+          }
+          setMessage(`Aguarde, app em instalação... ${prev - 1}s`);
+          return prev - 1;
+        });
+      }, 1000);
     } else {
       setInstalling(false);
       setMessage('Instalação cancelada.');
@@ -115,12 +117,10 @@ export default function LoginCliente() {
   };
 
   const openApp = () => {
-    window.location.href = '/cliente/login';
+    setMessage('Abra o app pela tela inicial do seu celular.');
   };
 
-  // ------------------------------
-  // Funções de login/cadastro
-  // ------------------------------
+  // -------- Funções de login/cadastro --------
   const verificarTelefone = async () => {
     setErro('');
     if (!telefone) return setErro('Digite seu número de telefone');
@@ -244,8 +244,8 @@ export default function LoginCliente() {
         {/* Prompt de instalação PWA */}
         {/* ------------------------- */}
         {!appReady && (
-          <div className="fixed bottom-4 right-4 flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-lg w-60">
-            <img src="/logo.png" alt="Logo" className="w-16 h-16 mb-2" />
+          <div className="fixed inset-0 flex flex-col items-center justify-center bg-white bg-opacity-95 p-6 rounded-2xl shadow-lg w-80">
+            <img src="/logo.png" alt="Logo" className="w-24 h-24 mb-4 animate-bounce rounded-full" />
             {showInstallButton && (
               <button
                 onClick={handleInstall}
@@ -256,12 +256,22 @@ export default function LoginCliente() {
                 {installing ? `Instalando... ${counter}s` : '📲 Instalar App'}
               </button>
             )}
+            {message && <p className="text-sm text-center text-gray-700 mt-2">{message}</p>}
             {installed && (
-              <button onClick={openApp} className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 w-full">
+              <button onClick={openApp} className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 w-full mt-2">
                 Abrir App
               </button>
             )}
-            {message && <p className="text-sm text-center text-gray-700">{message}</p>}
+
+            {/* Barra de progresso */}
+            {installing && (
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mt-4">
+                <div
+                  className="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                  style={{ width: `${((10 - counter) / 10) * 100}%` }}
+                ></div>
+              </div>
+            )}
           </div>
         )}
 
@@ -283,7 +293,6 @@ export default function LoginCliente() {
 
               {/* ----------------------- */}
               {/* 1️⃣ Apenas telefone */}
-              {/* ----------------------- */}
               {modo === 'telefone' && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -320,7 +329,6 @@ export default function LoginCliente() {
 
               {/* ----------------------- */}
               {/* 2️⃣ Cadastro completo */}
-              {/* ----------------------- */}
               {modo === 'novo' && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -368,7 +376,6 @@ export default function LoginCliente() {
 
               {/* ----------------------- */}
               {/* 3️⃣ Login */}
-              {/* ----------------------- */}
               {modo === 'login' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -402,7 +409,6 @@ export default function LoginCliente() {
 
               {/* ----------------------- */}
               {/* 4️⃣ Definir senha */}
-              {/* ----------------------- */}
               {modo === 'definirSenha' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
@@ -440,7 +446,6 @@ export default function LoginCliente() {
 
               {/* ----------------------- */}
               {/* 5️⃣ Recuperar senha */}
-              {/* ----------------------- */}
               {modo === 'recuperar' && cliente && (
                 <div className="space-y-4">
                   <div className="relative">
