@@ -133,18 +133,15 @@ export function PWAInstallPrompt() {
           </>
         )}
 
-        {/* Botão abrir app */}
+        
         {installed && (
           <>
-            <p className="text-gray-700 text-center">{message}</p>
-            <button
-              onClick={openApp}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700 w-full"
-            >
-              Abrir App
-            </button>
+            <p className="text-gray-700 text-center mt-2">
+              ✅ Feche esta tela e entre pelo app instalado na tela inicial do seu celular.
+            </p>
           </>
         )}
+
       </div>
     </div>
   );
