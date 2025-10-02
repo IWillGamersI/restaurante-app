@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showButton, setShowButton] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     // Detecta manifest correto
     const getManifestHref = () => {
-      if (window.location.pathname.startsWith("/pages/cliente")) {
+      if (window.location.pathname.startsWith("/cliente")) {
         return "/manifest-cliente.json";
       } else if (window.location.pathname.startsWith("/pages/estabelecimento")) {
         return "/manifest-estabelecimento.json";
@@ -18,7 +21,6 @@ export function PWAInstallPrompt() {
 
     const href = getManifestHref();
     if (href) {
-      // Remove manifest antigo se existir
       const oldManifest = document.querySelector('link[rel="manifest"]');
       if (oldManifest) oldManifest.remove();
 
@@ -36,6 +38,14 @@ export function PWAInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
+    // Detecta se já está rodando como PWA
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone
+    ) {
+      setInstalled(true);
+    }
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
     };
@@ -43,20 +53,56 @@ export function PWAInstallPrompt() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
+
+    setLoading(true);
+    setMessage("Aguarde, app em instalação...");
     deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+
+    const choiceResult = await deferredPrompt.userChoice;
+    setLoading(false);
+
+    if (choiceResult.outcome === "accepted") {
+      setInstalled(true);
+      setMessage("App instalado! Clique no botão abaixo para abrir o aplicativo.");
+    } else {
+      setMessage("Instalação cancelada.");
+    }
+
     setDeferredPrompt(null);
     setShowButton(false);
   };
 
+  const openApp = () => {
+    // Redireciona para a raiz do app PWA
+    window.location.href = "/";
+  };
+
+  if (installed) {
+    return (
+      <div className="fixed bottom-4 right-4 flex flex-col items-center gap-2">
+        <button
+          onClick={openApp}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
+        >
+          Abrir App
+        </button>
+        {message && <p className="text-sm text-center text-gray-700">{message}</p>}
+      </div>
+    );
+  }
+
   if (!showButton) return null;
 
   return (
-    <button
-      onClick={handleInstall}
-      className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg"
-    >
-      📲 Instalar App
-    </button>
+    <div className="fixed bottom-4 right-4 flex flex-col items-center gap-2">
+      <button
+        onClick={handleInstall}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg"
+        disabled={loading}
+      >
+        {loading ? "Instalando..." : "📲 Instalar App"}
+      </button>
+      {message && <p className="text-sm text-center text-gray-700">{message}</p>}
+    </div>
   );
 }
