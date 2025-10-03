@@ -36,7 +36,9 @@ export function useExtras(){
         massa: ['molho', 'ingrediente', 'ingredienteplus'],
         bebida: [],
         sobremesa: [],
-        estudante: ['molho', 'ingrediente', 'ingredienteplus','bebida-estudante']
+        estudante: ['molho', 'ingrediente', 'ingredienteplus','bebida-estudante'],
+        lanche:['lanche']
+
     };
     
 

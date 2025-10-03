@@ -91,13 +91,13 @@ export default function GerenciarProdutos() {
 
   const editar = (p: Produto) => {
     setNome(p.nome);
-    setDescricao(p.descricao);
+    setDescricao(p.descricao!);
     setImagemUrl(p.imagemUrl);
     setPreco(p.precoVenda.toString());
-    setPrecoCusto(p.custo.toString());
+    setPrecoCusto(p.custo!.toString());
     setEditandoId(p.id);
-    setCategoria(p.categoria);
-    setClasse(p.classe)
+    setCategoria(p.categoria!);
+    setClasse(p.classe!)
   };
 
   const remover = async (id: string) => {
@@ -215,22 +215,7 @@ export default function GerenciarProdutos() {
         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
           <ImageIcon className="text-green-500" /> Produtos Cadastrados
         </h2>
-          {/*
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          {categoriasOrdem.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategoriaSelecionada(c)}
-              className={`px-4 py-2 rounded-lg font-semibold cursor-pointer ${
-                categoriaSelecionada === c ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {c.charAt(0).toUpperCase() + c.slice(1)}
-            </button>
-          ))}
-        </div>
-            */}
-
+         
         <ClasseButtons
           classeTodos = {true}
           classeSelecionada={classeSelecionada}

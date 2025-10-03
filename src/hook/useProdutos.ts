@@ -32,7 +32,9 @@ export function useProdutos(){
 
    
     // Pega todas as classes distintas
-    const classes = [...new Set(produtos.map(p => p.classe))];
+    // Pega todas as classes distintas, removendo undefined
+    const classes: string[] = [...new Set(produtos.map(p => p.classe).filter((c): c is string => !!c))];
+
     
     // Filtra produtos pela classe escolhida
     const produtosFiltrados = classeSelecionada
