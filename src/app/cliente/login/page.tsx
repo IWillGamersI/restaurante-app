@@ -53,7 +53,8 @@ export default function LoginCliente() {
         where('telefone', '==', telefone)
       );
       const snap = await getDocs(q);
-      if (snap.empty) setModo('novo');
+      //if (snap.empty) setModo('novo');
+      if (snap.empty) setErro('Telefone não Cadastrado!');
       else {
         const docSnap = snap.docs[0];
         const data = docSnap.data();
