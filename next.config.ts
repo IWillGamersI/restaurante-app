@@ -1,12 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    forceSwcTransforms: true, // força transpile de libs externas
+    optimizeCss: true,        // melhora performance
+  },
   typescript: {
-    ignoreBuildErrors: true, // ignora erros de TS durante o build
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: true, // ignora erros de ESLint durante o build
+    ignoreDuringBuilds: true,
+  },
+  modularizeImports: {
+    "@mui/icons-material": {
+      transform: "@mui/icons-material/{{member}}",
+    },
   },
 };
 

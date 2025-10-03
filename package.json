@@ -22,6 +22,8 @@
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
+    "core-js": "^3.45.1",
+    "critters": "^0.0.23",
     "escpos": "^3.0.0-alpha.6",
     "escpos-network": "^3.0.0-alpha.5",
     "express": "^5.1.0",
@@ -32,6 +34,7 @@
     "react-icons": "^5.5.0",
     "react-phone-input-2": "^2.15.1",
     "recharts": "^3.1.0",
+    "regenerator-runtime": "^0.14.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "twilio": "^5.10.1"
