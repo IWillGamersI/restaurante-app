@@ -189,7 +189,7 @@ export default function LoginCliente() {
         {!isStandalone && <PWAInstallPrompt />}
 
         {/* Login/Cadastro dentro do PWA */}
-        {!isStandalone && (
+        {isStandalone && (
           <AnimatePresence mode="wait">
             <motion.div
               key={`${cliente?.codigoCliente ?? ''}-${modo}`}
