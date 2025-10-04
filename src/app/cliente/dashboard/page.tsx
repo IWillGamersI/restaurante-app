@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { CreditCard, ShoppingBag, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -12,6 +11,10 @@ import { AbasCompras } from "@/components/AbasCompras";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Head from "next/head";
 import { useLogOut } from "@/hook/useLogOut";
+import { CreditCard, ShoppingBag, User, Gift } from "lucide-react"; // importa Gift para cupons
+
+
+
 
 
 interface Cliente {
@@ -24,62 +27,65 @@ interface Cliente {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [aba, setAba] = useState<"fidelidade" | "compras" | "dados">("fidelidade");
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loadingCliente, setLoadingCliente] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
 
+  // no state da aba
+  const [aba, setAba] = useState<"fidelidade" | "compras" | "dados" | "cupons">("fidelidade");
+  const [subAbaCupons, setSubAbaCupons] = useState<"disponiveis" | "resgatados">("disponiveis");
+
  // 🔹 Listener de pedidos
-useEffect(() => {
-  if (!cliente) return;
-  setLoadingPedidos(true);
+  useEffect(() => {
+    if (!cliente) return;
+    setLoadingPedidos(true);
 
-  const q = query(collection(db, "pedidos"), where("codigoCliente", "==", cliente.codigoCliente));
-  const unsubscribe = onSnapshot(
-    q,
-    (snap) => {
-      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
-      lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
-      setPedidos(lista);
-      setLoadingPedidos(false);
-    },
-    (err) => {
-      console.error("Erro ao escutar pedidos:", err);
-      setLoadingPedidos(false);
-    }
-  );
-
-  return () => unsubscribe();
-}, [cliente]);
-
-// 🔹 Hook Cartão Fidelidade
-const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.codigoCliente);
-
-
-// 🔹 Buscar cliente
-useEffect(() => {
-  const fetchCliente = async () => {
-    const codigoCliente = localStorage.getItem("clienteCodigo");
-    if (!codigoCliente) return router.push("/cliente/login");
-
-    setLoadingCliente(true);
-    try {
-      const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setCliente({ id: snap.docs[0].id, ...snap.docs[0].data() } as Cliente);
-      } else {
-        setCliente(null);
+    const q = query(collection(db, "pedidos"), where("codigoCliente", "==", cliente.codigoCliente));
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
+        lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
+        setPedidos(lista);
+        setLoadingPedidos(false);
+      },
+      (err) => {
+        console.error("Erro ao escutar pedidos:", err);
+        setLoadingPedidos(false);
       }
-    } catch (err) {
-      console.error("Erro ao buscar cliente:", err);
-    } finally {
-      setLoadingCliente(false);
-    }
-  };
-  fetchCliente();
-}, [router]);
+    );
+
+    return () => unsubscribe();
+  }, [cliente]);
+
+  // 🔹 Hook Cartão Fidelidade
+  const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.codigoCliente);
+
+
+  // 🔹 Buscar cliente
+  useEffect(() => {
+    const fetchCliente = async () => {
+      const codigoCliente = localStorage.getItem("clienteCodigo");
+      if (!codigoCliente) return router.push("/cliente/login");
+
+      setLoadingCliente(true);
+      try {
+        const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setCliente({ id: snap.docs[0].id, ...snap.docs[0].data() } as Cliente);
+        } else {
+          setCliente(null);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar cliente:", err);
+      } finally {
+        setLoadingCliente(false);
+      }
+    };
+    fetchCliente();
+  }, [router]);
 
 
   // 🔹 Listener de pedidos
@@ -161,6 +167,51 @@ useEffect(() => {
     );
   };
 
+  const Cupons = () => {
+    if (loadingCartoes) return <div className="p-4">Carregando cupons...</div>;
+    if (!cartoes || cartoes.length === 0)
+      return <div className="p-4 text-center text-gray-500">Nenhum cupom disponível.</div>;
+
+    const cuponsDisponiveis = cartoes.flatMap(c => c.cupomGanho.map(cupom => ({ ...cupom, tipoCartao: c.tipo })));
+    const cuponsResgatados = cartoes.flatMap(c => c.cupomResgatado.map(cupom => ({ ...cupom, tipoCartao: c.tipo })));
+
+    const listaExibir = subAbaCupons === "disponiveis" ? cuponsDisponiveis : cuponsResgatados;
+
+    return (
+      <div className="p-4">
+        {/* Sub-abas */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setSubAbaCupons("disponiveis")}
+            className={`flex-1 py-2 rounded-lg font-semibold ${subAbaCupons === "disponiveis" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+          >
+            Cupons a Resgatar
+          </button>
+          <button
+            onClick={() => setSubAbaCupons("resgatados")}
+            className={`flex-1 py-2 rounded-lg font-semibold ${subAbaCupons === "resgatados" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+          >
+            Cupons Resgatados
+          </button>
+        </div>
+
+        {/* Lista de cupons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {listaExibir.map(cupom => (
+            <div key={cupom.codigo} className="p-3 bg-white shadow rounded-lg flex flex-col gap-1">
+              <p className="font-medium">{cupom.codigo}</p>
+              <p className="text-sm text-gray-500">Cartão: {cupom.tipoCartao}</p>
+              <p className="text-xs text-gray-400">Ganho: {new Date(cupom.dataGanho).toLocaleDateString()}</p>
+              {cupom.dataResgate && <p className="text-xs text-green-600">Resgatado: {new Date(cupom.dataResgate).toLocaleDateString()}</p>}
+            </div>
+          ))}
+          {listaExibir.length === 0 && <p className="text-center col-span-full text-gray-500">Nenhum cupom nesta aba.</p>}
+        </div>
+      </div>
+    );
+  };
+
+
   return (
     <>
       <Head>
@@ -182,7 +233,9 @@ useEffect(() => {
           {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade />}
           {!loadingCliente && aba === "compras" && <AbasCompras pedidos={pedidos} loading={loadingPedidos} />}
           {!loadingCliente && aba === "dados" && <Dados />}
+          {!loadingCliente && aba === "cupons" && cliente && <Cupons />}
         </div>
+
 
         {/* 🔹 Barra inferior */}
         <div className="h-16 bg-white border-t flex justify-around items-center fixed bottom-0 w-full">
@@ -203,12 +256,22 @@ useEffect(() => {
           </button>
 
           <button
+            onClick={() => setAba("cupons")}
+            className={`flex flex-col items-center ${aba === "cupons" ? "text-blue-600" : "text-gray-500"}`}
+          >
+            <Gift className="w-6 h-6" />
+            <span className="text-xs">Cupons</span>
+          </button>
+
+
+          <button
             onClick={() => setAba("dados")}
             className={`flex flex-col items-center ${aba === "dados" ? "text-blue-600" : "text-gray-500"}`}
           >
             <User className="w-6 h-6" />
             <span className="text-xs">Perfil</span>
           </button>
+          
         </div>
 
         <PWAInstallPrompt/>

@@ -21,7 +21,10 @@ export interface CartaoFidelidade {
 }
 
 // Regras de fidelidade
-const regrasFidelidade: Record<string, { tipo: "classe" | "categoria"; limite: number; periodo: number; categorias?: string[] }> = {
+const regrasFidelidade: Record<
+  string,
+  { tipo: "classe" | "categoria"; limite: number; periodo: number; categorias?: string[] }
+> = {
   Pizza: { tipo: "categoria", limite: 10, periodo: 3, categorias: ["pizza-individual", "pizza-tradicional"] },
   estudante: { tipo: "classe", limite: 15, periodo: 1 },
   acai: { tipo: "classe", limite: 15, periodo: 1 },
@@ -80,10 +83,12 @@ export function useCartaoFidelidade(codigoCliente?: string) {
               // Soma quantidade de compras
               cartoesTemp[nomeCartao].quantidade += p.quantidade;
 
-              // Gerar cupons automaticamente
+              // Calcula quantos cupons novos devem ser gerados
               const premiosNovos = Math.floor(cartoesTemp[nomeCartao].quantidade / cartoesTemp[nomeCartao].limite);
               if (premiosNovos > 0) {
                 const hoje = new Date();
+
+                // Apenas adiciona cupons novos, mantendo os antigos
                 for (let i = 0; i < premiosNovos; i++) {
                   cartoesTemp[nomeCartao].cupomGanho.push({
                     codigo: gerarCodigoCupom(nomeCartao),
@@ -91,6 +96,8 @@ export function useCartaoFidelidade(codigoCliente?: string) {
                     quantidade: 1,
                   });
                 }
+
+                // Mantém o excedente para próxima contagem
                 cartoesTemp[nomeCartao].quantidade %= cartoesTemp[nomeCartao].limite;
               }
 
@@ -123,47 +130,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
     return () => unsubscribe();
   }, [codigoCliente]);
 
-  // Flag: existe pelo menos um cupom disponível
   const temCupomDisponivel = cartoes.some(c => c.saldoCupom > 0);
 
-  // Função para resgatar cupom pelo código
-  const resgatarCupom = async (codigoCupom: string) => {
-    if (!codigoCliente || !codigoCupom) return false;
-
-    const clientesRef = collection(db, "clientes");
-    const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
-    const clienteSnap = await getDocs(clienteQuery);
-    if (clienteSnap.empty) return false;
-
-    const clienteDoc = clienteSnap.docs[0];
-    const clienteData: any = clienteDoc.data();
-    const cartoesCliente: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
-
-    let cupomEncontrado = false;
-    for (let cartao of cartoesCliente) {
-      const idx = cartao.cupomGanho.findIndex(c => c.codigo === codigoCupom.toUpperCase());
-      if (idx !== -1) {
-        const premio = cartao.cupomGanho.splice(idx, 1)[0];
-        cartao.cupomResgatado.push({
-          codigo: premio.codigo,
-          dataGanho: premio.dataGanho,
-          dataResgate: new Date().toISOString(),
-          quantidade: premio.quantidade,
-        });
-        cartao.saldoCupom = cartao.cupomGanho.length - cartao.cupomResgatado.length;
-        cupomEncontrado = true;
-        break;
-      }
-    }
-
-    if (!cupomEncontrado) return false;
-
-    const clienteRef = doc(db, "clientes", clienteDoc.id);
-    await updateDoc(clienteRef, { cartaoFidelidade: cartoesCliente });
-    setCartoes(cartoesCliente);
-
-    return true;
-  };
-
-  return { cartoes, loading, temCupomDisponivel, resgatarCupom };
+  return { cartoes, loading, temCupomDisponivel };
 }
