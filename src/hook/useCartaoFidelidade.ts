@@ -18,10 +18,8 @@ export interface CartaoFidelidade {
   cupomGanho: Cupom[];
   cupomResgatado: Cupom[];
   saldoCupom: number;
-  pedidosProcessados: string[]; // ← novo: IDs de pedidos já processados
 }
 
-// Regras de fidelidade
 const regrasFidelidade: Record<
   string,
   { tipo: "classe" | "categoria"; limite: number; periodo: number; categorias?: string[] }
@@ -34,7 +32,6 @@ const regrasFidelidade: Record<
   pizza: { tipo: "classe", limite: 10, periodo: 3 },
 };
 
-// Função para gerar código único
 function gerarCodigoCupom(tipo: string) {
   return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
@@ -58,27 +55,12 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
       const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
 
-      // Recupera cartaoFidelidade atual do cliente
-      const clientesRef = collection(db, "clientes");
-      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
-      const clienteSnap = await getDocs(clienteQuery);
-      if (clienteSnap.empty) {
-        setCartoes([]);
-        setLoading(false);
-        return;
-      }
-      const clienteDoc = clienteSnap.docs[0];
-      const clienteData: any = clienteDoc.data();
-      const cartoesAtuais: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
+      // 🔹 Só considera pedidos entregues
+      const pedidosEntregues = pedidos.filter(p => p.status === "Entregue");
 
       const cartoesTemp: Record<string, CartaoFidelidade> = {};
-      cartoesAtuais.forEach(c => {
-        cartoesTemp[c.tipo] = { ...c, pedidosProcessados: c.pedidosProcessados || [] };
-      });
 
-      pedidos.forEach(pedido => {
-        if (pedido.status !== "Entregue") return;
-
+      pedidosEntregues.forEach(pedido => {
         pedido.produtos?.forEach(p => {
           Object.entries(regrasFidelidade).forEach(([nomeCartao, regra]) => {
             let pertence = false;
@@ -95,52 +77,43 @@ export function useCartaoFidelidade(codigoCliente?: string) {
                   cupomGanho: [],
                   cupomResgatado: [],
                   saldoCupom: 0,
-                  pedidosProcessados: [],
                 };
               }
 
-              if (!pedido.id) return;
-
-              // 🔹 Verifica se pedido já foi processado
-              if (!cartoesTemp[nomeCartao].pedidosProcessados.includes(pedido.id)) {
-                // Adiciona quantidade
-                cartoesTemp[nomeCartao].quantidade += p.quantidade;
-
-                // Calcula quantos cupons gerar
-                const cuponsNovos = Math.floor(cartoesTemp[nomeCartao].quantidade / cartoesTemp[nomeCartao].limite);
-                if (cuponsNovos > 0) {
-                  const hoje = new Date().toISOString();
-                  for (let i = 0; i < cuponsNovos; i++) {
-                    cartoesTemp[nomeCartao].cupomGanho.push({
-                      codigo: gerarCodigoCupom(nomeCartao),
-                      dataGanho: hoje,
-                      quantidade: 1,
-                    });
-                  }
-
-                  // Mantém o excedente
-                  cartoesTemp[nomeCartao].quantidade %= cartoesTemp[nomeCartao].limite;
-                }
-
-                // Marca pedido como processado
-                cartoesTemp[nomeCartao].pedidosProcessados.push(pedido.id);
-
-                // Atualiza saldo
-                cartoesTemp[nomeCartao].saldoCupom =
-                  cartoesTemp[nomeCartao].cupomGanho.length - cartoesTemp[nomeCartao].cupomResgatado.length;
-              }
+              cartoesTemp[nomeCartao].quantidade += p.quantidade;
             }
           });
         });
+      });
+
+      // Agora gera cupons com base na quantidade acumulada
+      Object.values(cartoesTemp).forEach(cartao => {
+        const cuponsNovos = Math.floor(cartao.quantidade / cartao.limite);
+        for (let i = 0; i < cuponsNovos; i++) {
+          cartao.cupomGanho.push({
+            codigo: gerarCodigoCupom(cartao.tipo),
+            dataGanho: new Date().toISOString(),
+            quantidade: 1,
+          });
+        }
+        cartao.quantidade %= cartao.limite;
+        cartao.saldoCupom = cartao.cupomGanho.length - cartao.cupomResgatado.length;
       });
 
       const cartoesAtualizados = Object.values(cartoesTemp);
       setCartoes(cartoesAtualizados);
       setLoading(false);
 
-      // Atualiza Firestore
-      const clienteRef = doc(db, "clientes", clienteDoc.id);
-      await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
+      // 🔹 Atualiza Firestore com a versão recalculada
+      const clientesRef = collection(db, "clientes");
+      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
+      const clienteSnap = await getDocs(clienteQuery);
+
+      if (!clienteSnap.empty) {
+        const clienteDoc = clienteSnap.docs[0];
+        const clienteRef = doc(db, "clientes", clienteDoc.id);
+        await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
+      }
     });
 
     return () => unsubscribe();
