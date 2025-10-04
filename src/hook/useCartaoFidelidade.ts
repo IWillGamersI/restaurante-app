@@ -54,9 +54,22 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       }
 
       const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
-
-      // 🔹 Só considera pedidos entregues
       const pedidosEntregues = pedidos.filter(p => p.status === "Entregue");
+
+      // 🔹 Recupera cartões já existentes do cliente
+      const clientesRef = collection(db, "clientes");
+      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
+      const clienteSnap = await getDocs(clienteQuery);
+
+      if (clienteSnap.empty) {
+        setCartoes([]);
+        setLoading(false);
+        return;
+      }
+
+      const clienteDoc = clienteSnap.docs[0];
+      const clienteData: any = clienteDoc.data();
+      const cartoesExistentes: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
 
       const cartoesTemp: Record<string, CartaoFidelidade> = {};
 
@@ -69,14 +82,17 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
             if (pertence) {
               if (!cartoesTemp[nomeCartao]) {
+                // 🔹 Tenta reaproveitar cartão existente
+                const existente = cartoesExistentes.find(c => c.tipo === nomeCartao);
+
                 cartoesTemp[nomeCartao] = {
                   tipo: nomeCartao,
                   quantidade: 0,
                   limite: regra.limite,
                   periodo: regra.periodo,
-                  cupomGanho: [],
-                  cupomResgatado: [],
-                  saldoCupom: 0,
+                  cupomGanho: existente?.cupomGanho || [],
+                  cupomResgatado: existente?.cupomResgatado || [],
+                  saldoCupom: existente?.saldoCupom || 0,
                 };
               }
 
@@ -86,16 +102,22 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         });
       });
 
-      // Agora gera cupons com base na quantidade acumulada
+      // 🔹 Agora gera só cupons adicionais
       Object.values(cartoesTemp).forEach(cartao => {
-        const cuponsNovos = Math.floor(cartao.quantidade / cartao.limite);
-        for (let i = 0; i < cuponsNovos; i++) {
-          cartao.cupomGanho.push({
-            codigo: gerarCodigoCupom(cartao.tipo),
-            dataGanho: new Date().toISOString(),
-            quantidade: 1,
-          });
+        const totalCuponsEsperados = Math.floor(cartao.quantidade / cartao.limite);
+        const totalCuponsAtuais = cartao.cupomGanho.length;
+
+        if (totalCuponsEsperados > totalCuponsAtuais) {
+          const novos = totalCuponsEsperados - totalCuponsAtuais;
+          for (let i = 0; i < novos; i++) {
+            cartao.cupomGanho.push({
+              codigo: gerarCodigoCupom(cartao.tipo),
+              dataGanho: new Date().toISOString(),
+              quantidade: 1,
+            });
+          }
         }
+
         cartao.quantidade %= cartao.limite;
         cartao.saldoCupom = cartao.cupomGanho.length - cartao.cupomResgatado.length;
       });
@@ -104,16 +126,9 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       setCartoes(cartoesAtualizados);
       setLoading(false);
 
-      // 🔹 Atualiza Firestore com a versão recalculada
-      const clientesRef = collection(db, "clientes");
-      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
-      const clienteSnap = await getDocs(clienteQuery);
-
-      if (!clienteSnap.empty) {
-        const clienteDoc = clienteSnap.docs[0];
-        const clienteRef = doc(db, "clientes", clienteDoc.id);
-        await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
-      }
+      // 🔹 Atualiza Firestore com a versão recalculada/preservada
+      const clienteRef = doc(db, "clientes", clienteDoc.id);
+      await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
     });
 
     return () => unsubscribe();
