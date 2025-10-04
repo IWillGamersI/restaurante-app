@@ -186,10 +186,10 @@ export default function LoginCliente() {
 
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-50 to-white px-4">
         {/* PWAInstallPrompt fora do PWA */}
-        <PWAInstallPrompt />
+        {!isStandalone && <PWAInstallPrompt />}
 
         {/* Login/Cadastro dentro do PWA */}
-        {!isStandalone && (
+        {isStandalone && (
           <AnimatePresence mode="wait">
             <motion.div
               key={`${cliente?.codigoCliente ?? ''}-${modo}`}
