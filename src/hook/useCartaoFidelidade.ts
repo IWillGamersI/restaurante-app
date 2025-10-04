@@ -12,13 +12,13 @@ export interface Cupom {
 
 export interface CartaoFidelidade {
   tipo: string;
-  quantidade: number;            // total de compras do período
-  quantidadeAcumulada: number;   // total já contabilizado para cupons
+  quantidade: number;
   limite: number;
   periodo: number;
   cupomGanho: Cupom[];
   cupomResgatado: Cupom[];
   saldoCupom: number;
+  pedidosProcessados: string[]; // ← novo: IDs de pedidos já processados
 }
 
 // Regras de fidelidade
@@ -73,10 +73,9 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
       const cartoesTemp: Record<string, CartaoFidelidade> = {};
       cartoesAtuais.forEach(c => {
-        cartoesTemp[c.tipo] = { ...c };
+        cartoesTemp[c.tipo] = { ...c, pedidosProcessados: c.pedidosProcessados || [] };
       });
 
-      // Calcula quantidade e cupons
       pedidos.forEach(pedido => {
         if (pedido.status === "Cancelado") return;
 
@@ -91,41 +90,45 @@ export function useCartaoFidelidade(codigoCliente?: string) {
                 cartoesTemp[nomeCartao] = {
                   tipo: nomeCartao,
                   quantidade: 0,
-                  quantidadeAcumulada: 0,
                   limite: regra.limite,
                   periodo: regra.periodo,
                   cupomGanho: [],
                   cupomResgatado: [],
                   saldoCupom: 0,
+                  pedidosProcessados: [],
                 };
               }
 
-              // Soma quantidade de compras
-              cartoesTemp[nomeCartao].quantidade += p.quantidade;
+              if (!pedido.id) return;
 
-              // Calcula quantidade disponível para novos cupons
-              const comprasParaContabilizar =
-                cartoesTemp[nomeCartao].quantidade - (cartoesTemp[nomeCartao].quantidadeAcumulada || 0);
-              const cuponsNovos = Math.floor(comprasParaContabilizar / cartoesTemp[nomeCartao].limite);
+              // 🔹 Verifica se pedido já foi processado
+              if (!cartoesTemp[nomeCartao].pedidosProcessados.includes(pedido.id)) {
+                // Adiciona quantidade
+                cartoesTemp[nomeCartao].quantidade += p.quantidade;
 
-              if (cuponsNovos > 0) {
-                const hoje = new Date().toISOString();
-                for (let i = 0; i < cuponsNovos; i++) {
-                  cartoesTemp[nomeCartao].cupomGanho.push({
-                    codigo: gerarCodigoCupom(nomeCartao),
-                    dataGanho: hoje,
-                    quantidade: 1,
-                  });
+                // Calcula quantos cupons gerar
+                const cuponsNovos = Math.floor(cartoesTemp[nomeCartao].quantidade / cartoesTemp[nomeCartao].limite);
+                if (cuponsNovos > 0) {
+                  const hoje = new Date().toISOString();
+                  for (let i = 0; i < cuponsNovos; i++) {
+                    cartoesTemp[nomeCartao].cupomGanho.push({
+                      codigo: gerarCodigoCupom(nomeCartao),
+                      dataGanho: hoje,
+                      quantidade: 1,
+                    });
+                  }
+
+                  // Mantém o excedente
+                  cartoesTemp[nomeCartao].quantidade %= cartoesTemp[nomeCartao].limite;
                 }
 
-                // Atualiza quantidade acumulada
-                cartoesTemp[nomeCartao].quantidadeAcumulada =
-                  (cartoesTemp[nomeCartao].quantidadeAcumulada || 0) + cuponsNovos * cartoesTemp[nomeCartao].limite;
-              }
+                // Marca pedido como processado
+                cartoesTemp[nomeCartao].pedidosProcessados.push(pedido.id);
 
-              // Atualiza saldo
-              cartoesTemp[nomeCartao].saldoCupom =
-                cartoesTemp[nomeCartao].cupomGanho.length - cartoesTemp[nomeCartao].cupomResgatado.length;
+                // Atualiza saldo
+                cartoesTemp[nomeCartao].saldoCupom =
+                  cartoesTemp[nomeCartao].cupomGanho.length - cartoesTemp[nomeCartao].cupomResgatado.length;
+              }
             }
           });
         });
