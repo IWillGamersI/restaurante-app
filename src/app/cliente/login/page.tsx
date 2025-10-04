@@ -189,7 +189,7 @@ export default function LoginCliente() {
         {!isStandalone && <PWAInstallPrompt />}
 
         {/* Login/Cadastro dentro do PWA */}
-        {isStandalone && (
+        
           <AnimatePresence mode="wait">
             <motion.div
               key={`${cliente?.codigoCliente ?? ''}-${modo}`}
@@ -370,6 +370,7 @@ export default function LoginCliente() {
                     />
                   </div>
 
+                  <label className='text-gray-400'>Digite sua Data de Nascimento</label>
                   <div className="relative">
                     <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
                     <input
@@ -395,7 +396,7 @@ export default function LoginCliente() {
               {erro && <p className="text-red-500 mt-4 text-center">{erro}</p>}
             </motion.div>
           </AnimatePresence>
-        )}
+       
       </div>
     </>
   );
