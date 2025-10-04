@@ -332,7 +332,7 @@ export default function LoginCliente() {
                       className="w-full px-10 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                     />
                   </div>
-
+                  <label className='text-gray-400'>Digite sua data de nascimento</label>
                   <div className="relative">
                     <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
                     <input
@@ -370,7 +370,7 @@ export default function LoginCliente() {
                     />
                   </div>
 
-                  <label className='text-gray-400'>Digite sua Data de Nascimento</label>
+                  <label className='text-gray-400'>Digite sua data de nascimento</label>
                   <div className="relative">
                     <FiCalendar className="absolute left-3 top-3 text-gray-400 text-xl" />
                     <input
