@@ -77,7 +77,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       });
 
       pedidos.forEach(pedido => {
-        if (pedido.status === "Cancelado") return;
+        if (pedido.status !== "Entregue") return;
 
         pedido.produtos?.forEach(p => {
           Object.entries(regrasFidelidade).forEach(([nomeCartao, regra]) => {
