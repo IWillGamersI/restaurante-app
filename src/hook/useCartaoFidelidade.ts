@@ -12,7 +12,8 @@ export interface Cupom {
 
 export interface CartaoFidelidade {
   tipo: string;
-  quantidade: number;
+  quantidade: number;            // total de compras do período
+  quantidadeAcumulada: number;   // total já contabilizado para cupons
   limite: number;
   periodo: number;
   cupomGanho: Cupom[];
@@ -56,8 +57,26 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       }
 
       const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
-      const cartoesTemp: Record<string, CartaoFidelidade> = {};
 
+      // Recupera cartaoFidelidade atual do cliente
+      const clientesRef = collection(db, "clientes");
+      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
+      const clienteSnap = await getDocs(clienteQuery);
+      if (clienteSnap.empty) {
+        setCartoes([]);
+        setLoading(false);
+        return;
+      }
+      const clienteDoc = clienteSnap.docs[0];
+      const clienteData: any = clienteDoc.data();
+      const cartoesAtuais: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
+
+      const cartoesTemp: Record<string, CartaoFidelidade> = {};
+      cartoesAtuais.forEach(c => {
+        cartoesTemp[c.tipo] = { ...c };
+      });
+
+      // Calcula quantidade e cupons
       pedidos.forEach(pedido => {
         if (pedido.status === "Cancelado") return;
 
@@ -72,6 +91,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
                 cartoesTemp[nomeCartao] = {
                   tipo: nomeCartao,
                   quantidade: 0,
+                  quantidadeAcumulada: 0,
                   limite: regra.limite,
                   periodo: regra.periodo,
                   cupomGanho: [],
@@ -83,22 +103,24 @@ export function useCartaoFidelidade(codigoCliente?: string) {
               // Soma quantidade de compras
               cartoesTemp[nomeCartao].quantidade += p.quantidade;
 
-              // Calcula quantos cupons novos devem ser gerados
-              const premiosNovos = Math.floor(cartoesTemp[nomeCartao].quantidade / cartoesTemp[nomeCartao].limite);
-              if (premiosNovos > 0) {
-                const hoje = new Date();
+              // Calcula quantidade disponível para novos cupons
+              const comprasParaContabilizar =
+                cartoesTemp[nomeCartao].quantidade - (cartoesTemp[nomeCartao].quantidadeAcumulada || 0);
+              const cuponsNovos = Math.floor(comprasParaContabilizar / cartoesTemp[nomeCartao].limite);
 
-                // Apenas adiciona cupons novos, mantendo os antigos
-                for (let i = 0; i < premiosNovos; i++) {
+              if (cuponsNovos > 0) {
+                const hoje = new Date().toISOString();
+                for (let i = 0; i < cuponsNovos; i++) {
                   cartoesTemp[nomeCartao].cupomGanho.push({
                     codigo: gerarCodigoCupom(nomeCartao),
-                    dataGanho: hoje.toISOString(),
+                    dataGanho: hoje,
                     quantidade: 1,
                   });
                 }
 
-                // Mantém o excedente para próxima contagem
-                cartoesTemp[nomeCartao].quantidade %= cartoesTemp[nomeCartao].limite;
+                // Atualiza quantidade acumulada
+                cartoesTemp[nomeCartao].quantidadeAcumulada =
+                  (cartoesTemp[nomeCartao].quantidadeAcumulada || 0) + cuponsNovos * cartoesTemp[nomeCartao].limite;
               }
 
               // Atualiza saldo
@@ -114,17 +136,8 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       setLoading(false);
 
       // Atualiza Firestore
-      const clientesRef = collection(db, "clientes");
-      const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
-      const clienteSnap = await getDocs(clienteQuery);
-
-      if (!clienteSnap.empty) {
-        const clienteDoc = clienteSnap.docs[0];
-        const clienteRef = doc(db, "clientes", clienteDoc.id);
-        await updateDoc(clienteRef, {
-          cartaoFidelidade: cartoesAtualizados,
-        });
-      }
+      const clienteRef = doc(db, "clientes", clienteDoc.id);
+      await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
     });
 
     return () => unsubscribe();

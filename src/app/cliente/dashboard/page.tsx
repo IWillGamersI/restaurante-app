@@ -11,11 +11,7 @@ import { AbasCompras } from "@/components/AbasCompras";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Head from "next/head";
 import { useLogOut } from "@/hook/useLogOut";
-import { CreditCard, ShoppingBag, User, Gift } from "lucide-react"; // importa Gift para cupons
-
-
-
-
+import { CreditCard, ShoppingBag, User, Gift } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -27,41 +23,19 @@ interface Cliente {
 
 export default function Dashboard() {
   const router = useRouter();
+  const logOut = useLogOut();
+
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loadingCliente, setLoadingCliente] = useState(true);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
 
-  // no state da aba
+  // Abas
   const [aba, setAba] = useState<"fidelidade" | "compras" | "dados" | "cupons">("fidelidade");
   const [subAbaCupons, setSubAbaCupons] = useState<"disponiveis" | "resgatados">("disponiveis");
 
- // 🔹 Listener de pedidos
-  useEffect(() => {
-    if (!cliente) return;
-    setLoadingPedidos(true);
-
-    const q = query(collection(db, "pedidos"), where("codigoCliente", "==", cliente.codigoCliente));
-    const unsubscribe = onSnapshot(
-      q,
-      (snap) => {
-        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
-        lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
-        setPedidos(lista);
-        setLoadingPedidos(false);
-      },
-      (err) => {
-        console.error("Erro ao escutar pedidos:", err);
-        setLoadingPedidos(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [cliente]);
-
-  // 🔹 Hook Cartão Fidelidade
+  // 🔹 Hook de Cartão Fidelidade
   const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.codigoCliente);
-
 
   // 🔹 Buscar cliente
   useEffect(() => {
@@ -87,7 +61,6 @@ export default function Dashboard() {
     fetchCliente();
   }, [router]);
 
-
   // 🔹 Listener de pedidos
   useEffect(() => {
     if (!cliente) return;
@@ -97,7 +70,7 @@ export default function Dashboard() {
     const unsubscribe = onSnapshot(
       q,
       (snap) => {
-        const lista = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Pedido[];
+        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
         lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
         setPedidos(lista);
         setLoadingPedidos(false);
@@ -111,15 +84,10 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [cliente]);
 
-  const logOut = useLogOut()
-
-
-  // 🔹 Aba Dados
+  // 🔹 Componentes de Aba
   const Dados = () => (
     <div className="p-6 flex flex-col items-center">
       <div className="bg-white shadow-md rounded-2xl p-6 w-full max-w-sm space-y-6">
-
-        {/* Avatar */}
         <div className="flex flex-col items-center">
           <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center text-3xl font-bold text-purple-600 shadow">
             {cliente?.nome?.charAt(0).toUpperCase() || "C"}
@@ -128,7 +96,6 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500">Código: {cliente?.codigoCliente}</p>
         </div>
 
-        {/* Dados do usuário */}
         <div className="divide-y divide-gray-200 text-gray-700">
           <div className="flex justify-between py-2">
             <span className="font-medium">📱 Telefone</span>
@@ -140,7 +107,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Botão de sair */}
         <button
           onClick={() => logOut('/cliente/login')}
           className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-600 transition"
@@ -151,8 +117,6 @@ export default function Dashboard() {
     </div>
   );
 
-
-  // 🔹 Aba Fidelidade
   const Fidelidade = () => {
     if (loadingCartoes) return <div className="p-4">Carregando cartões...</div>;
     if (!cartoes || cartoes.length === 0)
@@ -179,7 +143,6 @@ export default function Dashboard() {
 
     return (
       <div className="p-4">
-        {/* Sub-abas */}
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setSubAbaCupons("disponiveis")}
@@ -195,7 +158,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Lista de cupons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {listaExibir.map(cupom => (
             <div key={cupom.codigo} className="p-3 bg-white shadow rounded-lg flex flex-col gap-1">
@@ -211,7 +173,6 @@ export default function Dashboard() {
     );
   };
 
-
   return (
     <>
       <Head>
@@ -219,16 +180,12 @@ export default function Dashboard() {
         <link rel="manifest" href="/manifest-cliente.json" />
       </Head>
       <div className="flex flex-col h-screen bg-gray-50">
-        {/* 🔹 Topo */}
+        {/* Topo */}
         <div className="h-16 bg-white flex items-center justify-center shadow-md fixed top-0 w-full z-10">
-          {loadingCliente ? (
-            <span className="font-semibold text-lg">Carregando...</span>
-          ) : (
-            <span className="font-semibold text-lg">Olá, {cliente?.nome || "Cliente"}</span>
-          )}
+          {loadingCliente ? <span className="font-semibold text-lg">Carregando...</span> : <span className="font-semibold text-lg">Olá, {cliente?.nome || "Cliente"}</span>}
         </div>
 
-        {/* 🔹 Conteúdo */}
+        {/* Conteúdo */}
         <div className="flex-1 overflow-y-auto pt-16 pb-20">
           {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade />}
           {!loadingCliente && aba === "compras" && <AbasCompras pedidos={pedidos} loading={loadingPedidos} />}
@@ -236,45 +193,27 @@ export default function Dashboard() {
           {!loadingCliente && aba === "cupons" && cliente && <Cupons />}
         </div>
 
-
-        {/* 🔹 Barra inferior */}
+        {/* Barra inferior */}
         <div className="h-16 bg-white border-t flex justify-around items-center fixed bottom-0 w-full">
-          <button
-            onClick={() => setAba("fidelidade")}
-            className={`flex flex-col items-center ${aba === "fidelidade" ? "text-blue-600" : "text-gray-500"}`}
-          >
+          <button onClick={() => setAba("fidelidade")} className={`flex flex-col items-center ${aba === "fidelidade" ? "text-blue-600" : "text-gray-500"}`}>
             <CreditCard />
             <span className="text-xs">Fidelidade</span>
           </button>
-
-          <button
-            onClick={() => setAba("compras")}
-            className={`flex flex-col items-center ${aba === "compras" ? "text-blue-600" : "text-gray-500"}`}
-          >
+          <button onClick={() => setAba("compras")} className={`flex flex-col items-center ${aba === "compras" ? "text-blue-600" : "text-gray-500"}`}>
             <ShoppingBag className="w-6 h-6" />
             <span className="text-xs">Compras</span>
           </button>
-
-          <button
-            onClick={() => setAba("cupons")}
-            className={`flex flex-col items-center ${aba === "cupons" ? "text-blue-600" : "text-gray-500"}`}
-          >
+          <button onClick={() => setAba("cupons")} className={`flex flex-col items-center ${aba === "cupons" ? "text-blue-600" : "text-gray-500"}`}>
             <Gift className="w-6 h-6" />
             <span className="text-xs">Cupons</span>
           </button>
-
-
-          <button
-            onClick={() => setAba("dados")}
-            className={`flex flex-col items-center ${aba === "dados" ? "text-blue-600" : "text-gray-500"}`}
-          >
+          <button onClick={() => setAba("dados")} className={`flex flex-col items-center ${aba === "dados" ? "text-blue-600" : "text-gray-500"}`}>
             <User className="w-6 h-6" />
             <span className="text-xs">Perfil</span>
           </button>
-          
         </div>
 
-        <PWAInstallPrompt/>
+        <PWAInstallPrompt />
       </div>
     </>
   );
