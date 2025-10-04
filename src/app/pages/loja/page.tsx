@@ -1,6 +1,5 @@
 import GerenciarPedidos from "@/components/GerenciarPedidos";
 import LogoutButton from "@/components/LogoutButton";
-import { div } from "framer-motion/client";
 import { Store } from "lucide-react";
 import Head from "next/head";
 

@@ -54,7 +54,8 @@ useEffect(() => {
 }, [cliente]);
 
 // 🔹 Hook Cartão Fidelidade
-const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.id, cliente?.codigoCliente);
+const { cartoes, loading: loadingCartoes } = useCartaoFidelidade(cliente?.codigoCliente);
+
 
 // 🔹 Buscar cliente
 useEffect(() => {

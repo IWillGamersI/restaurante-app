@@ -1,117 +1,80 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PedidoInfoFormProps } from "@/types";
 import { useCodigos } from "@/hook/useCodigos";
-
-
+import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
+import { Ticket } from "lucide-react";
 
 export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
-                                                                    tipoFatura,
-                                                                    setTipoFatura,
-                                                                    tipoVenda,
-                                                                    setTipoVenda,
-                                                                    clienteTelefone,
-                                                                    setClienteTelefone,
-                                                                    clienteNome,
-                                                                    setClienteNome,
-                                                                    codigoCliente,
-                                                                    setCodigoCliente,
-                                                                    idCliente,
-                                                                    setIdCliente,
-                                                                    codigoPedido,
-                                                                    setCodigoPedido,
-                                                                    numeroMesa,
-                                                                    setNumeroMesa,
-                                                                    querImprimir,
-                                                                    setQuerImprimir,
-                                                                }) => {
+  tipoFatura,
+  setTipoFatura,
+  tipoVenda,
+  setTipoVenda,
+  clienteTelefone,
+  setClienteTelefone,
+  clienteNome,
+  setClienteNome,
+  codigoCliente,
+  setCodigoCliente,
+  idCliente,
+  setIdCliente,
+  codigoPedido,
+  setCodigoPedido,
+  numeroMesa,
+  setNumeroMesa,
+}) => {
+  const { gerarCodigoCliente, gerarCodigoPedido } = useCodigos();
+  const { cartoes } = useCartaoFidelidade(codigoCliente);
+  const [temCupom, setTemCupom] = useState(false);
+  const [cuponsSelecionados, setCuponsSelecionados] = useState<string[]>([]);
 
-  const {gerarCodigoCliente, gerarCodigoPedido} = useCodigos()
+  useEffect(() => {
+    // Verifica se existe pelo menos um cupom disponível
+    setTemCupom(cartoes.some(c => c.saldoCupom > 0));
+  }, [cartoes]);
 
-  const handleBlurTelefone = async () => {
-      if (!clienteTelefone) return;
-        const clientesRef = collection(db, "clientes");
-        const q = query(clientesRef, where("telefone", "==", clienteTelefone));
-        const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const clienteDoc = snapshot.docs[0];
-        const data = clienteDoc.data();
-
-        setClienteNome(data.nome);
-        setClienteTelefone(data.telefone);
-        setIdCliente(clienteDoc.id);
-
-        // Aqui você pode gerar o código agora que tem o nome
-        setCodigoCliente(gerarCodigoCliente(data.nome, data.telefone));
-        setCodigoPedido(gerarCodigoPedido(data.nome));
-      } else {
-        console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
-      }
-
+  const toggleCupom = (codigo: string) => {
+    setCuponsSelecionados(prev =>
+      prev.includes(codigo) ? prev.filter(c => c !== codigo) : [...prev, codigo]
+    );
   };
 
+  const handleBlurTelefone = async () => {
+    if (!clienteTelefone) return;
+    const clientesRef = collection(db, "clientes");
+    const q = query(clientesRef, where("telefone", "==", clienteTelefone));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const clienteDoc = snapshot.docs[0];
+      const data = clienteDoc.data();
+      setClienteNome(data.nome);
+      setClienteTelefone(data.telefone);
+      setIdCliente(clienteDoc.id);
+      setCodigoCliente(gerarCodigoCliente(data.nome, data.telefone));
+      setCodigoPedido(gerarCodigoPedido(data.nome));
+    } else {
+      console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
+    }
+  };
 
   return (
-    <div className="flex flex-col justify-between gap-1 flex-wrap sm:flex-row">
-     
+    <div className="flex flex-col justify-between flex-wrap sm:flex-row">
 
-      {/* Código Pedido */}
-      <input
-        type="text"
-        className="border p-3 rounded lg:max-w-[130px]"
-        placeholder="Código Pedido"
-        value={codigoPedido}
-        readOnly
-        disabled
-      />
+      <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código Pedido" value={codigoPedido} readOnly disabled />
+      <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código do Cliente" value={codigoCliente} readOnly disabled />
 
-      {/* Código Cliente */}
-      <input
-        type="text"
-        className="border p-3 rounded lg:max-w-[130px]"
-        placeholder="Código do Cliente"
-        value={codigoCliente}
-        readOnly
-        disabled
-      />
-
-      {/* Fatura */}
-      <div className="flex flex-col justify-around bg-blue-600 px-4 rounded text-white">
+      <div className="flex items-center gap-2 justify-around bg-blue-600 px-2 rounded text-white">
         <label className="flex gap-1 cursor-pointer">
-          <input
-            type="radio"
-            name="fatura"
-            value="CF"
-            checked={tipoFatura === 'cf'}
-            onChange={() => setTipoFatura('cf')}
-            className="cursor-pointer"
-            required
-          />
-          CF
+          <input type="radio" name="fatura" value="CF" checked={tipoFatura === 'cf'} onChange={() => setTipoFatura('cf')} className="cursor-pointer" required /> CF
         </label>
         <label className="flex gap-1 cursor-pointer">
-          <input
-            type="radio"
-            name="fatura"
-            value="SF"
-            checked={tipoFatura === 'sf'}
-            onChange={() => setTipoFatura('sf')}
-            className="cursor-pointer"
-            required
-          />
-          SF
+          <input type="radio" name="fatura" value="SF" checked={tipoFatura === 'sf'} onChange={() => setTipoFatura('sf')} className="cursor-pointer" required /> SF
         </label>
       </div>
 
-      {/* Tipo de Venda */}
-      <select
-        className="border p-3 rounded"
-        value={tipoVenda}
-        onChange={e => setTipoVenda(e.target.value)}
-        required
-      >
+      <select className="border p-2 rounded" value={tipoVenda} onChange={e => setTipoVenda(e.target.value)} required>
         <option value="">Tipo de Venda</option>
         <option value="balcao">Balcao</option>
         <option value="mesa">Mesa</option>
@@ -121,65 +84,67 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
         <option value="app">App Top pizzas</option>
       </select>
 
-      {/* Número da mesa (só se for mesa) */}
-          {tipoVenda === 'mesa' && (
-            <input
-              type="tel"
-              pattern="[1-9]"
-              inputMode="numeric"
-              maxLength={1}
-              className="border p-3 rounded"
-              placeholder="Número da Mesa"
-              onInput={(e) => {e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "")}}
-              value={numeroMesa}
-              onChange={(e) => setNumeroMesa(e.target.value)}
-            />
-          )}
+      {tipoVenda === 'mesa' && (
+        <input type="tel" pattern="[1-9]" inputMode="numeric" maxLength={1} className="border p-2 rounded lg:max-w-[120px] text-center" placeholder="N. Mesa"
+          onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "") }}
+          value={numeroMesa} onChange={(e) => setNumeroMesa(e.target.value)} />
+      )}
 
-      {/* Telefone Cliente */}
-      <input
-        type="tel"
-        pattern="[0-9]"
-        inputMode="numeric"
-        maxLength={9}
-        onInput={(e) => {e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "")}}
-        className="border p-3 rounded"
-        placeholder="Telefone Cliente..."
-        value={clienteTelefone}
-        disabled={tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt'}
+      <input type="tel" pattern="[0-9]" inputMode="numeric" maxLength={9} className="border p-2 rounded text-center" placeholder="Telefone Cliente..."
+        value={clienteTelefone} disabled={tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt'}
         onChange={e => {
           const telefone = e.target.value;
           setClienteTelefone(telefone);
-          if (!telefone) {
-            setClienteNome("");
-            setCodigoCliente('');
-            setIdCliente(null);
-            setCodigoPedido("");
-          }
+          if (!telefone) { setClienteNome(""); setCodigoCliente(''); setIdCliente(null); setCodigoPedido(""); setCuponsSelecionados([]); setTemCupom(false)}
         }}
         onBlur={handleBlurTelefone}
       />
 
-      {/* Nome Cliente */}
-      <input
-        type="text"
-        className="border p-3 rounded"
-        placeholder="Nome Cliente..."
-        value={clienteNome}
+      <input type="text" className="border p-2 rounded text-center" placeholder="Nome Cliente..." value={clienteNome}
         onChange={e => {
           const nome = e.target.value;
           setClienteNome(nome);
-
-          // Gera código só se houver telefone
-          if (clienteTelefone) {
-            setCodigoCliente(gerarCodigoCliente(nome, clienteTelefone));
-            setCodigoPedido(gerarCodigoPedido(nome));
-          }
+          if (clienteTelefone) { setCodigoCliente(gerarCodigoCliente(nome, clienteTelefone)); setCodigoPedido(gerarCodigoPedido(nome)); }
         }}
         disabled={!!idCliente && !!clienteTelefone}
-
       />
 
+      {/* 🔹 Lista de cupons com design moderno */}
+      {temCupom && (
+        <div className="w-full flex items-center gap-2 mt-2">
+          <p className="text-sm font-semibold ">🎟️ Cupons disponíveis</p>
+          <div className="flex">
+            {cartoes.flatMap(c =>
+              c.cupomGanho.map(cupom => ({
+                ...cupom,
+                tipoCartao: c.tipo
+              }))
+            ).map(cupom => (
+              <div
+                key={cupom.codigo}
+                className={`flex gap-2 items-center justify-between p-3 py-1 rounded-xl shadow-sm border cursor-pointer transition-all ${
+                  cuponsSelecionados.includes(cupom.codigo)
+                    ? 'bg-green-100 border-green-500'
+                    : 'bg-white border-gray-300 hover:shadow-md'
+                }`}
+                onClick={() => toggleCupom(cupom.codigo)}
+              >
+                <div className="flex items-center gap-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={cuponsSelecionados.includes(cupom.codigo)}
+                    onChange={() => toggleCupom(cupom.codigo)}
+                    className="w-4 h-4 accent-green-600"
+                  />
+                  <Ticket className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">{cupom.codigo}</span>
+                </div>
+                <span className="text-xs text-gray-500">{cupom.tipoCartao}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

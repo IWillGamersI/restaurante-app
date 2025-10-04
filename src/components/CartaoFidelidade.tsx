@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { CartaoFidelidade as CartaoFidelidadeType } from "@/hook/useCartaoFidelidade";
 
@@ -38,7 +37,7 @@ export function CartaoFidelidade({ cartao }: Props) {
             cx="50"
             cy="50"
             r="45"
-            stroke={cartao.premiosDisponiveis > 0 ? "#22c55e" : "#3b82f6"}
+            stroke={cartao.saldoCupom > 0 ? "#22c55e" : "#3b82f6"}
             strokeWidth="10"
             fill="transparent"
             strokeDasharray={strokeDasharray}
@@ -53,29 +52,23 @@ export function CartaoFidelidade({ cartao }: Props) {
         </div>
       </div>
 
-      {cartao.premiosDisponiveis > 0 && (
-        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium mt-3 animate-pulse">
-          {cartao.premiosDisponiveis} prêmio(s)
-        </span>
-      )}
-
-      {cartao.compras.length > 0 && (
-        <div className="text-gray-500 mt-4 text-xs text-center">
-          Últimas compras:
-          <ul className="ml-0 list-disc space-y-1 mt-1">
-            {cartao.compras.slice(-3).map((compra, i) => (
-              <li key={i}>
-                  {new Date(compra.data).toLocaleDateString()} {compra.quantidade}x {compra.produto} {cartao.tipo !== 'estudante'  ? `- ${compra.categoria}`:''} 
-              </li>
+      {cartao.saldoCupom > 0 && (
+        <div className="mt-3 text-center">
+          <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium animate-pulse">
+            {cartao.saldoCupom} prêmio(s) disponível(is)
+          </span>
+          <ul className="text-xs text-gray-700 mt-2">
+            {cartao.cupomGanho.map(c => (
+              <li key={c.codigo}>{c.codigo}</li>
             ))}
           </ul>
         </div>
       )}
 
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <span>Ganhou: {cartao.premiosGanho}</span>
-        <span>Resgatados: {cartao.premiosResgatados}</span>
-        <span>Saldo: {cartao.premiosDisponiveis}</span>
+        <span>Ganhou: {cartao.cupomGanho.length + cartao.cupomResgatado.length}</span>
+        <span>Resgatados: {cartao.cupomResgatado.length}</span>
+        <span>Saldo: {cartao.saldoCupom}</span>
       </div>
     </div>
   );
