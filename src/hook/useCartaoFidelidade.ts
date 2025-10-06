@@ -72,6 +72,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
       const cartoesExistentes: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
 
       const cartoesTemp: Record<string, CartaoFidelidade> = {};
+      const agora = new Date();
 
       pedidosEntregues.forEach(pedido => {
         pedido.produtos?.forEach(p => {
@@ -81,22 +82,41 @@ export function useCartaoFidelidade(codigoCliente?: string) {
             if (regra.tipo === "categoria" && regra.categorias?.includes(p.classe || "")) pertence = true;
 
             if (pertence) {
-              if (!cartoesTemp[nomeCartao]) {
-                // 🔹 Tenta reaproveitar cartão existente
-                const existente = cartoesExistentes.find(c => c.tipo === nomeCartao);
+              const dataPedido = pedido.criadoEm?.toDate
+                                    ? pedido.criadoEm.toDate()
+                                    : new Date(pedido.data ?? ''); // fallback string
 
-                cartoesTemp[nomeCartao] = {
-                  tipo: nomeCartao,
-                  quantidade: 0,
-                  limite: regra.limite,
-                  periodo: regra.periodo,
-                  cupomGanho: existente?.cupomGanho || [],
-                  cupomResgatado: existente?.cupomResgatado || [],
-                  saldoCupom: existente?.saldoCupom || 0,
-                };
+              let valido = false;
+
+              if (regra.periodo === 1) {
+                // 🔹 Reset todo dia 01 (só mês atual conta)
+                valido =
+                  dataPedido.getMonth() === agora.getMonth() &&
+                  dataPedido.getFullYear() === agora.getFullYear();
+              } else {
+                // 🔹 Janela de X meses para trás (ex.: 3 meses para pizzas)
+                const dataLimite = new Date(agora);
+                dataLimite.setMonth(dataLimite.getMonth() - regra.periodo);
+                valido = dataPedido >= dataLimite;
               }
 
-              cartoesTemp[nomeCartao].quantidade += p.quantidade;
+              if (valido) {
+                if (!cartoesTemp[nomeCartao]) {
+                  const existente = cartoesExistentes.find(c => c.tipo === nomeCartao);
+
+                  cartoesTemp[nomeCartao] = {
+                    tipo: nomeCartao,
+                    quantidade: 0,
+                    limite: regra.limite,
+                    periodo: regra.periodo,
+                    cupomGanho: existente?.cupomGanho || [],
+                    cupomResgatado: existente?.cupomResgatado || [],
+                    saldoCupom: existente?.saldoCupom || 0,
+                  };
+                }
+
+                cartoesTemp[nomeCartao].quantidade += p.quantidade;
+              }
             }
           });
         });
