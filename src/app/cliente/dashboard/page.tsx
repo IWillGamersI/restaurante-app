@@ -103,7 +103,10 @@ export default function Dashboard() {
           </div>
           <div className="flex justify-between py-2">
             <span className="font-medium">🎂 Nascimento</span>
-            <span>{cliente?.dataNascimento || "Não informado"}</span>
+            <span>{cliente?.dataNascimento 
+                      ? new Date(cliente.dataNascimento).toLocaleDateString('pr-BR') : 
+                      "Não informado"}
+            </span>
           </div>
         </div>
 
