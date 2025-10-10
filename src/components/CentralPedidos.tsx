@@ -74,24 +74,30 @@ export default function CentralPedidos() {
   useEffect(() => {
     const q = query(collection(db, 'pedidos'));
 
-  const unsubscribe = onSnapshot(q, (snap) => {
-    const lista = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Pedido[];
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const lista = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          produtos: data.produtos || [], // garante array
+          extras: data.extras || [],     // garante array
+          ...data
+        }
+      }) as Pedido[];
 
-    // Ordena pelos timestamp (quem foi criado primeiro aparece primeiro)
-    const ordenado = lista.sort((a, b) => {
-      const t1 = (a as any).criadoEm?.seconds || 0;
-      const t2 = (b as any).criadoEm?.seconds || 0;
-      return t1 - t2;
+      // Ordena pelos timestamp (quem foi criado primeiro aparece primeiro)
+      const ordenado = lista.sort((a, b) => {
+        const t1 = (a as any).criadoEm?.seconds || 0;
+        const t2 = (b as any).criadoEm?.seconds || 0;
+        return t1 - t2;
+      });
+
+      setPedidos(ordenado);
     });
 
-    setPedidos(ordenado);
-  });
+    return () => unsubscribe();
+  }, []);
 
-  return () => unsubscribe();
-}, []);
 
 
   const atualizarStatus = async (id: string, novoStatus: string) => {
