@@ -133,9 +133,17 @@ export default function CentralPedidos() {
     )
   })
 
-  const pedidosAbertos = pedidos.filter(p => ['fila', 'preparando','pronto'].includes(p.status.toLowerCase()));
-  const pedidosConcluidos = pedidos.filter(p => ['entregue'].includes(p.status.toLowerCase()));
-  const pedidosCancelados = pedidos.filter(p => ['cancelado'].includes(p.status.toLowerCase()));
+  const pedidosAbertos = pedidos.filter(p => 
+    p.status && ['fila', 'preparando', 'pronto'].includes(p.status.toLowerCase())
+  );
+
+  const pedidosConcluidos = pedidos.filter(p => 
+    p.status && ['entregue'].includes(p.status.toLowerCase())
+  );
+
+  const pedidosCancelados = pedidos.filter(p => 
+    p.status && ['cancelado'].includes(p.status.toLowerCase())
+  );
 
 
   pedidosAbertos.map((item)=>{
