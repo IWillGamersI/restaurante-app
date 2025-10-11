@@ -16,28 +16,32 @@ export function useCodigos() {
 }, []);
 
 
+  const TELEFONE_CLIENTE_GENERICO = "999999999";
+
   const gerarCodigoCliente = useCallback((nome?: string, telefone?: string) => {
-    if (!nome || !telefone) {
-      return "CLT-123";
-    }
+    // Usa telefone padrão se não houver
+    const tel = telefone || TELEFONE_CLIENTE_GENERICO;
 
     // Só números no telefone
-    const telefoneNumerico = telefone.replace(/\D/g, "");
+    const telefoneNumerico = tel.replace(/\D/g, "");
     const ultimos3 = telefoneNumerico.slice(-3).padStart(3, "0");
 
-    // Extrair até 3 consoantes
+    // Extrair até 3 consoantes do nome, ou usar "GEN" se não houver nome
     let consoantes = nome
-      .normalize("NFD") // remove acentos
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[AEIOUaeiou\s]/g, "")
-      .toUpperCase()
-      .slice(0, 3);
+      ? nome
+          .normalize("NFD") // remove acentos
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[AEIOUaeiou\s]/g, "")
+          .toUpperCase()
+          .slice(0, 3)
+      : "GEN";
 
     // Se não tiver 3 consoantes, completa com X
     consoantes = consoantes.padEnd(3, "X");
 
     return `${consoantes}-${ultimos3}`;
   }, []);
+
 
 
 

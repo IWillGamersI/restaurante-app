@@ -61,29 +61,6 @@ export default function Dashboard() {
     fetchCliente();
   }, [router]);
 
-  /* 🔹 Listener de pedidos
-  useEffect(() => {
-    if (!cliente) return;
-    setLoadingPedidos(true);
-
-    const q = query(collection(db, "pedidos"), where("codigoCliente", "==", cliente.codigoCliente));
-    const unsubscribe = onSnapshot(
-      q,
-      (snap) => {
-        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
-        lista.sort((a, b) => b.criadoEm.toDate().getTime() - a.criadoEm.toDate().getTime());
-        setPedidos(lista);
-        setLoadingPedidos(false);
-      },
-      (err) => {
-        console.error("Erro ao escutar pedidos:", err);
-        setLoadingPedidos(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [cliente]);
-  */
  useEffect(() => {
     if (!cliente) return;
     setLoadingPedidos(true);

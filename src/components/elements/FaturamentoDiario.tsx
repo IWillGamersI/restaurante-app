@@ -28,7 +28,7 @@ export function Faturamento() {
     if(["lKIAjTOykwD8KBthcJGY","k85d75DjFHtOXjCdBq2G",
         "c8gpimbu2HDkqAXdVLHz5","7UaaATg9xN1l4jbR8jja",
         "iILSyuFJVroECe49aVK5","gmahALnNJZVjJnWGdKhB",
-        "GonReI3Ot7Vyt29a3vWY", 'x3iIQ4M0Lk595gm5GqnI'].includes(produtoId)
+        "GonReI3Ot7Vyt29a3vWY", 'x3iIQ4M0Lk595gm5GqnI',].includes(produtoId)
       )
     {
         return 'menuEstudante'
@@ -237,7 +237,7 @@ useEffect(() => {
 
       {/* Grid de dias */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(stados.faturamentoPorDia).sort(([a],[b]) => Number(a) - Number(b)).map(([dia, horarios]) => (
+        {Object.entries(stados.faturamentoPorDia).sort(([a],[b]) => Number(b) - Number(a)).map(([dia, horarios]) => (
           <div key={dia} className="bg-gray-50 rounded-xl shadow-lg p-4 space-y-4">
             <div className="flex justify-between">
               <h3 className="text-xl font-bold mb-2">Dia {dia} - {horarios.diaSemana}</h3>
