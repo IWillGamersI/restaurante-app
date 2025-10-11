@@ -134,7 +134,7 @@ export default function Dashboard() {
         </div>
 
         {pedidos.map((p) => (
-          <p key={p.id}>{p.criadoEm.toString()}</p>
+          <p key={p.id}>{!isNaN(p.criadoEm.toString())}</p>
         ))}
 
 
