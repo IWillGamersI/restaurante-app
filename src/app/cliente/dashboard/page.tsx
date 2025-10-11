@@ -133,6 +133,11 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {pedidos.map((p) => (
+          <p key={p.id}>{p.criadoEm.toString()}</p>
+        ))}
+
+
         <button
           onClick={() => logOut('/cliente/login')}
           className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-600 transition"
