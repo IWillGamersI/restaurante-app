@@ -94,10 +94,10 @@ export function PWAInstallPrompt() {
   if (isStandalone) return null;
 
   // Fora do PWA → mostra instalação ou mensagens
-  if (isStandalone) return null; // já está no app, não mostra nada
+  if (!isStandalone) return null; // já está no app, não mostra nada
 
   const shouldShowInstall = deferredPrompt && !installing && !installed;
-  if (!shouldShowInstall && installing && !installed) return null;
+  if (shouldShowInstall && installing && !installed) return null;
 
 
   return (
@@ -106,7 +106,7 @@ export function PWAInstallPrompt() {
         <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce rounded-full" />
 
         {/* Barra de progresso */}
-        {!installing && (
+        {installing && (
           <>
             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
               <div
