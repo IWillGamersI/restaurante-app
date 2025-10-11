@@ -91,9 +91,11 @@ export default function Dashboard() {
         });
 
         // Ordenação local decrescente por criadoEm
-        lista.filter(p => p.criadoEm instanceof Date && !isNaN(p.criadoEm.getTime()))
+        const listaValidos = lista.filter(p => p.criadoEm instanceof Date && !isNaN(p.criadoEm.getTime()))
 
-        setPedidos(lista);
+        listaValidos.sort((a,b)=> b.criadoEm.getTime()-a.criadoEm.getTime())
+
+        setPedidos(listaValidos);
         setLoadingPedidos(false);
       },
       (err) => {
