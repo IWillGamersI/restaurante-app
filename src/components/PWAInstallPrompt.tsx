@@ -94,10 +94,10 @@ export function PWAInstallPrompt() {
   if (isStandalone) return null;
 
   // Fora do PWA → mostra instalação ou mensagens
-  if (!isStandalone) return null; // já está no app, não mostra nada
+  if (isStandalone) return null; // já está no app, não mostra nada
 
   const shouldShowInstall = deferredPrompt && !installing && !installed;
-  if (shouldShowInstall && installing && !installed) return null;
+  if (!shouldShowInstall && !installing && !installed) return null;
 
 
   return (
