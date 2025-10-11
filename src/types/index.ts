@@ -105,6 +105,7 @@ export type ProdutoPedido = Produto & {
   extras: Extra[];
   preco: number; // preço do pedido (pode ser igual a precoVenda)
   concluido?: string
+  cupomAplicado?: string
 };
 
 

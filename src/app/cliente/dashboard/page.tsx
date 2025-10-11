@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Pedido } from "@/types";
 import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
@@ -61,7 +61,7 @@ export default function Dashboard() {
     fetchCliente();
   }, [router]);
 
-  // 🔹 Listener de pedidos
+  /* 🔹 Listener de pedidos
   useEffect(() => {
     if (!cliente) return;
     setLoadingPedidos(true);
@@ -71,7 +71,7 @@ export default function Dashboard() {
       q,
       (snap) => {
         const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
-        lista.sort((a, b) => new Date(b.data!).getTime() - new Date(a.data!).getTime());
+        lista.sort((a, b) => b.criadoEm.toDate().getTime() - a.criadoEm.toDate().getTime());
         setPedidos(lista);
         setLoadingPedidos(false);
       },
@@ -83,6 +83,34 @@ export default function Dashboard() {
 
     return () => unsubscribe();
   }, [cliente]);
+  */
+ useEffect(() => {
+    if (!cliente) return;
+    setLoadingPedidos(true);
+
+    // Query com ordenação direta pela data (decrescente)
+    const q = query(
+      collection(db, "pedidos"),
+      where("codigoCliente", "==", cliente.codigoCliente),
+      orderBy("data", "desc") // <-- ordena direto no Firestore
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
+        setPedidos(lista); // já vem ordenado, não precisa de sort
+        setLoadingPedidos(false);
+      },
+      (err) => {
+        console.error("Erro ao escutar pedidos:", err);
+        setLoadingPedidos(false);
+      }
+    );
+
+    return () => unsubscribe(); // limpa o listener ao desmontar
+  }, [cliente]);
+
 
   // 🔹 Componentes de Aba
   const Dados = () => (

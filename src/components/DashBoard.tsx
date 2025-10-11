@@ -115,39 +115,39 @@ export default function DashBoard() {
   }
   if (loading) return <p>Carregando...</p>;
 
-    const hoje = new Date();
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
 
-    // Agrupa quanto já foi pago **no mês atual** por despesaId
-    const pagamentosNoMes: Record<string, number> = despesasPagas.reduce((acc, dp) => {
-      if (!dp.despesaId) return acc; // ignora registros sem despesaId
-      const data = dp.dataPagamento instanceof Timestamp ? dp.dataPagamento.toDate() : dp.dataPagamento;
-      if (data.getMonth() === mesAtual && data.getFullYear() === anoAtual) {
-        acc[dp.despesaId] = (acc[dp.despesaId] || 0) + (dp.valorPago ?? 0);
-      }
-      return acc;
-    }, {} as Record<string, number>);
+  // Agrupa quanto já foi pago **no mês atual** por despesaId
+  const pagamentosNoMes: Record<string, number> = despesasPagas.reduce((acc, dp) => {
+    if (!dp.despesaId) return acc; // ignora registros sem despesaId
+    const data = dp.dataPagamento instanceof Timestamp ? dp.dataPagamento.toDate() : dp.dataPagamento;
+    if (data.getMonth() === mesAtual && data.getFullYear() === anoAtual) {
+      acc[dp.despesaId] = (acc[dp.despesaId] || 0) + (dp.valorPago ?? 0);
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
-    // Função para verificar se despesa foi **totalmente** paga no mês atual
-    const foiPagaNoMesAtual = (d: Despesa) => {
-      const pago = pagamentosNoMes[d.id] || 0;
-      return pago >= d.valor;
-    };
+  // Função para verificar se despesa foi **totalmente** paga no mês atual
+  const foiPagaNoMesAtual = (d: Despesa) => {
+    const pago = pagamentosNoMes[d.id] || 0;
+    return pago >= d.valor;
+  };
 
-    // Total de despesas (soma dos valores cadastrados)
-    const totalDasDespesas = despesas.reduce((acc, d) => acc + d.valor, 0);
+  // Total de despesas (soma dos valores cadastrados)
+  const totalDasDespesas = despesas.reduce((acc, d) => acc + d.valor, 0);
 
-    // Saldo: para cada despesa subtrai o que já foi pago no mês (tratando parciais)
-    const saldoDespesas = despesas.reduce((acc, d) => {
-      const pago = pagamentosNoMes[d.id] || 0;
-      const restante = Math.max(0, d.valor - pago); // se pagamento maior que valor, zero
-      return acc + restante;
-    }, 0);
+  // Saldo: para cada despesa subtrai o que já foi pago no mês (tratando parciais)
+  const saldoDespesas = despesas.reduce((acc, d) => {
+    const pago = pagamentosNoMes[d.id] || 0;
+    const restante = Math.max(0, d.valor - pago); // se pagamento maior que valor, zero
+    return acc + restante;
+  }, 0);
 
 
-    // Função para criar a data completa de vencimento da despesa
-    const getDataVencimento = (d: Despesa) => {
+  // Função para criar a data completa de vencimento da despesa
+  const getDataVencimento = (d: Despesa) => {
     const vencimento = new Date(hoje.getFullYear(), hoje.getMonth(), d.vencimentoDia);
     if (vencimento < hoje && !foiPagaNoMesAtual(d)) {
       // se já passou no mês atual, avança para o próximo mês
@@ -243,161 +243,142 @@ export default function DashBoard() {
     return semanas;
   }; 
 
-  
+  // Função para filtrar pedidos de acordo com o período
+  const filtrarPedidos = (periodo: FiltroPeriodo, pedidos: Pedido[]): Pedido[] => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
+    const diaSemanaHoje = hoje.getDay() || 7; // domingo = 7
+    const inicioSemanaAtual = new Date(hoje);
+    inicioSemanaAtual.setDate(hoje.getDate() - diaSemanaHoje + 1);
+    inicioSemanaAtual.setHours(0, 0, 0, 0);
 
-// Função para filtrar pedidos de acordo com o período
-const filtrarPedidos = (periodo: FiltroPeriodo, pedidos: Pedido[]): Pedido[] => {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+    const fimSemanaAtual = new Date(inicioSemanaAtual);
+    fimSemanaAtual.setDate(inicioSemanaAtual.getDate() + 6);
+    fimSemanaAtual.setHours(23, 59, 59, 999);
 
-  const diaSemanaHoje = hoje.getDay() || 7; // domingo = 7
-  const inicioSemanaAtual = new Date(hoje);
-  inicioSemanaAtual.setDate(hoje.getDate() - diaSemanaHoje + 1);
-  inicioSemanaAtual.setHours(0, 0, 0, 0);
+    const inicioSemanaPassada = new Date(inicioSemanaAtual);
+    inicioSemanaPassada.setDate(inicioSemanaAtual.getDate() - 7);
 
-  const fimSemanaAtual = new Date(inicioSemanaAtual);
-  fimSemanaAtual.setDate(inicioSemanaAtual.getDate() + 6);
-  fimSemanaAtual.setHours(23, 59, 59, 999);
+    const fimSemanaPassada = new Date(fimSemanaAtual);
+    fimSemanaPassada.setDate(fimSemanaAtual.getDate() - 7);
 
-  const inicioSemanaPassada = new Date(inicioSemanaAtual);
-  inicioSemanaPassada.setDate(inicioSemanaAtual.getDate() - 7);
+    const inicioQuinzenal = new Date();
+    inicioQuinzenal.setDate(hoje.getDate() - 14);
+    inicioQuinzenal.setHours(0, 0, 0, 0);
 
-  const fimSemanaPassada = new Date(fimSemanaAtual);
-  fimSemanaPassada.setDate(fimSemanaAtual.getDate() - 7);
+    return pedidos.filter(p => {
+      const dataPedido = new Date(p.criadoEm);
+      dataPedido.setHours(0, 0, 0, 0);
 
-  const inicioQuinzenal = new Date();
-  inicioQuinzenal.setDate(hoje.getDate() - 14);
-  inicioQuinzenal.setHours(0, 0, 0, 0);
+      switch (periodo) {
+        case 'hoje':
+          return dataPedido.getTime() === hoje.getTime();
 
-  return pedidos.filter(p => {
-    const dataPedido = new Date(p.criadoEm);
-    dataPedido.setHours(0, 0, 0, 0);
+        case 'semana':
+          return dataPedido >= inicioSemanaAtual && dataPedido <= fimSemanaAtual;
+
+        case 'semana-passada':
+          return dataPedido >= inicioSemanaPassada && dataPedido <= fimSemanaPassada;
+
+        case 'quinzenal':
+          return dataPedido >= inicioQuinzenal && dataPedido < hoje;
+
+        case 'mes':
+          return (
+            dataPedido.getMonth() === hoje.getMonth() &&
+            dataPedido.getFullYear() === hoje.getFullYear()
+          );
+
+        case 'ano':
+          return dataPedido.getFullYear() === hoje.getFullYear();
+
+        default:
+          return true;
+      }
+    });
+  };
+
+  // Função para gerar dados do gráfico por dia
+  const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
+    const pedidosFiltrados = filtrarPedidos(periodo, pedidos);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    let inicio: Date;
+    let diasCount = 7;
 
     switch (periodo) {
       case 'hoje':
-        return dataPedido.getTime() === hoje.getTime();
+        inicio = hoje;
+        diasCount = 1;
+        break;
 
       case 'semana':
-        return dataPedido >= inicioSemanaAtual && dataPedido <= fimSemanaAtual;
+        const diaSemana = hoje.getDay() || 7;
+        inicio = new Date(hoje);
+        inicio.setDate(hoje.getDate() - diaSemana + 1);
+        break;
 
       case 'semana-passada':
-        return dataPedido >= inicioSemanaPassada && dataPedido <= fimSemanaPassada;
+        const diaSemana2 = hoje.getDay() || 7;
+        inicio = new Date(hoje);
+        inicio.setDate(hoje.getDate() - diaSemana2 - 6); // segunda da semana passada
+        break;
 
       case 'quinzenal':
-        return dataPedido >= inicioQuinzenal && dataPedido < hoje;
+        inicio = new Date(hoje);
+        inicio.setDate(hoje.getDate() - 14);
+        diasCount = 14;
+        break;
 
       case 'mes':
-        return (
-          dataPedido.getMonth() === hoje.getMonth() &&
-          dataPedido.getFullYear() === hoje.getFullYear()
-        );
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        diasCount = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate(); // total de dias no mês
+        break;
 
       case 'ano':
-        return dataPedido.getFullYear() === hoje.getFullYear();
+        inicio = new Date(hoje.getFullYear(), 0, 1);
+        diasCount = 365; // para simplificação, pode ajustar para ano bissexto
+        break;
 
       default:
-        return true;
+        inicio = hoje;
+        diasCount = 7;
     }
-  });
-};
 
-// Função para gerar dados do gráfico por dia
-const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
-  const pedidosFiltrados = filtrarPedidos(periodo, pedidos);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+    const dias: { dia: string; faturamento: number }[] = [];
 
-  let inicio: Date;
-  let diasCount = 7;
+    for (let i = 0; i < diasCount; i++) {
+      const diaAtual = new Date(inicio);
+      diaAtual.setDate(inicio.getDate() + i);
+      diaAtual.setHours(0, 0, 0, 0);
 
-  switch (periodo) {
-    case 'hoje':
-      inicio = hoje;
-      diasCount = 1;
-      break;
+      // Somar valores do dia
+      const faturamentoDia = pedidosFiltrados
+        .filter(p => new Date(p.criadoEm).getTime() === diaAtual.getTime())
+        .reduce((sum, p) => sum + p.valor, 0);
 
-    case 'semana':
-      const diaSemana = hoje.getDay() || 7;
-      inicio = new Date(hoje);
-      inicio.setDate(hoje.getDate() - diaSemana + 1);
-      break;
+      dias.push({
+        dia:
+          periodo === 'ano'
+            ? diaAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+            : diaAtual.toLocaleDateString('pt-BR', { weekday: 'short' }),
+        faturamento: faturamentoDia,
+      });
+    }
 
-    case 'semana-passada':
-      const diaSemana2 = hoje.getDay() || 7;
-      inicio = new Date(hoje);
-      inicio.setDate(hoje.getDate() - diaSemana2 - 6); // segunda da semana passada
-      break;
-
-    case 'quinzenal':
-      inicio = new Date(hoje);
-      inicio.setDate(hoje.getDate() - 14);
-      diasCount = 14;
-      break;
-
-    case 'mes':
-      inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-      diasCount = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate(); // total de dias no mês
-      break;
-
-    case 'ano':
-      inicio = new Date(hoje.getFullYear(), 0, 1);
-      diasCount = 365; // para simplificação, pode ajustar para ano bissexto
-      break;
-
-    default:
-      inicio = hoje;
-      diasCount = 7;
-  }
-
-  const dias: { dia: string; faturamento: number }[] = [];
-
-  for (let i = 0; i < diasCount; i++) {
-    const diaAtual = new Date(inicio);
-    diaAtual.setDate(inicio.getDate() + i);
-    diaAtual.setHours(0, 0, 0, 0);
-
-    // Somar valores do dia
-    const faturamentoDia = pedidosFiltrados
-      .filter(p => new Date(p.criadoEm).getTime() === diaAtual.getTime())
-      .reduce((sum, p) => sum + p.valor, 0);
-
-    dias.push({
-      dia:
-        periodo === 'ano'
-          ? diaAtual.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-          : diaAtual.toLocaleDateString('pt-BR', { weekday: 'short' }),
-      faturamento: faturamentoDia,
-    });
-  }
-
-  return dias;
-};
+    return dias;
+  };
 
   // Cards DashBoard
-  const faturamento = pedidos.reduce((acc, p) => acc + p.valor, 0);
+  const faturamento = pedidos.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
   const qtdPedidos = pedidos.length;
   const ticketMedioTotal = qtdPedidos > 0 ? (faturamento / qtdPedidos).toFixed(2) : '0.00';  
   const custoPedidos = (faturamento * 0.30)
   const lucroLiquidoPedidos = faturamento - custoPedidos
 
-
   const pedidosFiltrados =  filtrarPedidos(filtroPeriodo,pedidos);
-
-  const faturamentoTotal = pedidosFiltrados.reduce((acc, p) => acc + p.valor, 0);
-  const totalPedidos = pedidosFiltrados.length;
-  const ticketMedio = totalPedidos > 0 ? (faturamentoTotal / totalPedidos).toFixed(2) : '0.00';
-  const custoTotal = faturamentoTotal * 0.3;
-  const lucroLiquido = faturamentoTotal - custoTotal;
-
-    console.log("Pedidos recebidos:", pedidos);
-
-    pedidos.forEach((p, i) => {
-      console.log(`Pedido ${i}:`, p);
-      console.log("Produtos:", p.produtos);
-    });
-
-   
 
   // Calcular métricas por canal
   const canais = [
@@ -446,11 +427,15 @@ const gerarPedidosPorDia = (periodo: FiltroPeriodo, pedidos: Pedido[]) => {
 
 
 const cardsPrincipais = [
-    { icon: <DollarSign size={28} className="text-green-600" />, title: 'Faturamento', value: `${moeda} ${faturamento.toFixed(2)}` },
-    { icon: <CalendarCheck size={28} className="text-blue-600" />, title: 'Pedidos', value: qtdPedidos.toString() },
-    { icon: <TrendingUp size={28} className="text-purple-600" />, title: 'Ticket Médio', value: `${moeda} ${ticketMedioTotal}` },
-    { icon: <DollarSign size={28} className="text-yellow-600" />, title: 'Lucro Líquido', value: `${moeda} ${lucroLiquidoPedidos.toFixed(2)}` },
+    { icon: <DollarSign size={28} className="text-green-600" />, title: 'Faturamento', value: `${moeda} ${(Number(faturamento) || 0).toFixed(2)}` },
+    { icon: <CalendarCheck size={28} className="text-blue-600" />, title: 'Pedidos', value: qtdPedidos.toString() ?? '0' },
+    { icon: <TrendingUp size={28} className="text-purple-600" />, title: 'Ticket Médio', value: `${moeda} ${(Number(ticketMedioTotal) || 0).toFixed(2)}` },
+    { icon: <DollarSign size={28} className="text-yellow-600" />, title: 'Lucro Líquido', value: `${moeda} ${(Number(lucroLiquidoPedidos) || 0).toFixed(2)}` },
   ];
+
+  console.log('faturamento:', faturamento);
+  console.log('lucroLiquidoPedidos:', lucroLiquidoPedidos);
+
 
   // Faturamento por dia da semana
   const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo', 'Faturamento Semanal'];
@@ -500,9 +485,6 @@ const cardsPrincipais = [
     .map(([nome, dados]) => ({ nome, ...dados }))
     .sort((a, b) => b.lucro - a.lucro)
     .slice(0, 10);
-
-    console.log(topProdutos)
-    console.log(produtoMaisLucrativo)
 
   // Pedidos por canal
   const canaisMap = pedidosFiltrados.reduce((acc: Record<string, { qtd: number; valor: number }>, p) => {

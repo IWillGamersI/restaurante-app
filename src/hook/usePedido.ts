@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useStados } from "./useStados";
+import { useResgateCupom } from "./useResgateCupom";
 
 interface SalvarPedidoArgs {
   id?:string
@@ -53,9 +54,29 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setClienteNome, setClienteTelefone, setCodigoPedido, setCodigoCliente,
     setStatus, setErro, setSucesso,
     setClasseSelecionada, setTipoVenda, setTipoFatura, setTipoPagamento,
-    setQuerImprimir, setNumeroMesa, setObs
+    setQuerImprimir, setNumeroMesa, setObs, codigoCliente,
   } = stados;
 
+  const { 
+          cuponsDisponiveis,
+          cuponsSelecionados,
+          toggleCupom,
+          resgatarCupons,
+          carregarCupons,
+          limparCuponsSelecionados
+        } = useResgateCupom(codigoCliente || undefined)
+  
+  useEffect(()=>{
+    if(codigoCliente){
+      carregarCupons()
+    }
+  }, [codigoCliente])
+
+  useEffect(() => {
+  if (cuponsDisponiveis.length > 0) {
+    }
+  }, [cuponsDisponiveis]);
+  
   // dentro de usePedido
   useEffect(() => {
     const q = query(collection(db, "pedidos"), orderBy("criadoEm", "asc")); // ordenar por criadoEm (timestamp) é mais confiável
@@ -99,7 +120,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     codigoPedido,
     valorTotal,
     numeroMesa,
-    querImprimir,
     imprimir,
     obs
   }: SalvarPedidoArgs) => {
@@ -321,21 +341,31 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const confirmarProduto = () => {
     if (!produtoModal) return;
 
+    // Verifica se existe cupom selecionado do tipo do produto
+    const cupomDoProduto = cuponsSelecionados.find(c => c.tipo === produtoModal.classe);
+
+    // Calcula preço com desconto, se houver cupom
+    const precoComDesconto = cupomDoProduto
+      ? produtoModal.precoVenda * 0.9 // exemplo: 10% de desconto, ajuste conforme regra do cupom
+      : produtoModal.precoVenda;
+
     const novoProduto: ProdutoPedido = {
       id: produtoModal.id,
       nome: produtoModal.nome,
-      descricao: produtoModal.descricao,   // obrigatório pelo Produto
-      preco: produtoModal.precoVenda,      // mapeia precoVenda -> preco
-      precoVenda: produtoModal.precoVenda, // mantém campo original
-      custo: produtoModal.custo,           // obrigatório pelo Produto
+      descricao: produtoModal.descricao,
+      preco: precoComDesconto,      
+      precoVenda: produtoModal.precoVenda,
+      custo: produtoModal.custo,
       quantidade: quantidadeSelecionada,
       extras: extrasSelecionados,
       categoria: produtoModal.categoria,
-      classe: produtoModal.classe,         // ainda existe no Produto
-      imagemUrl: produtoModal.imagemUrl,   // removido em Omit, mas pode manter
+      classe: produtoModal.classe,
+      imagemUrl: produtoModal.imagemUrl,
+      cupomAplicado: cupomDoProduto ? cupomDoProduto.codigo : undefined, // opcional: guarda qual cupom foi usado
     };
 
     setProdutosPedido((prev) => {
+      // verifica se já existe o produto com os mesmos extras
       const index = prev.findIndex(
         (p) =>
           p.id === novoProduto.id &&
@@ -348,6 +378,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         copia[index] = {
           ...copia[index],
           quantidade: copia[index].quantidade + novoProduto.quantidade,
+          preco: precoComDesconto, // atualiza preço se houver cupom
+          cupomAplicado: cupomDoProduto ? cupomDoProduto.codigo : copia[index].cupomAplicado,
         };
         return copia;
       }
@@ -355,11 +387,18 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       return [...prev, novoProduto];
     });
 
+    // Remove o cupom usado do estado para evitar reutilização
+    if (cupomDoProduto) {
+      toggleCupom(cupomDoProduto); // desmarca o cupom
+    }
+
+    // Fecha modal e reseta extras e quantidade
     setModalAberto(false);
     setProdutoModal(null);
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
 
 
   const removerProdutoPedido = (id: string) => {
@@ -453,5 +492,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     limparCampos,
     produtoSelecionado,
     setProdutoSelecionado,
+    cuponsDisponiveis,
+    cuponsSelecionados,
+    toggleCupom,
+    resgatarCupons
   };
 }

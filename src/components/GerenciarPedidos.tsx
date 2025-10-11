@@ -1,6 +1,6 @@
 'use client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Package, CheckCircle2, ClipboardList, Printer, PlusCircleIcon, Delete, PlusSquare } from 'lucide-react';
+import { Plus, Trash2, Package, CheckCircle2, ClipboardList, Printer, PlusCircleIcon, Delete, PlusSquare, Ticket } from 'lucide-react';
 import { calcularSubTotalProduto, calcularTotalExtras, calcularTotalPedido } from "@/utils/calculos";
 import { useCodigos } from "@/hook/useCodigos";
 import { useStatus } from "@/hook/useStatusColor";
@@ -42,6 +42,11 @@ export default function GerenciarPedidos() {
     pedidosDoDia,
     produtoSelecionado,
     setProdutoSelecionado,    
+    pedidos,
+    cuponsDisponiveis,
+    cuponsSelecionados,
+    toggleCupom,
+    resgatarCupons
   } = pedido;
 
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
@@ -113,7 +118,7 @@ export default function GerenciarPedidos() {
     setNumeroMesa(pedidoSelecionado.numeroMesa || '');
   };
 
-
+  
   return (
     <div className="max-w-6xl mx-auto space-y-6 ">
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
@@ -294,6 +299,29 @@ export default function GerenciarPedidos() {
                       onChange={e => setQuantidadeSelecionada(Number(e.target.value))}
                       className="w-20 border rounded p-1 text-center cursor-pointer"
                     />
+                  </div>
+
+                  <div>
+                    {cuponsDisponiveis
+                      .filter(c => c.tipo === produtoModal.classe) // só cupons do tipo do produto
+                      .map((c, i) => {
+                        const selecionado = cuponsSelecionados.some(sel => sel.codigo === c.codigo && sel.tipo === c.tipo);
+
+                        return (
+                          <div key={c.tipo + i} className="flex gap-2">
+                            <button
+                              onClick={() => toggleCupom(c)}
+                              className={`py-1 px-2 rounded border cursor-pointer ${
+                                selecionado
+                                  ? "bg-green-600 text-white"
+                                  : "bg-green-100 text-green-600 hover:bg-green-200"
+                              }`}
+                            >
+                              {c.codigo} - {c.tipo}
+                            </button>
+                          </div>
+                        );
+                      })}                 
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
