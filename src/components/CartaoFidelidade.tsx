@@ -52,6 +52,11 @@ export function CartaoFidelidade({ cartao }: Props) {
         </div>
       </div>
 
+      <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
+        <span>Já Ganhou: {cartao.cupomGanho.length + cartao.cupomResgatado.length}</span>
+        <span>Resgatados: {cartao.cupomResgatado.length}</span>
+      </div>
+
       {cartao.saldoCupom > 0 && (
         <div className="mt-3 text-center">
           <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium animate-pulse">
@@ -66,9 +71,7 @@ export function CartaoFidelidade({ cartao }: Props) {
       )}
 
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <span>Ganhou: {cartao.cupomGanho.length + cartao.cupomResgatado.length}</span>
-        <span>Resgatados: {cartao.cupomResgatado.length}</span>
-        <span>Saldo: {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}</span>
+        <span>Cupons Disponíveis para Resgatar: {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}</span>
       </div>
     </div>
   );
