@@ -12,8 +12,8 @@ export function PWAInstallPrompt() {
 
   // Detecta manifest correto por rota
   const getManifestHref = () => {
-    if (window.location.pathname.startsWith("/cliente")) return "/manifest-cliente.json";
-    return "/manifest.json"; // todas as rotas de estabelecimento
+    if (window.location.pathname.startsWith("/cliente")) return "/manifest.json";
+    return "/manifest-estabelecimento.json"; // todas as rotas de estabelecimento
   };
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export function PWAInstallPrompt() {
   if (isStandalone) return null; // já está no app, não mostra nada
 
   const shouldShowInstall = deferredPrompt && !installing && !installed;
-  if (!shouldShowInstall && !installing && !installed) return null;
+  if (!shouldShowInstall && installing && !installed) return null;
 
 
   return (
@@ -106,7 +106,7 @@ export function PWAInstallPrompt() {
         <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce rounded-full" />
 
         {/* Barra de progresso */}
-        {installing && (
+        {!installing && (
           <>
             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
               <div
@@ -119,7 +119,7 @@ export function PWAInstallPrompt() {
         )}
 
         {/* Botão instalar */}
-        {installing && !installed && (
+        {!installing && !installed && (
           <>
             {showButton && (
               <button
