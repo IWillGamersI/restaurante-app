@@ -119,7 +119,7 @@ export function PWAInstallPrompt() {
         )}
 
         {/* Botão instalar */}
-        {installing && installed && (
+        {!installing && !installed && (
           <>
             {showButton && (
               <button
