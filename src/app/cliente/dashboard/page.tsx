@@ -64,24 +64,23 @@ export default function Dashboard() {
     fetchCliente();
   }, [router]);
 
- useEffect(() => {
+  useEffect(() => {
     if (!cliente?.codigoCliente) return;
 
     setLoadingPedidos(true);
 
-    // Garantir que cliente genérico use código fixo
     const codigoCliente = cliente.codigoCliente || CODIGO_CLIENTE_GENERICO;
 
-    // Query Firestore: pedidos pelo codigoCliente, ordenados por criadoEm desc
+    // Query Firestore: apenas filtra pelo codigoCliente
     const q = query(
       collection(db, "pedidos"),
-      where("codigoCliente", "==", codigoCliente),
-      orderBy("criadoEm", "desc") // precisa de índice composto
+      where("codigoCliente", "==", codigoCliente)
+      // removemos o orderBy para não precisar de índice
     );
 
     const unsubscribe = onSnapshot(
       q,
-      (snap: QuerySnapshot<DocumentData>) => {
+      (snap) => {
         const lista = snap.docs.map(doc => {
           const criadoEm = doc.data().criadoEm;
           return {
@@ -91,10 +90,13 @@ export default function Dashboard() {
           } as Pedido;
         });
 
+        // Ordenação local decrescente por criadoEm
+        lista.sort((a, b) => b.criadoEm.getTime() - a.criadoEm.getTime());
+
         setPedidos(lista);
         setLoadingPedidos(false);
       },
-      err => {
+      (err) => {
         console.error("Erro ao escutar pedidos:", err);
         setLoadingPedidos(false);
       }
@@ -102,6 +104,7 @@ export default function Dashboard() {
 
     return () => unsubscribe();
   }, [cliente]);
+
 
 
   // 🔹 Componentes de Aba
