@@ -106,6 +106,7 @@ export type ProdutoPedido = Produto & {
   preco: number; // preço do pedido (pode ser igual a precoVenda)
   concluido?: string
   cupomAplicado?: string
+  ignorarParaFidelidade?: boolean
 };
 
 

@@ -9,20 +9,22 @@ export function CartaoFidelidade({ cartao }: Props) {
   const meta = ["estudante", "acai"].includes(cartao.tipo) ? 15 : 10;
   const [progressAnim, setProgressAnim] = useState(0);
 
- 
+  // 🔹 Calcula progresso apenas com compras válidas
+  const quantidadeParaFidelidade = cartao.quantidade;
+
   useEffect(() => {
     let start = 0;
-    const step = cartao.quantidade / meta / 50;
+    const step = quantidadeParaFidelidade / meta / 50;
     const interval = setInterval(() => {
       start += step;
-      if (start >= cartao.quantidade / meta) {
-        start = cartao.quantidade / meta;
+      if (start >= quantidadeParaFidelidade / meta) {
+        start = quantidadeParaFidelidade / meta;
         clearInterval(interval);
       }
       setProgressAnim(start);
     }, 20);
     return () => clearInterval(interval);
-  }, [cartao.quantidade, meta]);
+  }, [quantidadeParaFidelidade, meta]);
 
   const strokeDasharray = 2 * Math.PI * 45;
   const strokeDashoffset = strokeDasharray * (1 - progressAnim);
@@ -31,25 +33,15 @@ export function CartaoFidelidade({ cartao }: Props) {
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
       
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-
         <div className="flex flex-col bg-green-200 border-1 text-green-700 rounded px-2 py-1 text-center">
-          <div className="font-bold">
-            Já Ganhou
-          </div>
-          <div className="text-md">
-            {cartao.cupomGanho.length + cartao.cupomResgatado.length}
-          </div>
+          <div className="font-bold">Já Ganhou</div>
+          <div className="text-md">{cartao.cupomGanho.length + cartao.cupomResgatado.length}</div>
         </div>
 
         <div className="flex flex-col bg-blue-200 border-1 text-blue-700 rounded px-2 py-1 text-center">
-          <div className="font-bold">
-            Já Resgatou
-          </div>
-          <div className="text-md">
-            {cartao.cupomResgatado.length}
-          </div>
+          <div className="font-bold">Já Resgatou</div>
+          <div className="text-md">{cartao.cupomResgatado.length}</div>
         </div>
-
       </div>
 
       <h3 className="font-bold text-xl mb-4">{cartao.tipo}</h3>
@@ -75,11 +67,9 @@ export function CartaoFidelidade({ cartao }: Props) {
           <span className="text-xs text-gray-500">compras</span>
         </div>
       </div>
-      
 
       {cartao.saldoCupom > 0 && (
         <div className="mt-3 text-center">
-          
           <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium animate-pulse">
             {cartao.saldoCupom} prêmio(s) disponível(is)
           </span>
@@ -93,9 +83,7 @@ export function CartaoFidelidade({ cartao }: Props) {
 
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
         <div className="w-full flex justify-between items-center">
-          <div>
-            Para Resgate 
-          </div>
+          <div>Para Resgate</div>
           <div className="bg-green-600 text-md text-white py-1 px-3 rounded-full font-bold">
             {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}
           </div>

@@ -46,7 +46,7 @@ export default function GerenciarPedidos() {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    resgatarCupons
+    
   } = pedido;
 
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();

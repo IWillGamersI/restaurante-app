@@ -191,7 +191,6 @@ export default function Dashboard() {
             <div key={cupom.codigo} className="p-3 bg-white shadow rounded-lg flex flex-col gap-1">
               <p className="font-medium">{cupom.codigo}</p>
               <p className="text-sm text-gray-500">Cartão: {cupom.tipoCartao}</p>
-              <p className="text-xs text-gray-400">Ganho: {new Date(cupom.dataGanho).toLocaleDateString()}</p>
               {cupom.dataResgate && <p className="text-xs text-green-600">Resgatado: {new Date(cupom.dataResgate).toLocaleDateString()}</p>}
             </div>
           ))}

@@ -61,9 +61,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
           cuponsDisponiveis,
           cuponsSelecionados,
           toggleCupom,
-          resgatarCupons,
           carregarCupons,
-          limparCuponsSelecionados
+          limparCuponsSelecionados,
+          marcarCupomComoUsado
         } = useResgateCupom(codigoCliente || undefined)
   
   useEffect(()=>{
@@ -344,16 +344,14 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     // Verifica se existe cupom selecionado do tipo do produto
     const cupomDoProduto = cuponsSelecionados.find(c => c.tipo === produtoModal.classe);
 
-    // Calcula preço com desconto, se houver cupom
-    const precoComDesconto = cupomDoProduto
-      ? produtoModal.precoVenda * 0.9 // exemplo: 10% de desconto, ajuste conforme regra do cupom
-      : produtoModal.precoVenda;
+    // Preço do produto com desconto: 0 se cupom aplicado
+    const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
       id: produtoModal.id,
       nome: produtoModal.nome,
       descricao: produtoModal.descricao,
-      preco: precoComDesconto,      
+      preco: precoComDesconto,
       precoVenda: produtoModal.precoVenda,
       custo: produtoModal.custo,
       quantidade: quantidadeSelecionada,
@@ -361,16 +359,18 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       categoria: produtoModal.categoria,
       classe: produtoModal.classe,
       imagemUrl: produtoModal.imagemUrl,
-      cupomAplicado: cupomDoProduto ? cupomDoProduto.codigo : undefined, // opcional: guarda qual cupom foi usado
+      ...(cupomDoProduto && { cupomAplicado: cupomDoProduto.codigo }),
+      ignorarParaFidelidade: !!cupomDoProduto,
     };
 
+    
     setProdutosPedido((prev) => {
-      // verifica se já existe o produto com os mesmos extras
+      // Verifica se já existe o produto com os mesmos extras
       const index = prev.findIndex(
         (p) =>
           p.id === novoProduto.id &&
-          JSON.stringify(p.extras.map((e) => e.id).sort()) ===
-            JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
+          JSON.stringify(p.extras.map(e => e.id).sort()) ===
+            JSON.stringify(novoProduto.extras.map(e => e.id).sort())
       );
 
       if (index !== -1) {
@@ -378,8 +378,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         copia[index] = {
           ...copia[index],
           quantidade: copia[index].quantidade + novoProduto.quantidade,
-          preco: precoComDesconto, // atualiza preço se houver cupom
-          cupomAplicado: cupomDoProduto ? cupomDoProduto.codigo : copia[index].cupomAplicado,
+          preco: precoComDesconto,
+          cupomAplicado: cupomDoProduto?.codigo || copia[index].cupomAplicado,
+          ignorarParaFidelidade: !!cupomDoProduto,
         };
         return copia;
       }
@@ -387,9 +388,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       return [...prev, novoProduto];
     });
 
-    // Remove o cupom usado do estado para evitar reutilização
+    // Marca o cupom como usado no Firestore
     if (cupomDoProduto) {
-      toggleCupom(cupomDoProduto); // desmarca o cupom
+      marcarCupomComoUsado(cupomDoProduto.codigo, cupomDoProduto.tipo);
     }
 
     // Fecha modal e reseta extras e quantidade
@@ -398,6 +399,9 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
+
+
 
 
 
@@ -495,6 +499,5 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    resgatarCupons
   };
 }

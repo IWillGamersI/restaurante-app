@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { collection, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { useState, useEffect } from "react";
 
 export interface Cupom {
@@ -16,19 +16,11 @@ export function useResgateCupom(codigoCliente?: string) {
 
   const limparCuponsSelecionados = () => setCuponsSelecionados([]);
 
-
-
+  // 🔹 Buscar cupons do cliente
   const carregarCupons = async () => {
     if (!codigoCliente) return;
 
-    console.log("🔍 Buscando cupons para:", codigoCliente);
-
-    // Buscar cliente pelo campo codigoCliente
-    const q = query(
-      collection(db, "clientes"),
-      where("codigoCliente", "==", codigoCliente)
-    );
-
+    const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
     const querySnap = await getDocs(q);
 
     if (querySnap.empty) {
@@ -36,12 +28,9 @@ export function useResgateCupom(codigoCliente?: string) {
       return;
     }
 
-    // Pega o primeiro resultado (se só existe 1 cliente por código)
     const clienteData: any = querySnap.docs[0].data();
-    
     const cartoes = clienteData.cartaoFidelidade || [];
-    
-    // Extrai cupons
+
     const ganhos = cartoes.flatMap((cartao: any) =>
       (cartao.cupomGanho || []).map((c: any) => ({
         ...c,
@@ -52,21 +41,12 @@ export function useResgateCupom(codigoCliente?: string) {
     setCuponsDisponiveis(ganhos);
   };
 
-
-
-  // 🔹 Sempre que muda codigoCliente, recarrega cupons
+  // 🔁 Recarrega sempre que mudar o cliente
   useEffect(() => {
-    console.log('Código do cliente mudou:', codigoCliente);
-    if (codigoCliente) {
-      carregarCupons();
-    }
+    if (codigoCliente) carregarCupons();
   }, [codigoCliente]);
 
-  useEffect(() => {
-    console.log('Cupons disponíveis:', cuponsDisponiveis);
-  }, [cuponsDisponiveis]);
-
-
+  // 🔹 Selecionar / desselecionar cupom
   const toggleCupom = (cupom: Cupom) => {
     setCuponsSelecionados((prev) => {
       const existeMesmoTipo = prev.find((c) => c.tipo === cupom.tipo);
@@ -82,14 +62,63 @@ export function useResgateCupom(codigoCliente?: string) {
     });
   };
 
+  // 🔹 Marca um cupom específico como usado (para quando aplicar em um produto)
+  const marcarCupomComoUsado = async (cupomCodigo: string, tipo: string) => {
+    if (!codigoCliente) return;
+
+    try {
+      const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        console.error("❌ Cliente não encontrado:", codigoCliente);
+        return;
+      }
+
+      const clienteDoc = snap.docs[0];
+      const clienteRef = clienteDoc.ref;
+      const clienteData = clienteDoc.data();
+
+      const cartoesAtualizados = (clienteData.cartaoFidelidade || []).map((cartao: any) => {
+        if (cartao.tipo !== tipo) return cartao;
+
+        const ganhos = cartao.cupomGanho || [];
+        const usados = ganhos.filter((g: any) => g.codigo === cupomCodigo);
+        const naoUsados = ganhos.filter((g: any) => g.codigo !== cupomCodigo);
+
+        return {
+          ...cartao,
+          saldoCupom: Math.max((cartao.saldoCupom || 0) - usados.length, 0),
+          cupomGanho: naoUsados,
+          cupomResgatado: [
+            ...(cartao.cupomResgatado || []),
+            ...usados.map((u: any) => ({
+              codigo: u.codigo,
+              dataResgate: new Date().toISOString(),
+            })),
+          ],
+        };
+      });
+
+      await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
+
+      // Atualiza cupons no estado local
+      const novosGanhos = cartoesAtualizados.flatMap((cartao: any) =>
+        (cartao.cupomGanho || []).map((c: any) => ({ ...c, tipo: cartao.tipo }))
+      );
+      setCuponsDisponiveis(novosGanhos);
+
+      console.log(`✅ Cupom ${cupomCodigo} (${tipo}) marcado como usado`);
+    } catch (error) {
+      console.error("Erro ao marcar cupom como usado:", error);
+    }
+  };
+
+  // 🔹 Resgatar múltiplos cupons (se quiser resgatar de uma vez)
   const resgatarCupons = async () => {
     if (!codigoCliente || cuponsSelecionados.length === 0) return;
 
-    // Buscar cliente pelo campo codigoCliente
-    const q = query(
-      collection(db, "clientes"),
-      where("codigoCliente", "==", codigoCliente)
-    );
+    const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
     const querySnap = await getDocs(q);
 
     if (querySnap.empty) {
@@ -97,7 +126,7 @@ export function useResgateCupom(codigoCliente?: string) {
       return;
     }
 
-    const clienteDoc = querySnap.docs[0]; // pega o primeiro cliente
+    const clienteDoc = querySnap.docs[0];
     const clienteRef = clienteDoc.ref;
     const cartoes: any[] = clienteDoc.data().cartaoFidelidade || [];
 
@@ -133,12 +162,12 @@ export function useResgateCupom(codigoCliente?: string) {
     setCuponsDisponiveis(novosGanhos);
   };
 
-
   return {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
     resgatarCupons,
+    marcarCupomComoUsado, // ✅ agora disponível no hook
     carregarCupons,
     limparCuponsSelecionados,
   };
