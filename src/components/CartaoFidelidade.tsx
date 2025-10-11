@@ -31,8 +31,15 @@ export function CartaoFidelidade({ cartao }: Props) {
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
       
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <span>Já Ganhou: {cartao.cupomGanho.length + cartao.cupomResgatado.length}</span>
-        <span>Já Resgatados: {cartao.cupomResgatado.length}</span>
+        <div className="flex flex-col bg-green-300 border-1 text-green-700">
+          <div className="font-bold">
+            Já Ganhou
+          </div>
+          <div>
+            {cartao.cupomGanho.length + cartao.cupomResgatado.length}
+          </div>
+        </div>
+        <span>Já Resgatou: {cartao.cupomResgatado.length}</span>
       </div>
 
       <h3 className="font-bold text-xl mb-4">{cartao.tipo}</h3>
@@ -74,7 +81,14 @@ export function CartaoFidelidade({ cartao }: Props) {
       )}
 
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <span>Cupons Disponíveis para Resgate: {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}</span>
+        <div className="flex justify-between">
+          <div>
+            Para Resgate 
+          </div>
+          <div className="bg-green-600 text-2xl text-white p-2">
+            {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}
+          </div>
+        </div>
       </div>
     </div>
   );
