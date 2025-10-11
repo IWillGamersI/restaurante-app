@@ -31,7 +31,7 @@ export function CartaoFidelidade({ cartao }: Props) {
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
       
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <div className="flex flex-col bg-green-300 border-1 text-green-700">
+        <div className="flex flex-col bg-green-300 border-1 text-green-700 rounded px-2 py-1">
           <div className="font-bold">
             Já Ganhou
           </div>
@@ -81,11 +81,11 @@ export function CartaoFidelidade({ cartao }: Props) {
       )}
 
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <div className="flex justify-between">
+        <div className="w-full flex justify-between">
           <div>
             Para Resgate 
           </div>
-          <div className="bg-green-600 text-2xl text-white p-2">
+          <div className="bg-green-600 text-md text-white p-1">
             {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}
           </div>
         </div>
