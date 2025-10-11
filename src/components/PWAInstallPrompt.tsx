@@ -106,7 +106,7 @@ export function PWAInstallPrompt() {
         <img src="/logo.png" alt="Logo" className="w-28 h-28 mb-2 animate-bounce rounded-full" />
 
         {/* Barra de progresso */}
-        {!installing && (
+        {installing && (
           <>
             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
               <div
@@ -119,7 +119,7 @@ export function PWAInstallPrompt() {
         )}
 
         {/* Botão instalar */}
-        {!installing && !installed && (
+        {installing && !installed && (
           <>
             {showButton && (
               <button
