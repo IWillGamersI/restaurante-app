@@ -82,7 +82,7 @@ export default function Dashboard() {
       q,
       (snap) => {
         const lista = snap.docs.map(doc => {
-          const criadoEm = doc.data().data;
+          const criadoEm = doc.data().criadoEm;
           return {
             id: doc.id,
             ...doc.data(),
