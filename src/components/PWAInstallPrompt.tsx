@@ -91,8 +91,6 @@ export function PWAInstallPrompt() {
   };
 
   // 🚀 Se já está no PWA → não renderiza nada (deixa o login aparecer)
-  if (isStandalone) return null;
-
   // Fora do PWA → mostra instalação ou mensagens
   if (isStandalone) return null; // já está no app, não mostra nada
 
