@@ -79,36 +79,7 @@ export function CartaoFidelidade({ cartao }: Props) {
 
       {cartao.saldoCupom > 0 && (
         <div className="mt-3 text-center">
-          <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-
-        <div className="flex flex-col bg-orange-200 border-1 text-orange-600 rounded px-2 py-1 text-center">
-          <div className="font-bold">
-            Já Ganhou
-          </div>
-          <div className="text-md">
-            {cartao.cupomGanho.length + cartao.cupomResgatado.length}
-          </div>
-        </div>
-
-          <div className="flex flex-col bg-blue-200 border-1 text-blue-700 rounded px-2 py-1 text-center">
-            <div className="font-bold">
-              Já Resgatou
-            </div>
-            <div className="text-md">
-              {cartao.cupomResgatado.length}
-            </div>
-          </div>
-
-          <div className="flex flex-col bg-green-200 border-1 text-green-700 rounded px-2 py-1 text-center">
-            <div className="font-bold">
-              Para Resgatar
-            </div>
-            <div className="text-md">
-              {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}
-            </div>
-          </div>
-
-        </div>
+          
           <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium animate-pulse">
             {cartao.saldoCupom} prêmio(s) disponível(is)
           </span>
