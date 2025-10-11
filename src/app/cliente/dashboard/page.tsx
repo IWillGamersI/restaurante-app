@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot, orderBy, Timestamp, QuerySnapshot, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Pedido } from "@/types";
 import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
@@ -20,6 +20,9 @@ interface Cliente {
   codigoCliente: string;
   dataNascimento?: string;
 }
+
+const TELEFONE_CLIENTE_GENERICO = "999999999";
+const CODIGO_CLIENTE_GENERICO = "CLT-123";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -62,30 +65,42 @@ export default function Dashboard() {
   }, [router]);
 
  useEffect(() => {
-    if (!cliente) return;
+    if (!cliente?.codigoCliente) return;
+
     setLoadingPedidos(true);
 
-    // Query com ordenação direta pela data (decrescente)
+    // Garantir que cliente genérico use código fixo
+    const codigoCliente = cliente.codigoCliente || CODIGO_CLIENTE_GENERICO;
+
+    // Query Firestore: pedidos pelo codigoCliente, ordenados por criadoEm desc
     const q = query(
       collection(db, "pedidos"),
-      where("codigoCliente", "==", cliente.codigoCliente),
-      orderBy("data", "desc") // <-- ordena direto no Firestore
+      where("codigoCliente", "==", codigoCliente),
+      orderBy("criadoEm", "desc") // precisa de índice composto
     );
 
     const unsubscribe = onSnapshot(
       q,
-      (snap) => {
-        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pedido[];
-        setPedidos(lista); // já vem ordenado, não precisa de sort
+      (snap: QuerySnapshot<DocumentData>) => {
+        const lista = snap.docs.map(doc => {
+          const criadoEm = doc.data().criadoEm;
+          return {
+            id: doc.id,
+            ...doc.data(),
+            criadoEm: criadoEm instanceof Timestamp ? criadoEm.toDate() : new Date(criadoEm)
+          } as Pedido;
+        });
+
+        setPedidos(lista);
         setLoadingPedidos(false);
       },
-      (err) => {
+      err => {
         console.error("Erro ao escutar pedidos:", err);
         setLoadingPedidos(false);
       }
     );
 
-    return () => unsubscribe(); // limpa o listener ao desmontar
+    return () => unsubscribe();
   }, [cliente]);
 
 
