@@ -68,7 +68,7 @@ export function CartaoFidelidade({ cartao }: Props) {
       <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
         <span>Ganhou: {cartao.cupomGanho.length + cartao.cupomResgatado.length}</span>
         <span>Resgatados: {cartao.cupomResgatado.length}</span>
-        <span>Saldo: {cartao.saldoCupom}</span>
+        <span>Saldo: {(cartao.cupomGanho.length + cartao.cupomResgatado.length) - cartao.cupomResgatado.length}</span>
       </div>
     </div>
   );
