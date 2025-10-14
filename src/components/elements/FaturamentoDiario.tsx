@@ -14,6 +14,7 @@ const produtosMonitorados = [
   { id: "gmahALnNJZVjJnWGdKhB", nome: "ME - Penne", valor:5 },
   { id: "GonReI3Ot7Vyt29a3vWY", nome: "ME - Tagliatelle", valor:5 },
   { id: "x3iIQ4M0Lk595gm5GqnI", nome: "ME - Hambúrger", valor:5 },
+  { id: "80BLwzPor8ZFIswCu5Am", nome: "ME - Hot Dog", valor:5 },
 ];
 
 export function Faturamento() {
