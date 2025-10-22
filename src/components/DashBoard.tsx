@@ -14,6 +14,7 @@ import { useStados } from '@/hook/useStados';
 import { formatarMoeda } from '@/utils/format';
 import { Faturamento } from './elements/FaturamentoDiario';
 import { MetricasSemana } from './elements/MetricasSemana';
+import CuponsPage from '@/app/pages/admin/cupons/page';
 
 
 
@@ -433,10 +434,7 @@ const cardsPrincipais = [
     { icon: <DollarSign size={28} className="text-yellow-600" />, title: 'Lucro Líquido', value: `${moeda} ${(Number(lucroLiquidoPedidos) || 0).toFixed(2)}` },
   ];
 
-  console.log('faturamento:', faturamento);
-  console.log('lucroLiquidoPedidos:', lucroLiquidoPedidos);
-
-
+  
   // Faturamento por dia da semana
   const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo', 'Faturamento Semanal'];
   const pedidosPorDia = diasSemana.map((dia, i) => {
@@ -546,6 +544,7 @@ const cardsPrincipais = [
           <TabsTrigger className="cursor-pointer" value="canal">📡 Canais</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="horario">⏰ Horários</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="financas">💰 Finanças</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="cupons">🎟️ Cupons</TabsTrigger>
         </TabsList>
 
         {/*Inicio*/}
@@ -695,9 +694,6 @@ const cardsPrincipais = [
 
         {/* Card Faturamento Diário */}
         <TabsContent value='faturamento'>
-          
-          
-
           <Faturamento/>
         </TabsContent>
 
@@ -760,8 +756,6 @@ const cardsPrincipais = [
           />
 
         </TabsContent>
-
-
        
         {/* Produtos */}
             <TabsContent value="produtos">
@@ -928,6 +922,13 @@ const cardsPrincipais = [
             </Card>
           </div>
         </TabsContent>
+
+        {/* Cupons */}
+        <TabsContent value="cupons">
+          <CuponsPage/>
+        </TabsContent>
+
+
       </Tabs>
     </div>
   );

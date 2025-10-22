@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs, onSnapshot, orderBy, Timestamp, QuerySnapshot, DocumentData } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Pedido } from "@/types";
 import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
@@ -214,10 +214,10 @@ export default function Dashboard() {
 
         {/* Conteúdo */}
         <div className="flex-1 overflow-y-auto pt-16 pb-20">
-          {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade />}
+          {!loadingCliente && aba === "fidelidade" && cliente && <Fidelidade/>}
           {!loadingCliente && aba === "compras" && <AbasCompras pedidos={pedidos} loading={loadingPedidos} />}
-          {!loadingCliente && aba === "dados" && <Dados />}
-          {!loadingCliente && aba === "cupons" && cliente && <Cupons />}
+          {!loadingCliente && aba === "dados" && <Dados/>}
+          {!loadingCliente && aba === "cupons" && cliente && <Cupons/>}
         </div>
 
         {/* Barra inferior */}
