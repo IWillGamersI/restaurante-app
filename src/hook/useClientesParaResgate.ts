@@ -61,7 +61,7 @@ export function useClientesParaResgate() {
 
         resultados.forEach(({ cliente, cartoes }) => {
           const temCupom = cartoes.some(c => (c.saldoCupom || 0) > 0);
-          const temPontosSuficientes = cartoes.some(c => (c.quantidade || 0) >= 10);
+          const temPontosSuficientes = cartoes.some(c => (c.quantidade || 0) >= 8);
 
           const clienteComCartoes: ClienteComCartoes = { ...cliente, cartoes };
 
