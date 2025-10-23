@@ -25,7 +25,7 @@ const regrasFidelidade: Record<
   { tipo: "classe" | "categoria"; limite: number; periodo: number; categorias?: string[] }
 > = {
   pizza: { tipo: "categoria", limite: 10, periodo: 3, categorias: ["pizza-individual", "pizza-tradicional"] },
-  estudante: { tipo: "classe", limite: 15, periodo: 1 },
+  estudante: { tipo: "classe", limite: 12, periodo: 1 },
   acai: { tipo: "classe", limite: 15, periodo: 1 },
   massa: { tipo: "classe", limite: 10, periodo: 3 },
   prato: { tipo: "classe", limite: 10, periodo: 3 },
