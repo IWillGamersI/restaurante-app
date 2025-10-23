@@ -29,7 +29,7 @@ const regrasFidelidade: Record<
   acai: { tipo: "classe", limite: 15, periodo: 1 },
   massa: { tipo: "classe", limite: 10, periodo: 3 },
   prato: { tipo: "classe", limite: 10, periodo: 3 },
-  pizza: { tipo: "classe", limite: 10, periodo: 3 },
+  
 };
 
 function gerarCodigoCupom(tipo: string) {
