@@ -212,3 +212,21 @@ export interface Cartao {
   compras: Compra[];
   ultimaZeragem: string; // ISO string
 }
+
+
+export interface RegraFidelidade {
+  tipo: string;
+  limite: number;
+  periodo: number;
+  categorias?: string[];
+}
+
+export const regrasFidelidade: Record<string, RegraFidelidade> = {
+  Pizza: { tipo: "categoria", limite: 10, periodo: 3, categorias: ["pizza-individual", "pizza-tradicional"] },
+  estudante: { tipo: "classe", limite: 12, periodo: 1 },
+  acai: { tipo: "classe", limite: 12, periodo: 1 },
+  massa: { tipo: "classe", limite: 10, periodo: 3 },
+  prato: { tipo: "classe", limite: 10, periodo: 3 },
+  pizza: { tipo: "classe", limite: 10, periodo: 3 },
+};
+

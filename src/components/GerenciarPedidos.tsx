@@ -306,6 +306,8 @@ export default function GerenciarPedidos() {
                       .filter(c => c.tipo === produtoModal.classe) // só cupons do tipo do produto
                       .map((c, i) => {
                         const selecionado = cuponsSelecionados.some(sel => sel.codigo === c.codigo && sel.tipo === c.tipo);
+                        console.log("cuponsDisponiveis", cuponsDisponiveis);
+                        console.log("produtoModal", produtoModal?.classe);
 
                         return (
                           <div key={c.tipo + i} className="flex gap-2">
