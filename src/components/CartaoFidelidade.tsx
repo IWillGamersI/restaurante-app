@@ -6,7 +6,7 @@ interface Props {
 }
 
 export function CartaoFidelidade({ cartao }: Props) {
-  const meta = ["estudante", "acai"].includes(cartao.tipo) ? 15 : 10;
+  const meta = ["estudante", "acai"].includes(cartao.tipo) ? 12 : 10;
   const [progressAnim, setProgressAnim] = useState(0);
 
   // 🔹 Calcula progresso apenas com compras válidas
