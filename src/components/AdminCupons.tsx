@@ -1,19 +1,32 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useClientesParaResgate } from "@/hook/useClientesParaResgate";
 import { Gift, User, CreditCard } from "lucide-react";
 import { regrasFidelidade } from "@/types";
 
 export default function AdminCupons() {
-  const { clientesComCupons, clientesComPontosSuficientes, loading, error } = useClientesParaResgate();
+  const { clientesComCupons, clientesComPontosSuficientes, loading, error } =
+    useClientesParaResgate();
   const [clienteSelecionado, setClienteSelecionado] = useState<any | null>(null);
   const [subAba, setSubAba] = useState<"disponiveis" | "resgatados">("disponiveis");
 
+  // 🔧 Combina os dois arrays sem duplicar
+  const listaClientes = useMemo(() => {
+    const mapa = new Map();
+
+    [...(clientesComCupons || []), ...(clientesComPontosSuficientes || [])].forEach((c) => {
+      if (!mapa.has(c.id)) mapa.set(c.id, c);
+    });
+
+    // Ordena por nome ou data se quiser
+    return Array.from(mapa.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome)
+    );
+  }, [clientesComCupons, clientesComPontosSuficientes]);
+
   if (loading) return <div className="p-6 text-center text-gray-500">Carregando dados...</div>;
   if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-  const listaClientes = [...clientesComCupons, ...clientesComPontosSuficientes];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
@@ -22,7 +35,7 @@ export default function AdminCupons() {
       <div className="col-span-1">
         <h2 className="text-lg font-bold mb-3">Clientes</h2>
         <ul className="space-y-2">
-          {listaClientes.map(c => (
+          {listaClientes.map((c) => (
             <li
               key={c.id}
               onClick={() => setClienteSelecionado(c)}
@@ -33,12 +46,17 @@ export default function AdminCupons() {
                 <p className="text-sm text-gray-500">{c.telefone}</p>
               </div>
               <div className="text-sm text-blue-600">
-                {c.cartoes.some((ct: any) => ct.saldoCupom > 0) ? "🎟️ Cupons" : "⭐ Pontos"}
+                {c.cartoes.some((ct: any) => ct.saldoCupom > 0)
+                  ? "🎟️ Cupons"
+                  : "⭐ Pontos"}
               </div>
             </li>
           ))}
+
           {listaClientes.length === 0 && (
-            <p className="text-center text-gray-500 bg-gray-50 p-4 rounded-lg border">Nenhum cliente encontrado.</p>
+            <p className="text-center text-gray-500 bg-gray-50 p-4 rounded-lg border">
+              Nenhum cliente encontrado.
+            </p>
           )}
         </ul>
       </div>
@@ -70,7 +88,8 @@ export default function AdminCupons() {
                 const regra = regrasFidelidade[cartao.tipo];
                 const limite = regra?.limite ?? 1;
                 const pontosAtuais = cartao.quantidade % limite;
-                const saldoCupom = ((cartao.cupomGanho?.length || 0) - (cartao.cupomResgatado?.length || 0));
+                const saldoCupom =
+                  cartao.cupomGanho.length - cartao.cupomResgatado.length;
 
                 return (
                   <div key={cartao.tipo} className="p-3 border rounded-lg shadow-sm">
@@ -79,7 +98,9 @@ export default function AdminCupons() {
                     <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                       <div
                         className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: `${(pontosAtuais / limite) * 100}%` }}
+                        style={{
+                          width: `${(pontosAtuais / limite) * 100}%`,
+                        }}
                       />
                     </div>
                     <p className="mt-2 font-medium">Cupons: {saldoCupom}</p>
@@ -98,13 +119,21 @@ export default function AdminCupons() {
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setSubAba("disponiveis")}
-                className={`flex-1 py-2 rounded-lg font-semibold ${subAba === "disponiveis" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                className={`flex-1 py-2 rounded-lg font-semibold ${
+                  subAba === "disponiveis"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
               >
                 Disponíveis
               </button>
               <button
                 onClick={() => setSubAba("resgatados")}
-                className={`flex-1 py-2 rounded-lg font-semibold ${subAba === "resgatados" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                className={`flex-1 py-2 rounded-lg font-semibold ${
+                  subAba === "resgatados"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
               >
                 Resgatados
               </button>
@@ -114,26 +143,41 @@ export default function AdminCupons() {
               const lista =
                 subAba === "disponiveis"
                   ? cartao.cupomGanho.filter((cupom: any) =>
-                      cartao.cupomResgatado.every((r: any) => r.codigo !== cupom.codigo)
+                      cartao.cupomResgatado.every(
+                        (r: any) => r.codigo !== cupom.codigo
+                      )
                     )
                   : cartao.cupomResgatado;
 
               return (
                 <div key={cartao.tipo} className="mb-4">
-                  <h4 className="font-semibold text-green-600 mb-2">{cartao.tipo}</h4>
+                  <h4 className="font-semibold text-green-600 mb-2">
+                    {cartao.tipo}
+                  </h4>
                   {lista.length > 0 ? (
                     <ul className="space-y-1">
                       {lista.map((cupom: any) => (
-                        <li key={cupom.codigo} className={`p-2 border rounded text-sm flex justify-between ${subAba === "disponiveis" ? 'bg-green-50' : 'bg-gray-100'}`}>
+                        <li
+                          key={cupom.codigo}
+                          className={`p-2 border rounded text-sm flex justify-between ${
+                            subAba === "disponiveis"
+                              ? "bg-green-50"
+                              : "bg-gray-100"
+                          }`}
+                        >
                           <span>{cupom.codigo}</span>
                           {cupom.dataResgate && (
-                            <span className="text-green-600">{new Date(cupom.dataResgate).toLocaleDateString()}</span>
+                            <span className="text-green-600">
+                              {new Date(cupom.dataResgate).toLocaleDateString()}
+                            </span>
                           )}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-gray-500">Nenhum cupom nesta aba.</p>
+                    <p className="text-sm text-gray-500">
+                      Nenhum cupom nesta aba.
+                    </p>
                   )}
                 </div>
               );
