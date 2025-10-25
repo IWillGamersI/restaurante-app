@@ -205,7 +205,7 @@ export default function GerenciarPedidos() {
                     className="px-3 py-1 bg-green-500 text-white rounded cursor-pointer font-black"
                   >+</button>
                 </div>
-              </div>
+              </div> 
 
               <span className="flex gap-2 px-15 justify-between font-bold text-lg">
                 <span>Total</span>
