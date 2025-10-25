@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DollarSign, CalendarCheck, TrendingUp, ArrowUp, ArrowDown, BarChart, DollarSignIcon, ShoppingCartIcon } from 'lucide-react';
+import { DollarSign, CalendarCheck, TrendingUp } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
-import { somarAcumulado } from '@/utils/calculos';
+import { ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend, Bar } from 'recharts';
 import { COLORS, FiltroPeriodo, Despesa, DespesasPaga, Pedido, imagensPorCanal, taxasPorCanal } from '@/types';
 import { useStados } from '@/hook/useStados';
 import { formatarMoeda } from '@/utils/format';

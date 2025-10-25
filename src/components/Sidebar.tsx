@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutDashboard, Users, Utensils, ClipboardList, CreditCard, Store, TabletSmartphone, PackageCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Utensils, ClipboardList, CreditCard, Store, TabletSmartphone, PackageCheck, Ticket } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 
 export function Sidebar() {
@@ -33,6 +33,10 @@ export function Sidebar() {
         <Link href="/pages/admin/despesas" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
           <CreditCard size={20} /> Despesas Fixas
         </Link>
+        <Link href="/pages/admin/scripts/ajustar-saldos" className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+          <Ticket size={20} /> Ajustar Saldos Cupons
+        </Link>
+
       </nav>
       <LogoutButton/>
     </aside>
