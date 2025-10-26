@@ -73,7 +73,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         const clienteData: any = clienteDoc.data();
         const cartoesExistentes: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
 
-        // PRE-POPULA cartoesTemp com os existentes (importante para não perder cupons já gerados)
+        // PRE-POPULA cartoesTemp com os existentes
         const cartoesTemp: Record<string, CartaoFidelidade> = {};
         cartoesExistentes.forEach(c => {
           cartoesTemp[c.tipo] = {
@@ -97,43 +97,39 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
             Object.entries(regrasFidelidade).forEach(([nomeCartaoRaw, regra]) => {
               const nomeCartao = norm(nomeCartaoRaw);
-
               let pertence = false;
 
               if (regra.tipo === "classe") {
                 if (classeProduto && classeProduto === nomeCartao) pertence = true;
-                // também aceita se a regra tiver categorias e a classe do produto bater com alguma delas
                 if (!pertence && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
-                // ou se o produto tiver categoria que bate com nomeCartao (por segurança)
                 if (!pertence && categoriaProduto && categoriaProduto === nomeCartao) pertence = true;
               } else if (regra.tipo === "categoria") {
-                // aceita categoria do produto ou classe se ela for igual a uma das categorias
                 if (categoriaProduto && regra.categorias?.some(c => norm(c) === categoriaProduto)) pertence = true;
                 if (!pertence && classeProduto && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
-                // também aceita igualdade direta com nome do cartão (ex: nomeCartao "pizza")
                 if (!pertence && (classeProduto === nomeCartao || categoriaProduto === nomeCartao)) pertence = true;
               }
 
               if (pertence) {
-                // converte a data do pedido robustamente
                 const dataPedido = pedido.criadoEm?.toDate
                   ? pedido.criadoEm.toDate()
                   : new Date(pedido.data ?? "");
 
                 let valido = false;
+
                 if (regra.periodo === 1) {
                   valido =
                     dataPedido.getMonth() === agora.getMonth() &&
                     dataPedido.getFullYear() === agora.getFullYear();
                 } else {
-                  const dataLimite = new Date(agora);
-                  dataLimite.setMonth(dataLimite.getMonth() - regra.periodo);
-                  valido = dataPedido >= dataLimite;
+                  // Comparação robusta baseada em diferença de meses
+                  const diffMeses =
+                    (agora.getFullYear() - dataPedido.getFullYear()) * 12 +
+                    (agora.getMonth() - dataPedido.getMonth());
+                  valido = diffMeses < regra.periodo;
                 }
 
                 if (valido) {
                   if (!cartoesTemp[nomeCartaoRaw]) {
-                    // se não existia, cria usando a regra (preserva cupom caso existisse no cliente)
                     const existente = cartoesExistentes.find(c => norm(c.tipo) === nomeCartao);
                     cartoesTemp[nomeCartaoRaw] = {
                       tipo: nomeCartaoRaw,
@@ -177,10 +173,13 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         setCartoes(cartoesAtualizados);
         setLoading(false);
 
-        // Atualiza Firestore apenas se houver diferença simples (p.ex.: diferente número de cupons)
-        // Você pode melhorar essa checagem para comparar profundamente se quiser
-        const existenteString = JSON.stringify((clienteData.cartaoFidelidade || []).map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length })));
-        const atualString = JSON.stringify(cartoesAtualizados.map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length })));
+        // Atualiza Firestore apenas se houver diferença simples
+        const existenteString = JSON.stringify(
+          (clienteData.cartaoFidelidade || []).map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+        );
+        const atualString = JSON.stringify(
+          cartoesAtualizados.map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+        );
         if (existenteString !== atualString) {
           const clienteRef = doc(db, "clientes", clienteDoc.id);
           await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
