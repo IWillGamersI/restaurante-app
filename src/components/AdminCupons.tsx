@@ -5,6 +5,12 @@ import { useClientesParaResgate } from "@/hook/useClientesParaResgate";
 import { Gift, User, CreditCard, PlusCircle } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { regrasFidelidade } from "@/lib/regrasFidelidade"; // 👈 Importa regras locais
+
+// 🔹 Função utilitária para gerar códigos de cupom padronizados
+function gerarCodigoCupom(tipo: string) {
+  return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+}
 
 export default function AdminCupons() {
   const { clientesComCupons, clientesComPontosSuficientes, loading, error } =
@@ -13,7 +19,7 @@ export default function AdminCupons() {
   const [subAba, setSubAba] = useState<"disponiveis" | "resgatados">("disponiveis");
   const [gerando, setGerando] = useState<string | null>(null);
 
-  // Combina as listas sem duplicar
+  // Combina as listas sem duplicar clientes
   const listaClientes = useMemo(() => {
     const mapa = new Map();
     [...(clientesComCupons || []), ...(clientesComPontosSuficientes || [])].forEach((c) => {
@@ -22,13 +28,17 @@ export default function AdminCupons() {
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [clientesComCupons, clientesComPontosSuficientes]);
 
-  // Gera cupom manual para tipo específico
+  // 🔹 Gera cupom manualmente para um tipo específico
   const gerarCupomManual = async (cliente: any, tipo: string) => {
     try {
-      setGerando(tipo);
-      const codigo = `${tipo.toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      if (!regrasFidelidade[tipo]) {
+        alert(`⚠️ O tipo "${tipo}" não existe nas regras de fidelidade.`);
+        return;
+      }
 
-      // Novo cupom
+      setGerando(tipo);
+      const codigo = gerarCodigoCupom(tipo);
+
       const novoCupom = {
         codigo,
         dataGeracao: new Date().toISOString(),
@@ -36,14 +46,17 @@ export default function AdminCupons() {
         origem: "manual",
       };
 
-      // Atualiza o cartão correspondente
+      // Atualiza o cartão correspondente com base nas regras locais
       const novosCartoes = cliente.cartaoFidelidade.map((cartao: any) => {
         if (cartao.tipo === tipo) {
           const novosCupons = [...(cartao.cupomGanho || []), novoCupom];
           const novoSaldo = (cartao.saldoCupom || 0) + 1;
 
+          const regra = regrasFidelidade[tipo];
           return {
             ...cartao,
+            limite: regra.limite,
+            periodo: regra.periodo,
             cupomGanho: novosCupons,
             saldoCupom: novoSaldo,
           };
@@ -51,13 +64,14 @@ export default function AdminCupons() {
         return cartao;
       });
 
+      // Atualiza o Firestore
       await updateDoc(doc(db, "clientes", cliente.id), {
         cartaoFidelidade: novosCartoes,
       });
 
       alert(`✅ Cupom ${codigo} gerado com sucesso para ${cliente.nome} (${tipo})!`);
 
-      // Atualiza o estado local para refletir a mudança sem precisar recarregar
+      // Atualiza o estado local
       setClienteSelecionado({ ...cliente, cartaoFidelidade: novosCartoes });
     } catch (err) {
       console.error("Erro ao gerar cupom:", err);
@@ -72,7 +86,7 @@ export default function AdminCupons() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 h-[80vh] bg-gray-50">
-      {/* Lista de clientes */}
+      {/* 🧭 Lista de clientes */}
       <div className="col-span-1 border-r bg-white flex flex-col h-[80vh]">
         <div className="p-4 border-b bg-white sticky top-0 z-10">
           <h2 className="text-lg font-bold text-gray-800">Clientes</h2>
@@ -112,7 +126,7 @@ export default function AdminCupons() {
         </div>
       </div>
 
-      {/* Painel do cliente */}
+      {/* 🪪 Painel do cliente */}
       <div className="col-span-2 flex flex-col h-full overflow-hidden">
         {clienteSelecionado ? (
           <>
@@ -136,48 +150,47 @@ export default function AdminCupons() {
               </button>
             </div>
 
-            {/* Conteúdo */}
+            {/* Conteúdo principal */}
             <div className="overflow-y-auto flex-1 p-4 space-y-6">
-              {/* Cartões */}
+              {/* Cartões de fidelidade */}
               <section>
                 <h3 className="font-bold text-blue-600 mb-3 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" /> Cartões de Fidelidade
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {clienteSelecionado.cartaoFidelidade?.map((cartao: any) => (
-                    <div
-                      key={cartao.tipo}
-                      className="p-3 border rounded-lg bg-white shadow-sm"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-semibold text-blue-600 capitalize">{cartao.tipo}</h4>
-                        <button
-                          onClick={() => gerarCupomManual(clienteSelecionado, cartao.tipo)}
-                          disabled={gerando === cartao.tipo}
-                          className={`text-sm flex items-center gap-1 ${
-                            gerando === cartao.tipo
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "text-green-600 hover:text-green-700"
-                          }`}
-                        >
-                          <PlusCircle className="w-4 h-4" />
-                          {gerando === cartao.tipo ? "Gerando..." : "Gerar"}
-                        </button>
+                  {clienteSelecionado.cartaoFidelidade?.map((cartao: any) => {
+                    const regra = regrasFidelidade[cartao.tipo] || { limite: cartao.limite };
+                    const progresso = Math.min((cartao.quantidade / regra.limite) * 100, 100);
+                    return (
+                      <div key={cartao.tipo} className="p-3 border rounded-lg bg-white shadow-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-semibold text-blue-600 capitalize">{cartao.tipo}</h4>
+                          <button
+                            onClick={() => gerarCupomManual(clienteSelecionado, cartao.tipo)}
+                            disabled={gerando === cartao.tipo}
+                            className={`text-sm flex items-center gap-1 ${
+                              gerando === cartao.tipo
+                                ? "text-gray-400 cursor-not-allowed"
+                                : "text-green-600 hover:text-green-700"
+                            }`}
+                          >
+                            <PlusCircle className="w-4 h-4" />
+                            {gerando === cartao.tipo ? "Gerando..." : "Gerar"}
+                          </button>
+                        </div>
+                        <p className="text-sm">Pontos: {cartao.quantidade} / {regra.limite}</p>
+                        <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${progresso}%` }}
+                          />
+                        </div>
+                        <p className="mt-2 text-sm font-medium">
+                          Cupons disponíveis: {cartao.saldoCupom ?? 0}
+                        </p>
                       </div>
-                      <p className="text-sm">Pontos: {cartao.quantidade} / {cartao.limite}</p>
-                      <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{
-                            width: `${(cartao.quantidade / cartao.limite) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="mt-2 text-sm font-medium">
-                        Cupons disponíveis: {cartao.saldoCupom ?? 0}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 
@@ -187,6 +200,7 @@ export default function AdminCupons() {
                   <Gift className="w-4 h-4" /> Cupons
                 </h3>
 
+                {/* Tabs */}
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setSubAba("disponiveis")}
@@ -210,6 +224,7 @@ export default function AdminCupons() {
                   </button>
                 </div>
 
+                {/* Lista de cupons */}
                 {clienteSelecionado.cartaoFidelidade?.map((cartao: any) => {
                   const lista =
                     subAba === "disponiveis"
@@ -232,9 +247,7 @@ export default function AdminCupons() {
                             <li
                               key={cupom.codigo}
                               className={`p-2 border rounded text-sm flex justify-between items-center ${
-                                subAba === "disponiveis"
-                                  ? "bg-green-50"
-                                  : "bg-gray-100"
+                                subAba === "disponiveis" ? "bg-green-50" : "bg-gray-100"
                               }`}
                             >
                               <span>{cupom.codigo}</span>
@@ -249,9 +262,7 @@ export default function AdminCupons() {
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm text-gray-500">
-                          Nenhum cupom nesta aba.
-                        </p>
+                        <p className="text-sm text-gray-500">Nenhum cupom nesta aba.</p>
                       )}
                     </div>
                   );
