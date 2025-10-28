@@ -73,6 +73,6 @@ export function useStados() {
     anoSelecionado, setAnoSelecionado,
     resumoSemanal, setResumoSemanal,
     resumoMensal, setResumoMensal,
-    faturamentoPorDia, setFaturamentoPorDia
+    faturamentoPorDia, setFaturamentoPorDia,
   };
 }

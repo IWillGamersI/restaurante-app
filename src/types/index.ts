@@ -135,6 +135,7 @@ export interface PedidoInfoFormProps {
   gerarCodigoPedido: (nome: string) => string;
   numeroMesa: string
   setNumeroMesa: (value: string) => void
+  limparCupons?: ()=> void
 }
 
 

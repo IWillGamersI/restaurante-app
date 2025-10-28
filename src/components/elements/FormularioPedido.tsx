@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PedidoInfoFormProps } from "@/types";
@@ -6,7 +6,7 @@ import { useCodigos } from "@/hook/useCodigos";
 import { useCartaoFidelidade } from "@/hook/useCartaoFidelidade";
 import { Ticket } from "lucide-react";
 
-export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
+export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
   tipoFatura,
   setTipoFatura,
   tipoVenda,
@@ -23,14 +23,15 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
   setCodigoPedido,
   numeroMesa,
   setNumeroMesa,
-}) => {
+}, ref) => {
+
   const { gerarCodigoCliente, gerarCodigoPedido } = useCodigos();
   const { cartoes } = useCartaoFidelidade(codigoCliente);
   const [temCupom, setTemCupom] = useState(false);
   const [cuponsSelecionados, setCuponsSelecionados] = useState<string[]>([]);
 
   useEffect(() => {
-    // Verifica se existe pelo menos um cupom disponível
+    if (!codigoCliente) return;
     setTemCupom(cartoes.some(c => c.saldoCupom > 0));
   }, [cartoes]);
 
@@ -95,7 +96,14 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
         onChange={e => {
           const telefone = e.target.value;
           setClienteTelefone(telefone);
-          if (!telefone) { setClienteNome(""); setCodigoCliente(''); setIdCliente(null); setCodigoPedido(""); setCuponsSelecionados([]); setTemCupom(false)}
+          if (!telefone) { 
+            setClienteNome(""); 
+            setCodigoCliente(''); 
+            setIdCliente(null); 
+            setCodigoPedido(""); 
+            setCuponsSelecionados([]); 
+            setTemCupom(false);
+          }
         }}
         onBlur={handleBlurTelefone}
       />
@@ -104,16 +112,18 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
         onChange={e => {
           const nome = e.target.value;
           setClienteNome(nome);
-          if (clienteTelefone) { setCodigoCliente(gerarCodigoCliente(nome, clienteTelefone)); setCodigoPedido(gerarCodigoPedido(nome)); }
+          if (clienteTelefone) { 
+            setCodigoCliente(gerarCodigoCliente(nome, clienteTelefone)); 
+            setCodigoPedido(gerarCodigoPedido(nome)); 
+          }
         }}
         disabled={!!idCliente && !!clienteTelefone}
       />
 
-      {/* 🔹 Lista de cupons com design moderno */}
-      {temCupom && (
-        <div className="w-full flex items-center gap-2 mt-2">
+      {temCupom && clienteTelefone && (
+        <div className="w-full flex flex-wrap items-center gap-2 mt-2">
           <p className="text-sm font-semibold ">🎟️ Cupons disponíveis</p>
-          <div className="flex">
+          <div className="flex gap-2">
             {cartoes.flatMap(c =>
               c.cupomGanho.map(cupom => ({
                 ...cupom,
@@ -147,4 +157,4 @@ export const PedidoInfoForm: React.FC<PedidoInfoFormProps> = ({
       )}
     </div>
   );
-};
+});

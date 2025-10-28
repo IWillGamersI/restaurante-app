@@ -20,7 +20,7 @@ export default function GerenciarPedidos() {
   const stados = useStados();
   const pedido = usePedido(stados);
   const { gerarCodigoPedido } = useCodigos();
-  const { statusColor } = useStatus();
+  const { statusColor } = useStatus();  
 
   const {
     atualizarStatus,
@@ -75,15 +75,15 @@ export default function GerenciarPedidos() {
     setNumeroMesa,
     idPedidoSelecionado,
     setIdPedidoSelecionado,
-    obs
+    obs,
   } = stados;
 
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
 
   const handleSalvarPedido = () => {
-    setQuerImprimir(true)
+    setQuerImprimir(true);
     salvarPedido({
-      id: idPedidoSelecionado || undefined, // se null, cria novo pedido
+      id: idPedidoSelecionado || undefined,
       tipoFatura,
       tipoPagamento,
       tipoVenda,
@@ -99,10 +99,17 @@ export default function GerenciarPedidos() {
       imprimir,
       obs: obs || ''
     });
-    
-    // Depois de salvar/adicionar produtos
+
+    // 🔹 Limpa os campos e cupons após lançar o pedido
     setIdPedidoSelecionado(null);
+    setClienteTelefone('');
+    setClienteNome('');
+    setCodigoCliente('');
+    setCodigoPedido('');
+    setNumeroMesa('');
+    
   };
+
 
 
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' ));
@@ -301,7 +308,7 @@ export default function GerenciarPedidos() {
                     />
                   </div>
 
-                  <div>
+                  <div className="flex gap-2 flex-wrap">
                     {cuponsDisponiveis
                       .filter(c => c.tipo === produtoModal.classe) // só cupons do tipo do produto
                       .map((c, i) => {
