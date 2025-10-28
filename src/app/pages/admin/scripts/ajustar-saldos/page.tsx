@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
+import { RecalcularCartoesButton } from "../recalcularFidelidade/page";
 
 /**
  * Remove recursivamente propriedades com value === undefined
@@ -159,6 +160,11 @@ export default function AjustarSaldos() {
             </p>
           )}
         </div>
+      </div>
+
+      <div>
+        <h1>Recalcular os Cartões firebase</h1>
+        <RecalcularCartoesButton/>
       </div>
     </div>
   );
