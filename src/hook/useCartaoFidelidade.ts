@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Pedido } from "@/types";
-import { regrasFidelidade, obterRegraFidelidade } from "@/lib/regrasFidelidade"; // 👈 Importa as regras externas
+import { regrasFidelidade, obterRegraFidelidade } from "@/lib/regrasFidelidade";
 
 export interface Cupom {
   codigo: string;
@@ -48,7 +48,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
         const pedidosEntregues = pedidos.filter(p => p.status === "Entregue");
 
-        // Recupera cartões já existentes do cliente
+        // 🔹 Busca cliente e seus cartões existentes
         const clientesRef = collection(db, "clientes");
         const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
         const clienteSnap = await getDocs(clienteQuery);
@@ -63,15 +63,15 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         const clienteData: any = clienteDoc.data();
         const cartoesExistentes: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
 
-        // PRE-POPULA cartoesTemp com os existentes, mas usando regras LOCAIS
+        // 🔹 Cria um dicionário local baseado nas regras LOCAIS (ignora Firestore)
         const cartoesTemp: Record<string, CartaoFidelidade> = {};
-        cartoesExistentes.forEach(c => {
-          const regraLocal = obterRegraFidelidade(c.tipo) || { limite: c.limite, periodo: c.periodo };
+        cartoesExistentes.forEach((c) => {
+          const regraLocal = obterRegraFidelidade(c.tipo);
           cartoesTemp[c.tipo] = {
             tipo: c.tipo,
             quantidade: 0,
-            limite: regraLocal.limite,
-            periodo: regraLocal.periodo,
+            limite: regraLocal?.limite ?? 10,
+            periodo: regraLocal?.periodo ?? 3,
             cupomGanho: c.cupomGanho || [],
             cupomResgatado: c.cupomResgatado || [],
             saldoCupom: c.saldoCupom || 0,
@@ -80,9 +80,9 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
         const agora = new Date();
 
-        // Processa pedidos entregues e incrementa contadores
-        pedidosEntregues.forEach(pedido => {
-          pedido.produtos?.forEach(p => {
+        // 🔸 Processa pedidos entregues
+        pedidosEntregues.forEach((pedido) => {
+          pedido.produtos?.forEach((p) => {
             const classeProduto = norm(p.classe);
             const categoriaProduto = norm((p as any).categoria || "");
 
@@ -90,13 +90,14 @@ export function useCartaoFidelidade(codigoCliente?: string) {
               const nomeCartao = norm(nomeCartaoRaw);
               let pertence = false;
 
+              // 🔍 Lógica de correspondência: classe ou categoria
               if (regra.tipo === "classe") {
-                if (classeProduto && classeProduto === nomeCartao) pertence = true;
+                if (classeProduto === nomeCartao) pertence = true;
                 if (!pertence && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
-                if (!pertence && categoriaProduto && categoriaProduto === nomeCartao) pertence = true;
+                if (!pertence && categoriaProduto === nomeCartao) pertence = true;
               } else if (regra.tipo === "categoria") {
-                if (categoriaProduto && regra.categorias?.some(c => norm(c) === categoriaProduto)) pertence = true;
-                if (!pertence && classeProduto && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
+                if (regra.categorias?.some(c => norm(c) === categoriaProduto)) pertence = true;
+                if (!pertence && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
                 if (!pertence && (classeProduto === nomeCartao || categoriaProduto === nomeCartao)) pertence = true;
               }
 
@@ -107,6 +108,7 @@ export function useCartaoFidelidade(codigoCliente?: string) {
 
                 let valido = false;
 
+                // 🔸 Verifica se o pedido ainda está dentro do período de validade
                 if (regra.periodo === 1) {
                   valido =
                     dataPedido.getMonth() === agora.getMonth() &&
@@ -119,16 +121,17 @@ export function useCartaoFidelidade(codigoCliente?: string) {
                 }
 
                 if (valido) {
+                  // 🔹 Sempre usa a regra local
                   if (!cartoesTemp[nomeCartaoRaw]) {
-                    const existente = cartoesExistentes.find(c => norm(c.tipo) === nomeCartao);
+                    const regraLocal = obterRegraFidelidade(nomeCartaoRaw);
                     cartoesTemp[nomeCartaoRaw] = {
                       tipo: nomeCartaoRaw,
                       quantidade: 0,
-                      limite: regra.limite,
-                      periodo: regra.periodo,
-                      cupomGanho: existente?.cupomGanho || [],
-                      cupomResgatado: existente?.cupomResgatado || [],
-                      saldoCupom: existente?.saldoCupom || 0,
+                      limite: regraLocal?.limite ?? 10,
+                      periodo: regraLocal?.periodo ?? 3,
+                      cupomGanho: [],
+                      cupomResgatado: [],
+                      saldoCupom: 0,
                     };
                   }
 
@@ -139,14 +142,12 @@ export function useCartaoFidelidade(codigoCliente?: string) {
           });
         });
 
-        // Gera cupons e calcula saldo
-        Object.values(cartoesTemp).forEach(cartao => {
-          // 🧮 Soma progresso anterior com o atual
+        // 🔸 Gera cupons e calcula saldo
+        Object.values(cartoesTemp).forEach((cartao) => {
           const existente = cartoesExistentes.find(c => c.tipo === cartao.tipo);
           const progressoAnterior = existente ? existente.quantidade || 0 : 0;
           const quantidadeTotal = progressoAnterior + cartao.quantidade;
 
-          // Calcula quantos cupons deveriam existir
           const totalCuponsEsperados = Math.floor(quantidadeTotal / cartao.limite);
           const totalCuponsAtuais = cartao.cupomGanho.length;
 
@@ -161,23 +162,29 @@ export function useCartaoFidelidade(codigoCliente?: string) {
             }
           }
 
-          // Atualiza o progresso dentro do limite
           cartao.quantidade = quantidadeTotal % cartao.limite;
-          cartao.saldoCupom = (cartao.cupomGanho?.length || 0) - (cartao.cupomResgatado?.length || 0);
+          cartao.saldoCupom =
+            (cartao.cupomGanho?.length || 0) - (cartao.cupomResgatado?.length || 0);
         });
-
 
         const cartoesAtualizados = Object.values(cartoesTemp);
         setCartoes(cartoesAtualizados);
         setLoading(false);
 
-        // Atualiza Firestore se houver diferença
+        // 🔹 Atualiza o Firestore se houver mudanças de cupons
         const existenteString = JSON.stringify(
-          (clienteData.cartaoFidelidade || []).map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+          (clienteData.cartaoFidelidade || []).map(c => ({
+            tipo: c.tipo,
+            cupomGanhoLen: (c.cupomGanho || []).length,
+          }))
         );
         const atualString = JSON.stringify(
-          cartoesAtualizados.map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+          cartoesAtualizados.map(c => ({
+            tipo: c.tipo,
+            cupomGanhoLen: (c.cupomGanho || []).length,
+          }))
         );
+
         if (existenteString !== atualString) {
           const clienteRef = doc(db, "clientes", clienteDoc.id);
           await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
