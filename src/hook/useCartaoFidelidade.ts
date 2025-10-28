@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Pedido } from "@/types";
+import { regrasFidelidade, obterRegraFidelidade } from "@/lib/regrasFidelidade"; // 👈 Importa as regras externas
 
 export interface Cupom {
   codigo: string;
@@ -20,122 +21,12 @@ export interface CartaoFidelidade {
   saldoCupom: number;
 }
 
-const regrasFidelidade: Record<
-  string,
-  { tipo: "classe" | "categoria"; limite: number; periodo: number; categorias?: string[] }
-> = {
-  Pizza: { tipo: "categoria", limite: 10, periodo: 3, categorias: ["pizza-individual", "pizza-tradicional"] },
-  estudante: { tipo: "classe", limite: 12, periodo: 1 },
-  acai: { tipo: "classe", limite: 12, periodo: 1 },
-  massa: { tipo: "classe", limite: 10, periodo: 3 },
-  prato: { tipo: "classe", limite: 10, periodo: 3 },
-};
-
-const norm = (v?: string) => (v ? String(v).toLowerCase().trim() : "");
-const gerarCodigoCupom = (tipo: string) =>
-  tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-
-/**
- * Calcula os cartões de fidelidade com base nos pedidos entregues e regras locais.
- */
-function calcularCartoesFidelidade(pedidosEntregues: Pedido[], cartoesExistentes: CartaoFidelidade[]): CartaoFidelidade[] {
-  const agora = new Date();
-  const cartoesTemp: Record<string, CartaoFidelidade> = {};
-
-  // Preenche cartões existentes sem puxar limite/periodo do Firestore
-  cartoesExistentes.forEach(c => {
-    const regra = regrasFidelidade[c.tipo] || { limite: c.limite, periodo: c.periodo, tipo: "classe" as const };
-    cartoesTemp[c.tipo] = {
-      tipo: c.tipo,
-      quantidade: 0,
-      limite: regra.limite,
-      periodo: regra.periodo,
-      cupomGanho: c.cupomGanho || [],
-      cupomResgatado: c.cupomResgatado || [],
-      saldoCupom: c.saldoCupom || 0,
-    };
-  });
-
-  // Aplica as regras locais a todos os pedidos entregues
-  pedidosEntregues.forEach(pedido => {
-    pedido.produtos?.forEach(p => {
-      const classeProduto = norm(p.classe);
-      const categoriaProduto = norm((p as any).categoria || "");
-
-      Object.entries(regrasFidelidade).forEach(([nomeCartaoRaw, regra]) => {
-        const nomeCartao = norm(nomeCartaoRaw);
-        let pertence = false;
-
-        if (regra.tipo === "classe") {
-          pertence =
-            classeProduto === nomeCartao ||
-            regra.categorias?.some(c => norm(c) === classeProduto) ||
-            categoriaProduto === nomeCartao;
-        } else if (regra.tipo === "categoria") {
-          pertence =
-            regra.categorias?.some(c => norm(c) === categoriaProduto) ||
-            regra.categorias?.some(c => norm(c) === classeProduto) ||
-            classeProduto === nomeCartao ||
-            categoriaProduto === nomeCartao;
-        }
-
-        if (!pertence) return;
-
-        const dataPedido = pedido.criadoEm?.toDate ? pedido.criadoEm.toDate() : new Date(pedido.data ?? "");
-        let valido = false;
-
-        if (regra.periodo === 1) {
-          valido = dataPedido.getMonth() === agora.getMonth() && dataPedido.getFullYear() === agora.getFullYear();
-        } else {
-          const diffMeses = (agora.getFullYear() - dataPedido.getFullYear()) * 12 + (agora.getMonth() - dataPedido.getMonth());
-          valido = diffMeses < regra.periodo;
-        }
-
-        if (!valido) return;
-
-        if (!cartoesTemp[nomeCartaoRaw]) {
-          cartoesTemp[nomeCartaoRaw] = {
-            tipo: nomeCartaoRaw,
-            quantidade: 0,
-            limite: regra.limite,
-            periodo: regra.periodo,
-            cupomGanho: [],
-            cupomResgatado: [],
-            saldoCupom: 0,
-          };
-        }
-
-        cartoesTemp[nomeCartaoRaw].quantidade += Number(p.quantidade || 1);
-      });
-    });
-  });
-
-  // Gera cupons e calcula saldo
-  Object.values(cartoesTemp).forEach(cartao => {
-    const totalCuponsEsperados = Math.floor(cartao.quantidade / cartao.limite);
-    const totalCuponsAtuais = cartao.cupomGanho.length;
-
-    if (totalCuponsEsperados > totalCuponsAtuais) {
-      const novos = totalCuponsEsperados - totalCuponsAtuais;
-      for (let i = 0; i < novos; i++) {
-        cartao.cupomGanho.push({
-          codigo: gerarCodigoCupom(cartao.tipo),
-          dataGanho: new Date().toISOString(),
-          quantidade: 1,
-        });
-      }
-    }
-
-    cartao.quantidade = cartao.quantidade % cartao.limite;
-    cartao.saldoCupom = (cartao.cupomGanho?.length || 0) - (cartao.cupomResgatado?.length || 0);
-  });
-
-  return Object.values(cartoesTemp);
+function gerarCodigoCupom(tipo: string) {
+  return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
-/**
- * Hook React: busca dados do Firebase e calcula fidelidade localmente
- */
+const norm = (v?: string) => (v ? String(v).toLowerCase().trim() : "");
+
 export function useCartaoFidelidade(codigoCliente?: string) {
   const [cartoes, setCartoes] = useState<CartaoFidelidade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,8 +48,11 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         const pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Pedido[];
         const pedidosEntregues = pedidos.filter(p => p.status === "Entregue");
 
-        // Busca cliente e cartões existentes
-        const clienteSnap = await getDocs(query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente)));
+        // Recupera cartões já existentes do cliente
+        const clientesRef = collection(db, "clientes");
+        const clienteQuery = query(clientesRef, where("codigoCliente", "==", codigoCliente));
+        const clienteSnap = await getDocs(clienteQuery);
+
         if (clienteSnap.empty) {
           setCartoes([]);
           setLoading(false);
@@ -169,16 +63,124 @@ export function useCartaoFidelidade(codigoCliente?: string) {
         const clienteData: any = clienteDoc.data();
         const cartoesExistentes: CartaoFidelidade[] = clienteData.cartaoFidelidade || [];
 
-        // 🧮 Calcula localmente (sem depender do Firestore)
-        const cartoesAtualizados = calcularCartoesFidelidade(pedidosEntregues, cartoesExistentes);
+        // PRE-POPULA cartoesTemp com os existentes, mas usando regras LOCAIS
+        const cartoesTemp: Record<string, CartaoFidelidade> = {};
+        cartoesExistentes.forEach(c => {
+          const regraLocal = obterRegraFidelidade(c.tipo) || { limite: c.limite, periodo: c.periodo };
+          cartoesTemp[c.tipo] = {
+            tipo: c.tipo,
+            quantidade: 0,
+            limite: regraLocal.limite,
+            periodo: regraLocal.periodo,
+            cupomGanho: c.cupomGanho || [],
+            cupomResgatado: c.cupomResgatado || [],
+            saldoCupom: c.saldoCupom || 0,
+          };
+        });
 
+        const agora = new Date();
+
+        // Processa pedidos entregues e incrementa contadores
+        pedidosEntregues.forEach(pedido => {
+          pedido.produtos?.forEach(p => {
+            const classeProduto = norm(p.classe);
+            const categoriaProduto = norm((p as any).categoria || "");
+
+            Object.entries(regrasFidelidade).forEach(([nomeCartaoRaw, regra]) => {
+              const nomeCartao = norm(nomeCartaoRaw);
+              let pertence = false;
+
+              if (regra.tipo === "classe") {
+                if (classeProduto && classeProduto === nomeCartao) pertence = true;
+                if (!pertence && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
+                if (!pertence && categoriaProduto && categoriaProduto === nomeCartao) pertence = true;
+              } else if (regra.tipo === "categoria") {
+                if (categoriaProduto && regra.categorias?.some(c => norm(c) === categoriaProduto)) pertence = true;
+                if (!pertence && classeProduto && regra.categorias?.some(c => norm(c) === classeProduto)) pertence = true;
+                if (!pertence && (classeProduto === nomeCartao || categoriaProduto === nomeCartao)) pertence = true;
+              }
+
+              if (pertence) {
+                const dataPedido = pedido.criadoEm?.toDate
+                  ? pedido.criadoEm.toDate()
+                  : new Date(pedido.data ?? "");
+
+                let valido = false;
+
+                if (regra.periodo === 1) {
+                  valido =
+                    dataPedido.getMonth() === agora.getMonth() &&
+                    dataPedido.getFullYear() === agora.getFullYear();
+                } else {
+                  const diffMeses =
+                    (agora.getFullYear() - dataPedido.getFullYear()) * 12 +
+                    (agora.getMonth() - dataPedido.getMonth());
+                  valido = diffMeses < regra.periodo;
+                }
+
+                if (valido) {
+                  if (!cartoesTemp[nomeCartaoRaw]) {
+                    const existente = cartoesExistentes.find(c => norm(c.tipo) === nomeCartao);
+                    cartoesTemp[nomeCartaoRaw] = {
+                      tipo: nomeCartaoRaw,
+                      quantidade: 0,
+                      limite: regra.limite,
+                      periodo: regra.periodo,
+                      cupomGanho: existente?.cupomGanho || [],
+                      cupomResgatado: existente?.cupomResgatado || [],
+                      saldoCupom: existente?.saldoCupom || 0,
+                    };
+                  }
+
+                  cartoesTemp[nomeCartaoRaw].quantidade += Number(p.quantidade || 1);
+                }
+              }
+            });
+          });
+        });
+
+        // Gera cupons e calcula saldo
+        Object.values(cartoesTemp).forEach(cartao => {
+          // 🧮 Soma progresso anterior com o atual
+          const existente = cartoesExistentes.find(c => c.tipo === cartao.tipo);
+          const progressoAnterior = existente ? existente.quantidade || 0 : 0;
+          const quantidadeTotal = progressoAnterior + cartao.quantidade;
+
+          // Calcula quantos cupons deveriam existir
+          const totalCuponsEsperados = Math.floor(quantidadeTotal / cartao.limite);
+          const totalCuponsAtuais = cartao.cupomGanho.length;
+
+          if (totalCuponsEsperados > totalCuponsAtuais) {
+            const novos = totalCuponsEsperados - totalCuponsAtuais;
+            for (let i = 0; i < novos; i++) {
+              cartao.cupomGanho.push({
+                codigo: gerarCodigoCupom(cartao.tipo),
+                dataGanho: new Date().toISOString(),
+                quantidade: 1,
+              });
+            }
+          }
+
+          // Atualiza o progresso dentro do limite
+          cartao.quantidade = quantidadeTotal % cartao.limite;
+          cartao.saldoCupom = (cartao.cupomGanho?.length || 0) - (cartao.cupomResgatado?.length || 0);
+        });
+
+
+        const cartoesAtualizados = Object.values(cartoesTemp);
         setCartoes(cartoesAtualizados);
         setLoading(false);
 
-        // Atualiza o Firestore apenas se houver mudanças
-        const mudou = JSON.stringify(cartoesExistentes) !== JSON.stringify(cartoesAtualizados);
-        if (mudou) {
-          await updateDoc(doc(db, "clientes", clienteDoc.id), { cartaoFidelidade: cartoesAtualizados });
+        // Atualiza Firestore se houver diferença
+        const existenteString = JSON.stringify(
+          (clienteData.cartaoFidelidade || []).map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+        );
+        const atualString = JSON.stringify(
+          cartoesAtualizados.map(c => ({ tipo: c.tipo, cupomGanhoLen: (c.cupomGanho||[]).length }))
+        );
+        if (existenteString !== atualString) {
+          const clienteRef = doc(db, "clientes", clienteDoc.id);
+          await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
         }
       } catch (err) {
         console.error("Erro em useCartaoFidelidade:", err);
