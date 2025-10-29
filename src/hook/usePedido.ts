@@ -400,11 +400,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setQuantidadeSelecionada(1);
   };
 
-
-
-
-
-
   const removerProdutoPedido = (id: string) => {
     setProdutosPedido((prev) => prev.filter((p) => p.id !== id));
   };
@@ -499,5 +494,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
+    marcarCupomComoUsado
   };
 }

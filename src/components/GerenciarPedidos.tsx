@@ -15,6 +15,7 @@ import { ClasseButtons } from "./elements/ClassesButtons";
 import { PedidoInfoForm } from "./elements/FormularioPedido";
 import { HeaderData } from "./elements/HeaderData";
 import { Pedido } from "@/types";
+import { useResgateCupom } from "@/hook/useResgateCupom";
 
 export default function GerenciarPedidos() {
   const stados = useStados();
@@ -46,7 +47,7 @@ export default function GerenciarPedidos() {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    
+    marcarCupomComoUsado
   } = pedido;
 
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
@@ -393,9 +394,28 @@ export default function GerenciarPedidos() {
                 <Button variant="outline" onClick={() => setModalAberto(false)} className="bg-red-600 text-white hover:bg-red-800 cursor-pointer">
                   Cancelar<Delete/>
                 </Button>
-                <Button onClick={confirmarProduto} className="bg-green-600 text-white hover:bg-green-800 cursor-pointer">
-                  <PlusCircleIcon/> Confirmar
+                <Button
+                  onClick={async () => {
+                    // 🔹 Confirma o produto normalmente
+                    confirmarProduto();
+
+                    // 🔹 Se tiver cupons selecionados para o tipo desse produto, aplica o resgate
+                    const cuponsDoTipo = cuponsSelecionados.filter(
+                      (c) => c.tipo === produtoModal?.classe
+                    );
+
+                    for (const cupom of cuponsDoTipo) {
+                      await marcarCupomComoUsado(cupom.codigo, cupom.tipo);
+                    }
+
+                    // 🔹 Fecha o modal
+                    setModalAberto(false);
+                  }}
+                  className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"
+                >
+                  <PlusCircleIcon /> Confirmar
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>
