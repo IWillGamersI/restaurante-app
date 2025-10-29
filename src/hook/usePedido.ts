@@ -341,10 +341,15 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const confirmarProduto = () => {
     if (!produtoModal) return;
 
-    // Verifica se existe cupom selecionado do tipo do produto
-    const cupomDoProduto = cuponsSelecionados.find(c => c.tipo === produtoModal.classe);
+    // 🔹 Filtra cupons válidos para este produto
+    const cuponsDoProduto = cuponsSelecionados.filter(
+      (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
+    );
 
-    // Preço do produto com desconto: 0 se cupom aplicado
+    // Pega o primeiro cupom disponível (ou undefined)
+    const cupomDoProduto = cuponsDoProduto[0];
+
+    // 🔹 Define o preço com desconto: 0 se houver cupom
     const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
@@ -363,18 +368,18 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       ignorarParaFidelidade: !!cupomDoProduto,
     };
 
-    
     setProdutosPedido((prev) => {
-      // Verifica se já existe o produto com os mesmos extras
+      // 🔹 Procura produto igual com mesmos extras
       const index = prev.findIndex(
         (p) =>
           p.id === novoProduto.id &&
-          JSON.stringify(p.extras.map(e => e.id).sort()) ===
-            JSON.stringify(novoProduto.extras.map(e => e.id).sort())
+          JSON.stringify(p.extras.map((e) => e.id).sort()) ===
+            JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
       );
 
       if (index !== -1) {
         const copia = [...prev];
+        // 🔹 Se já existe, soma a quantidade, mantém o preço zerado se cupom aplicado
         copia[index] = {
           ...copia[index],
           quantidade: copia[index].quantidade + novoProduto.quantidade,
@@ -385,20 +390,23 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         return copia;
       }
 
+      // 🔹 Produto novo no pedido
       return [...prev, novoProduto];
     });
 
-    // Marca o cupom como usado no Firestore
+    // 🔹 Marca cupom como usado (se houver)
     if (cupomDoProduto) {
       marcarCupomComoUsado(cupomDoProduto.codigo, cupomDoProduto.tipo);
     }
 
-    // Fecha modal e reseta extras e quantidade
+    // 🔹 Fecha modal e reseta extras e quantidade
     setModalAberto(false);
     setProdutoModal(null);
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
+
 
   const removerProdutoPedido = (id: string) => {
     setProdutosPedido((prev) => prev.filter((p) => p.id !== id));

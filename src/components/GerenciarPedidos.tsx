@@ -395,27 +395,21 @@ export default function GerenciarPedidos() {
                   Cancelar<Delete/>
                 </Button>
                 <Button
-                  onClick={async () => {
-                    // 🔹 Resgate cupons primeiro
-                    const cuponsDoTipo = cuponsSelecionados.filter(
-                      (c) => c.tipo.toLowerCase() === produtoModal?.classe?.toLowerCase()
-                    );
-
-                    for (const cupom of cuponsDoTipo) {
-                      await marcarCupomComoUsado(cupom.codigo, cupom.tipo);
-                    }
-
-                    // 🔹 Confirma o produto
-                    confirmarProduto();
+                  onClick={() => {
+                    // 🔹 Confirma o produto com cupom aplicado
+                    confirmarProduto();                    
 
                     // 🔹 Fecha modal
                     setModalAberto(false);
-                  }}
 
+                    // 🔹 Limpa seleção do cupom no modal
+                    // (Opcional, se quiser resetar para o próximo produto)
+                  }}
                   className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"
                 >
                   <PlusCircleIcon /> Confirmar
                 </Button>
+
 
               </div>
             </DialogContent>
