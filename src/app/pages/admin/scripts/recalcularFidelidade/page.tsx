@@ -1,4 +1,5 @@
 'use client'
+import React, { useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { regrasFidelidade } from "@/lib/regrasFidelidade";
@@ -7,19 +8,25 @@ function gerarCodigoCupom(tipo: string) {
   return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
 
-export async function recalcularCartoes() {
+function isPedidoMesAtual(pedidoData: string | Date) {
+  const pedidoDate = new Date(pedidoData);
+  const now = new Date();
+  return pedidoDate.getMonth() === now.getMonth() && pedidoDate.getFullYear() === now.getFullYear();
+}
+
+async function recalcularCartoes() {
   const clientesRef = collection(db, "clientes");
   const clientesSnap = await getDocs(clientesRef);
 
   for (const clienteDoc of clientesSnap.docs) {
     const clienteData: any = clienteDoc.data();
-    const pedidos = clienteData.pedidos || [];
+    const pedidos = clienteData.pedidos?.filter(p => isPedidoMesAtual(p.criadoEm)) || [];
     const cartoesAtualizados: any[] = [];
 
     for (const [nomeCartao, regra] of Object.entries(regrasFidelidade)) {
       let quantidadeTotal = 0;
-      const cupomGanho: string[] = [];
-      const cupomResgatado: string[] = []; // sempre zerado
+      const cupomGanho: any[] = [];
+      const cupomResgatado: any[] = []; // sempre zerado
       const nomeCartaoNorm = nomeCartao.toLowerCase();
 
       for (const pedido of pedidos) {
@@ -33,7 +40,11 @@ export async function recalcularCartoes() {
 
       const totalCupons = Math.floor(quantidadeTotal / regra.limite);
       for (let i = 0; i < totalCupons; i++) {
-        cupomGanho.push(gerarCodigoCupom(nomeCartao));
+        cupomGanho.push({
+          codigo: gerarCodigoCupom(nomeCartao),
+          dataGanho: new Date().toISOString(),
+          quantidade: 1,
+        });
       }
 
       cartoesAtualizados.push({
@@ -43,7 +54,7 @@ export async function recalcularCartoes() {
         periodo: regra.periodo,
         cupomGanho,
         cupomResgatado,
-        saldoCupom: cupomGanho.length, // saldo = cupons ganhos
+        saldoCupom: cupomGanho.length,
       });
     }
 
@@ -53,4 +64,39 @@ export async function recalcularCartoes() {
   }
 
   console.log("Recalculo de todos os cartões finalizado!");
+}
+
+export default function RecalcularCartoesPage() {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    const confirmacao = window.confirm(
+      "⚠️ Isso vai recalcular os cupons de todos os clientes para o mês atual. Tem certeza?"
+    );
+    if (!confirmacao) return;
+
+    setLoading(true);
+    try {
+      await recalcularCartoes();
+      alert("✅ Recalculo finalizado!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Ocorreu um erro. Veja o console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Recalcular Cartões de Fidelidade (Mês Atual)</h1>
+      <button
+        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+        onClick={handleClick}
+        disabled={loading}
+      >
+        {loading ? "Recalculando..." : "Recalcular Cartões do Mês Atual"}
+      </button>
+    </div>
+  );
 }
