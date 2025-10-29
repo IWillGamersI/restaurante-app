@@ -14,25 +14,20 @@ export async function recalcularCartoes() {
 
   for (const clienteDoc of clientesSnap.docs) {
     const clienteData: any = clienteDoc.data();
-    const pedidos = clienteData.pedidos || []; // ou busque pedidos do Firestore se necessário
+    const pedidos = clienteData.pedidos || [];
     const cartoesAtualizados: any[] = [];
 
     for (const [nomeCartao, regra] of Object.entries(regrasFidelidade)) {
       let quantidadeTotal = 0;
       const cupomGanho: any[] = [];
-      const cupomResgatado: any[] = []; // Zerado, você mencionou que faz manualmente
+      const cupomResgatado: any[] = []; // sempre zerado
+      const nomeCartaoNorm = nomeCartao.toLowerCase();
 
       for (const pedido of pedidos) {
         for (const produto of pedido.produtos || []) {
           const classe = (produto.classe || "").toLowerCase();
-          const categoria = (produto.categoria || "").toLowerCase();
-          const nomeCartaoNorm = nomeCartao.toLowerCase();
 
-          let pertence = false;
-          if (classe === nomeCartaoNorm) pertence = true;
-          if (!pertence && regra.categorias?.map(c => c.toLowerCase()).includes(categoria)) pertence = true;
-
-          if (pertence) {
+          if (classe === nomeCartaoNorm) {
             quantidadeTotal += Number(produto.quantidade || 1);
           }
         }
@@ -47,8 +42,6 @@ export async function recalcularCartoes() {
         });
       }
 
-      const saldoCupom = cupomGanho.length - cupomResgatado.length;
-
       cartoesAtualizados.push({
         tipo: nomeCartao,
         quantidade: quantidadeTotal % regra.limite,
@@ -56,7 +49,7 @@ export async function recalcularCartoes() {
         periodo: regra.periodo,
         cupomGanho,
         cupomResgatado,
-        saldoCupom,
+        saldoCupom: cupomGanho.length, // saldo = cupons ganhos
       });
     }
 
@@ -68,13 +61,13 @@ export async function recalcularCartoes() {
   console.log("Recalculo de todos os cartões finalizado!");
 }
 
-// Componente botão React para chamar a função
+// Botão React
 export const RecalcularCartoesButton: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
     const confirmacao = window.confirm(
-      "⚠️ Isso vai apagar todos os cupons ganhos e recalculados de todos os clientes. Tem certeza?"
+      "⚠️ Isso vai apagar todos os cupons ganhos e resgatados de todos os clientes. Tem certeza?"
     );
     if (!confirmacao) return;
 

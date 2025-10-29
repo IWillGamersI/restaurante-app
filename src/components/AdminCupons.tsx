@@ -5,9 +5,9 @@ import { useClientesParaResgate } from "@/hook/useClientesParaResgate";
 import { Gift, User, CreditCard, PlusCircle } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import { regrasFidelidade } from "@/lib/regrasFidelidade"; // 👈 Importa regras locais
+import { regrasFidelidade } from "@/lib/regrasFidelidade";
 
-// 🔹 Função utilitária para gerar códigos de cupom padronizados
+// 🔹 Gera código padronizado de cupom
 function gerarCodigoCupom(tipo: string) {
   return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 }
@@ -19,7 +19,7 @@ export default function AdminCupons() {
   const [subAba, setSubAba] = useState<"disponiveis" | "resgatados">("disponiveis");
   const [gerando, setGerando] = useState<string | null>(null);
 
-  // Combina as listas sem duplicar clientes
+  // 🔹 Combina listas de clientes (sem duplicatas)
   const listaClientes = useMemo(() => {
     const mapa = new Map();
     [...(clientesComCupons || []), ...(clientesComPontosSuficientes || [])].forEach((c) => {
@@ -28,10 +28,15 @@ export default function AdminCupons() {
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [clientesComCupons, clientesComPontosSuficientes]);
 
-  // 🔹 Gera cupom manualmente para um tipo específico
+  // 🔸 Gera cupom manualmente (seguindo regras locais)
   const gerarCupomManual = async (cliente: any, tipo: string) => {
     try {
-      if (!regrasFidelidade[tipo]) {
+      const tipoNormalizado = tipo.toLowerCase();
+      const regra = Object.entries(regrasFidelidade).find(
+        ([nome]) => nome.toLowerCase() === tipoNormalizado
+      )?.[1];
+
+      if (!regra) {
         alert(`⚠️ O tipo "${tipo}" não existe nas regras de fidelidade.`);
         return;
       }
@@ -46,41 +51,43 @@ export default function AdminCupons() {
         origem: "manual",
       };
 
-      // Atualiza o cartão correspondente com base nas regras locais
+      // 🔹 Atualiza o cartão com base nas regras locais
       const novosCartoes = cliente.cartaoFidelidade.map((cartao: any) => {
-        if (cartao.tipo === tipo) {
+        if (cartao.tipo.toLowerCase() === tipoNormalizado) {
           const novosCupons = [...(cartao.cupomGanho || []), novoCupom];
-          const novoSaldo = (cartao.saldoCupom || 0) + 1;
-
-          const regra = regrasFidelidade[tipo];
           return {
             ...cartao,
-            limite: regra.limite,
-            periodo: regra.periodo,
             cupomGanho: novosCupons,
-            saldoCupom: novoSaldo,
+            saldoCupom: (cartao.saldoCupom || 0) + 1,
           };
         }
         return cartao;
       });
 
-      // Atualiza o Firestore
+      // 🔹 Limpa campos antigos antes de salvar no Firestore
+      const cartoesParaSalvar = novosCartoes.map((c: any) => ({
+        tipo: c.tipo,
+        quantidade: c.quantidade,
+        cupomGanho: c.cupomGanho,
+        cupomResgatado: c.cupomResgatado,
+        saldoCupom: c.saldoCupom,
+      }));
+
       await updateDoc(doc(db, "clientes", cliente.id), {
-        cartaoFidelidade: novosCartoes,
+        cartaoFidelidade: cartoesParaSalvar,
       });
 
       alert(`✅ Cupom ${codigo} gerado com sucesso para ${cliente.nome} (${tipo})!`);
-
-      // Atualiza o estado local
       setClienteSelecionado({ ...cliente, cartaoFidelidade: novosCartoes });
     } catch (err) {
       console.error("Erro ao gerar cupom:", err);
-      alert("Erro ao gerar cupom. Veja o console para detalhes.");
+      alert("❌ Erro ao gerar cupom. Veja o console para detalhes.");
     } finally {
       setGerando(null);
     }
   };
 
+  // 🕐 Loading e erros
   if (loading) return <div className="p-6 text-center text-gray-500">Carregando dados...</div>;
   if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
 
@@ -130,6 +137,7 @@ export default function AdminCupons() {
       <div className="col-span-2 flex flex-col h-full overflow-hidden">
         {clienteSelecionado ? (
           <>
+            {/* Cabeçalho */}
             <div className="p-4 border-b bg-white sticky top-0 z-10 flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -152,15 +160,19 @@ export default function AdminCupons() {
 
             {/* Conteúdo principal */}
             <div className="overflow-y-auto flex-1 p-4 space-y-6">
-              {/* Cartões de fidelidade */}
+              {/* Cartões */}
               <section>
                 <h3 className="font-bold text-blue-600 mb-3 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" /> Cartões de Fidelidade
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {clienteSelecionado.cartaoFidelidade?.map((cartao: any) => {
-                    const regra = regrasFidelidade[cartao.tipo] || { limite: cartao.limite };
-                    const progresso = Math.min((cartao.quantidade / regra.limite) * 100, 100);
+                    const regra = Object.entries(regrasFidelidade).find(
+                      ([nome]) => nome.toLowerCase() === cartao.tipo.toLowerCase()
+                    )?.[1];
+                    const limite = regra?.limite ?? 10;
+                    const progresso = Math.min((cartao.quantidade / limite) * 100, 100);
+
                     return (
                       <div key={cartao.tipo} className="p-3 border rounded-lg bg-white shadow-sm">
                         <div className="flex justify-between items-center mb-2">
@@ -178,7 +190,9 @@ export default function AdminCupons() {
                             {gerando === cartao.tipo ? "Gerando..." : "Gerar"}
                           </button>
                         </div>
-                        <p className="text-sm">Pontos: {cartao.quantidade} / {regra.limite}</p>
+                        <p className="text-sm">
+                          Pontos: {cartao.quantidade} / {limite}
+                        </p>
                         <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
                           <div
                             className="bg-blue-600 h-2 rounded-full"
@@ -224,7 +238,6 @@ export default function AdminCupons() {
                   </button>
                 </div>
 
-                {/* Lista de cupons */}
                 {clienteSelecionado.cartaoFidelidade?.map((cartao: any) => {
                   const lista =
                     subAba === "disponiveis"

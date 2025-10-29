@@ -1,5 +1,5 @@
 // 🔹 Tipagem das regras de fidelidade
-export type TipoRegraFidelidade = "classe" | "categoria";
+export type TipoRegraFidelidade = "pizza" | "acai" | "prato" | "massa" | "estudante" ;
 
 export interface RegraFidelidade {
   tipo: TipoRegraFidelidade;
@@ -12,36 +12,35 @@ export interface RegraFidelidade {
 export const regrasFidelidade: Record<string, RegraFidelidade> = {
   // 🍕 Pizza — controlada por categoria
   Pizza: { 
-    tipo: "categoria",
+    tipo: "pizza",
     limite: 10,
     periodo: 3,
-    categorias: ["pizza-tradicional", "pizza-individual"]
   },
 
   // 🎓 Estudante — controlado por classe
-  estudante: { 
-    tipo: "classe",
+  Estudante: { 
+    tipo: "estudante",
     limite: 12,
     periodo: 1
   },
 
   // 🍧 Açaí — controlado por classe
-  acai: { 
-    tipo: "classe",
+  Acai: { 
+    tipo: "acai",
     limite: 12,
     periodo: 1
   },
 
   // 🍝 Massas — controladas por classe
-  massa: { 
-    tipo: "classe",
+  Massa: { 
+    tipo: "massa",
     limite: 10,
     periodo: 3
   },
 
   // 🍛 Pratos — controlados por classe
-  prato: { 
-    tipo: "classe",
+  Prato: { 
+    tipo: "prato",
     limite: 10,
     periodo: 3
   },

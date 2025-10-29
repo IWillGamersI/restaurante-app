@@ -223,7 +223,6 @@ export interface RegraFidelidade {
 }
 
 export const regrasFidelidade: Record<string, RegraFidelidade> = {
-  Pizza: { tipo: "categoria", limite: 10, periodo: 3, categorias: ["pizza-individual", "pizza-tradicional"] },
   estudante: { tipo: "classe", limite: 12, periodo: 1 },
   acai: { tipo: "classe", limite: 12, periodo: 1 },
   massa: { tipo: "classe", limite: 10, periodo: 3 },
