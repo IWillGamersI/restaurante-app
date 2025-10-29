@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { CartaoFidelidade as CartaoFidelidadeType } from "@/hook/useCartaoFidelidade";
-import { obterRegraFidelidade } from "@/lib/regrasFidelidade"; // 🔹 integração com as regras
+import { obterRegraFidelidade } from "@/lib/regrasFidelidade";
 
 interface Props {
   cartao: CartaoFidelidadeType;
 }
 
 export function CartaoFidelidade({ cartao }: Props) {
+  // 🔹 Condição para exibir o cartão
+  const temCompra = (cartao.quantidade ?? 0) > 0;
+  const temCupom =
+    (cartao.cupomGanho?.length ?? 0) > 0 ||
+    (cartao.cupomResgatado?.length ?? 0) > 0;
+
+  if (!temCompra && !temCupom) {
+    return null; // 🔸 não renderiza nada se o cartão estiver "vazio"
+  }
+
   // 🔹 Buscar regra correspondente ao tipo do cartão
   const regra = obterRegraFidelidade(cartao.tipo);
   const meta = regra?.limite ?? 10; // fallback para 10 se não encontrar regra
@@ -40,7 +50,7 @@ export function CartaoFidelidade({ cartao }: Props) {
         <div className="flex flex-col bg-green-200 text-green-700 rounded px-2 py-1 text-center">
           <div className="font-bold">Já Ganhou</div>
           <div className="text-md">
-            {cartao.cupomGanho.length + cartao.cupomResgatado.length}
+            {cartao.cupomGanho.length}
           </div>
         </div>
 
