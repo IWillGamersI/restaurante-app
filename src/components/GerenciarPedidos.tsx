@@ -396,21 +396,22 @@ export default function GerenciarPedidos() {
                 </Button>
                 <Button
                   onClick={async () => {
-                    // 🔹 Confirma o produto normalmente
-                    confirmarProduto();
-
-                    // 🔹 Se tiver cupons selecionados para o tipo desse produto, aplica o resgate
+                    // 🔹 Resgate cupons primeiro
                     const cuponsDoTipo = cuponsSelecionados.filter(
-                      (c) => c.tipo === produtoModal?.classe
+                      (c) => c.tipo.toLowerCase() === produtoModal?.classe?.toLowerCase()
                     );
 
                     for (const cupom of cuponsDoTipo) {
                       await marcarCupomComoUsado(cupom.codigo, cupom.tipo);
                     }
 
-                    // 🔹 Fecha o modal
+                    // 🔹 Confirma o produto
+                    confirmarProduto();
+
+                    // 🔹 Fecha modal
                     setModalAberto(false);
                   }}
+
                   className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"
                 >
                   <PlusCircleIcon /> Confirmar
