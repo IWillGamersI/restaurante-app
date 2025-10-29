@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from "react";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { regrasFidelidade } from "@/lib/regrasFidelidade";
 
@@ -15,12 +15,22 @@ function isPedidoMesAtual(pedidoData: string | Date) {
 }
 
 async function recalcularCartoes() {
-  const clientesRef = collection(db, "clientes");
-  const clientesSnap = await getDocs(clientesRef);
+  const pedidosRef = collection(db, "pedidos");
+  const pedidosSnap = await getDocs(pedidosRef);
 
-  for (const clienteDoc of clientesSnap.docs) {
-    const clienteData: any = clienteDoc.data();
-    const pedidos = clienteData.pedidos?.filter(p => isPedidoMesAtual(p.criadoEm)) || [];
+  // Agrupa pedidos por cliente
+  const pedidosPorCliente: Record<string, any[]> = {};
+  pedidosSnap.docs.forEach(pedidoDoc => {
+    const pedidoData = pedidoDoc.data();
+    if (!isPedidoMesAtual(pedidoData.criadoEm)) return; // filtra apenas mês atual
+    const codigoCliente = pedidoData.codigoCliente;
+    if (!codigoCliente) return;
+    if (!pedidosPorCliente[codigoCliente]) pedidosPorCliente[codigoCliente] = [];
+    pedidosPorCliente[codigoCliente].push(pedidoData);
+  });
+
+  // Recalcula cartões para cada cliente
+  for (const [codigoCliente, pedidos] of Object.entries(pedidosPorCliente)) {
     const cartoesAtualizados: any[] = [];
 
     for (const [nomeCartao, regra] of Object.entries(regrasFidelidade)) {
@@ -58,9 +68,10 @@ async function recalcularCartoes() {
       });
     }
 
-    const clienteRef = doc(db, "clientes", clienteDoc.id);
-    await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
-    console.log(`Cartões recalculados para cliente ${clienteDoc.id}`);
+    // Atualiza cliente no Firestore
+    const clientesRef = doc(db, "clientes", codigoCliente);
+    await updateDoc(clientesRef, { cartaoFidelidade: cartoesAtualizados });
+    console.log(`Cartões recalculados para cliente ${codigoCliente}`);
   }
 
   console.log("Recalculo de todos os cartões finalizado!");
