@@ -78,7 +78,7 @@ export default function RecalcularCartoes() {
 
           setDetalhes(prev => [
             ...prev,
-            `Cliente: ${clienteData.codigoCliente}, Cartão: ${cartao.tipo}, Cupons Gerados: ${totalCupons}`,
+            `Cliente: ${clienteData.codigoCliente}, Nome: ${clienteData.nome} Cartão: ${cartao.tipo}, Cupons Gerados: ${totalCupons}`,
           ]);
 
           return sanitize({
