@@ -1,10 +1,10 @@
 // 🔹 Tipos principais
 export type TipoRegraFidelidade =
-  | "pizza"
-  | "acai"
-  | "prato"
-  | "massa"
-  | "estudante";
+  | "Pizza"
+  | "Acai"
+  | "Prato"
+  | "Massa"
+  | "Estudante";
 
 export interface RegraFidelidade {
   /** Tipo base da regra (classe principal) */
@@ -22,11 +22,11 @@ export interface RegraFidelidade {
 
 // 🔸 Enum para facilitar reuso em outros módulos (se quiser)
 export enum TipoCartaoFidelidade {
-  PIZZA = "pizza",
-  ACAI = "acai",
-  MASSA = "massa",
-  PRATO = "prato",
-  ESTUDANTE = "estudante",
+  PIZZA = "Pizza",
+  ACAI = "Acai",
+  MASSA = "Massa",
+  PRATO = "Prato",
+  ESTUDANTE = "Estudante",
 }
 
 // 🔸 Tabela principal de regras de fidelidade
