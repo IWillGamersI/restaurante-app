@@ -346,10 +346,10 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
     );
 
-    // Pega o primeiro cupom disponível (ou undefined)
-    const cupomDoProduto = cuponsDoProduto[0];
+    // 🔹 Seleciona apenas cupom que ainda tenha saldo
+    const cupomDoProduto = cuponsDoProduto.find(c => c.saldo > 0);
 
-    // 🔹 Define o preço com desconto: 0 se houver cupom
+    // 🔹 Define o preço com desconto: 0 se houver cupom disponível
     const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
@@ -369,7 +369,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     };
 
     setProdutosPedido((prev) => {
-      // 🔹 Procura produto igual com mesmos extras
       const index = prev.findIndex(
         (p) =>
           p.id === novoProduto.id &&
@@ -379,7 +378,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
       if (index !== -1) {
         const copia = [...prev];
-        // 🔹 Se já existe, soma a quantidade, mantém o preço zerado se cupom aplicado
         copia[index] = {
           ...copia[index],
           quantidade: copia[index].quantidade + novoProduto.quantidade,
@@ -390,11 +388,10 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         return copia;
       }
 
-      // 🔹 Produto novo no pedido
       return [...prev, novoProduto];
     });
 
-    // 🔹 Marca cupom como usado (se houver)
+    // 🔹 Marca cupom como usado apenas se houver saldo
     if (cupomDoProduto) {
       marcarCupomComoUsado(cupomDoProduto.codigo, cupomDoProduto.tipo);
     }
@@ -405,6 +402,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
 
 
 
