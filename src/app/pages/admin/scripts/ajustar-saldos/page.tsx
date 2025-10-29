@@ -3,169 +3,154 @@
 import { useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
-import RecalcularCartoesPage from "../recalcularFidelidade/page";
+import { regrasFidelidade } from "@/lib/regrasFidelidade";
 
+function gerarCodigoCupom(tipo: string) {
+  return tipo.toUpperCase() + "-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+}
 
-/**
- * Remove recursivamente propriedades com value === undefined
- */
+// Função para sanitizar objetos e remover undefined
 function sanitize(value: any): any {
   if (value === undefined) return undefined;
   if (value === null) return null;
 
   if (Array.isArray(value)) {
-    const arr = value
-      .map((v) => sanitize(v))
-      .filter((v) => v !== undefined); // remove entradas undefined
-    return arr;
+    return value.map(v => sanitize(v)).filter(v => v !== undefined);
   }
 
   if (typeof value === "object") {
     const out: any = {};
     for (const [k, v] of Object.entries(value)) {
       const sv = sanitize(v);
-      if (sv !== undefined) out[k] = sv; // só copia se não for undefined
+      if (sv !== undefined) out[k] = sv;
     }
     return out;
   }
 
-  // primitivos (string, number, boolean)
   return value;
 }
 
-export default function AjustarSaldos() {
+export default function RecalcularCartoes() {
   const [status, setStatus] = useState("Aguardando...");
   const [corrigidos, setCorrigidos] = useState(0);
   const [total, setTotal] = useState(0);
+  const [detalhes, setDetalhes] = useState<string[]>([]);
 
-  const ajustarSaldos = async () => {
-    setStatus("🔄 Corrigindo saldos...");
+  const recalcularCartoes = async () => {
+    setStatus("🔄 Iniciando recalculo...");
+    setDetalhes([]);
+    setCorrigidos(0);
 
     try {
       const clientesSnap = await getDocs(collection(db, "clientes"));
       const totalDocs = clientesSnap.size;
       setTotal(totalDocs);
 
-      console.log(`🔍 Clientes encontrados: ${totalDocs}`);
-
-      let atualizados = 0;
       let batch = writeBatch(db);
       let batchCount = 0;
+      let atualizados = 0;
 
       for (const cliente of clientesSnap.docs) {
-        const data = cliente.data();
-        const { cartaoFidelidade = [] } = data;
+        const clienteData: any = cliente.data();
+        const cartaoFidelidade: any[] = clienteData.cartaoFidelidade || [];
 
-        if (!Array.isArray(cartaoFidelidade) || cartaoFidelidade.length === 0) {
-          console.log(`⚠️ Cliente ${cliente.id} sem cartões, pulando...`);
-          continue;
-        }
+        // Recalcula cartões
+        const novosCartoes = cartaoFidelidade.map((cartao: any) => {
+          const regra = regrasFidelidade[cartao.tipo] || { limite: cartao.limite, periodo: cartao.periodo };
 
-        // recalcula e cria novos objetos de cartão
-        const novosCartoes = cartaoFidelidade.map((cartao: any, index: number) => {
-          const ganho = Array.isArray(cartao?.cupomGanho) ? cartao.cupomGanho.length : 0;
-          const resgatado = Array.isArray(cartao?.cupomResgatado) ? cartao.cupomResgatado.length : 0;
-          const saldoCorrigido = ganho - resgatado;
-          let limiteNovo = cartao?.limite;
+          // Quantidade total de produtos (mes atual opcional se necessário)
+          const quantidadeTotal = cartao.quantidade || 0;
 
-          if (["acai", "estudante"].includes(cartao?.tipo)) {
-            limiteNovo = 12;
+          // Cria cupons novos se necessário
+          const cupomGanho: any[] = [];
+          const cupomResgatado: any[] = cartao.cupomResgatado || [];
+          const totalCupons = Math.floor(quantidadeTotal / regra.limite);
+
+          for (let i = 0; i < totalCupons; i++) {
+            cupomGanho.push({
+              codigo: gerarCodigoCupom(cartao.tipo),
+              dataGanho: new Date().toISOString(),
+              quantidade: 1,
+            });
           }
 
-          // cria um novo objeto explicitamente (evita referências com undefined)
-          const novo = {
-            tipo: cartao?.tipo ?? null,
-            limite: limiteNovo ?? null,
-            periodo: cartao?.periodo ?? null,
-            quantidade: cartao?.quantidade ?? null,
-            saldoCupom: saldoCorrigido >= 0 ? saldoCorrigido : 0,
-            cupomGanho: Array.isArray(cartao?.cupomGanho) ? cartao.cupomGanho : [],
-            cupomResgatado: Array.isArray(cartao?.cupomResgatado) ? cartao.cupomResgatado : [],
-            // copia outros campos relevantes se precisar:
-            // exemplo: criadaEm: cartao?.criadaEm ?? null,
-          };
+          const saldoCorrigido = cupomGanho.length - cupomResgatado.length;
 
-          // sanitize para remover qualquer undefined residual
-          return sanitize(novo);
+          setDetalhes(prev => [
+            ...prev,
+            `Cliente: ${clienteData.codigoCliente}, Cartão: ${cartao.tipo}, Cupons Gerados: ${totalCupons}`,
+          ]);
+
+          return sanitize({
+            tipo: cartao.tipo,
+            limite: regra.limite,
+            periodo: regra.periodo,
+            quantidade: quantidadeTotal % regra.limite,
+            saldoCupom: saldoCorrigido >= 0 ? saldoCorrigido : 0,
+            cupomGanho,
+            cupomResgatado,
+          });
         });
 
-        // sanitize do array completo (remove itens undefined)
-        const novosCartoesSanitizados = sanitize(novosCartoes) as any[];
+        batch.update(doc(db, "clientes", cliente.id), { cartaoFidelidade: novosCartoes });
+        batchCount++;
+        atualizados++;
+        setCorrigidos(atualizados);
 
-        // proteção extra: se por algum motivo ficou vazio ou continha undefined
-        if (!Array.isArray(novosCartoesSanitizados)) {
-          console.warn(`⚠️ cliente ${cliente.id}: novosCartoesSanitizados inválido, pulando.`);
-          continue;
-        }
-
-        try {
-          batch.update(doc(db, "clientes", cliente.id), {
-            cartaoFidelidade: novosCartoesSanitizados,
-          });
-          batchCount++;
-          atualizados++;
-        } catch (err) {
-          // log local — geralmente não acontece aqui, o erro vem no commit
-          console.error(`Erro adicionando update ao batch para ${cliente.id}:`, err);
-        }
-
-        // commit a cada 500 updates
         if (batchCount === 500) {
           await batch.commit();
-          console.log(`✅ Batch commit — ${atualizados} clientes processados até agora`);
           batch = writeBatch(db);
           batchCount = 0;
         }
       }
 
-      // commit final se houver operações pendentes
       if (batchCount > 0) {
         await batch.commit();
-        console.log(`✅ Batch final commit — total ${atualizados}`);
       }
 
-      setCorrigidos(atualizados);
-      setStatus("✅ Concluído com sucesso!");
-      console.log("✅ Atualização finalizada!");
+      setStatus("✅ Recalculo finalizado!");
     } catch (err: any) {
-      console.error("❌ Erro ao ajustar saldos:", err);
-
-      // Se for erro relacionado a dados inválidos, tenta identificar cliente problemático:
-      if (err?.message && err.message.includes("Unsupported field value: undefined")) {
-        console.error("Erro: detectado valor undefined em algum documento. Verifique objetos aninhados e arrays.");
-      }
-
+      console.error("❌ Erro no recalculo:", err);
       setStatus("❌ Erro — veja o console para detalhes.");
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
-        <h1 className="text-xl font-bold mb-4">🧮 Ajustar Saldos de Cupons</h1>
-        <p className="text-gray-600 mb-4">
-          Este script recalcula o campo <b>saldoCupom</b> de todos os clientes,
-          e ajusta limites de <b>acai</b> e <b>estudante</b> para 12 unidades.
-        </p>
-        <button
-          onClick={ajustarSaldos}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          Corrigir Saldos
-        </button>
-        <div className="mt-4 text-gray-700">
-          <p>Status: {status}</p>
-          {total > 0 && (
-            <p>
-              Corrigidos: <b>{corrigidos}</b> de <b>{total}</b> clientes
-            </p>
-          )}
-        </div>
-      </div>
+  const progresso = total > 0 ? (corrigidos / total) * 100 : 0;
 
-      <div>
-        <h1>Recalcular os Cartões firebase</h1>
-        <RecalcularCartoesPage/>
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl text-center">
+        <h1 className="text-xl font-bold mb-4">🧮 Recalcular Cartões de Fidelidade</h1>
+        <p className="text-gray-600 mb-4">
+          Atualiza todos os cartões de fidelidade do mês atual, gerando cupons se necessário e ajustando saldo.
+        </p>
+
+        <button
+          onClick={recalcularCartoes}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition mb-4"
+        >
+          Recalcular Cartões do Mês Atual
+        </button>
+
+        {/* Barra de progresso */}
+        <div className="w-full bg-gray-200 rounded-full h-6 mb-4 overflow-hidden">
+          <div
+            className="bg-blue-600 h-6 transition-all duration-500"
+            style={{ width: `${progresso}%` }}
+          />
+        </div>
+        <p className="text-gray-700 mb-2">Progresso: {corrigidos} / {total} clientes ({progresso.toFixed(1)}%)</p>
+
+        {/* Lista de detalhes */}
+        <div className="mt-2 text-gray-700 text-left max-h-80 overflow-auto">
+          <ul className="list-disc list-inside space-y-1">
+            {detalhes.map((d, i) => (
+              <li key={i} className="text-sm">{d}</li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="mt-2 text-gray-500">{status}</p>
       </div>
     </div>
   );
