@@ -1,3 +1,4 @@
+'use client'
 // src/admin/RecalcularCartoesButton.tsx
 import React, { useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
