@@ -97,7 +97,7 @@ export function CartaoFidelidade({ cartao }: Props) {
         <div className="w-full flex justify-between items-center">
           <div>Para Resgate</div>
           <div className="bg-green-600 text-md text-white py-1 px-3 rounded-full font-bold">
-            {meta - cartao.quantidade}
+            {cartao.cupomResgatado.length - cartao.cupomGanho.length + cartao.cupomResgatado.length}
           </div>
         </div>
       </div>
