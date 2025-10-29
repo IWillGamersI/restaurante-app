@@ -39,6 +39,23 @@ interface SalvarPedidoArgs {
   obs?:string
 }
 
+export interface Cupom {
+  codigo: string;
+  dataGanho: string;
+  dataResgate?: string;
+  quantidade: number;
+}
+
+export interface CartaoFidelidade {
+  tipo: string;
+  quantidade: number;
+  limite: number;
+  periodo: number;
+  cupomGanho: Cupom[];
+  cupomResgatado: Cupom[];
+  saldoCupom: number;
+}
+
 export function usePedido(stados: ReturnType<typeof useStados>) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtosPedido, setProdutosPedido] = useState<ProdutoPedido[]>([]);
@@ -338,7 +355,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     return updateDoc(doc(db, "pedidos", id), { status: novoStatus });
   };
 
-  const confirmarProduto = () => {
+  const confirmarProduto = (cartao?: CartaoFidelidade) => {
     if (!produtoModal) return;
 
     // 🔹 Filtra cupons válidos para este produto
@@ -346,11 +363,14 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
     );
 
-    // 🔹 Seleciona apenas cupom que ainda tenha saldo
-    const cupomDoProduto = cuponsDoProduto.find(c => c.saldo > 0);
+    // Pega apenas o primeiro cupom válido
+    const cupomDoProduto = cuponsDoProduto[0];
 
-    // 🔹 Define o preço com desconto: 0 se houver cupom disponível
-    const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
+    // 🔹 Define preço com desconto apenas se houver saldo no cartão
+    const precoComDesconto =
+      cupomDoProduto && cartao && cartao.saldoCupom > 0
+        ? 0
+        : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
       id: produtoModal.id,
@@ -391,9 +411,12 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       return [...prev, novoProduto];
     });
 
-    // 🔹 Marca cupom como usado apenas se houver saldo
-    if (cupomDoProduto) {
+    // 🔹 Marca cupom como usado e atualiza saldo do cartão
+    if (cupomDoProduto && cartao && cartao.saldoCupom > 0) {
       marcarCupomComoUsado(cupomDoProduto.codigo, cupomDoProduto.tipo);
+
+      // Atualiza saldo do cartão
+      cartao.saldoCupom = Math.max(cartao.saldoCupom - 1, 0);
     }
 
     // 🔹 Fecha modal e reseta extras e quantidade
@@ -402,6 +425,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
 
 
 
