@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+'use client'
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { regrasFidelidade } from "@/lib/regrasFidelidade";
