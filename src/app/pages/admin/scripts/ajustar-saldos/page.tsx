@@ -43,8 +43,13 @@ export default function RecalcularCartoes() {
 
     try {
       const clientesSnap = await getDocs(collection(db, "clientes"));
+      const pedidosSnap = await getDocs(collection(db, "pedidos"));
       const totalDocs = clientesSnap.size;
       setTotal(totalDocs);
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const anoAtual = hoje.getFullYear();
 
       let batch = writeBatch(db);
       let batchCount = 0;
@@ -52,41 +57,53 @@ export default function RecalcularCartoes() {
 
       for (const cliente of clientesSnap.docs) {
         const clienteData: any = cliente.data();
-        const cartaoFidelidade: any[] = clienteData.cartaoFidelidade || [];
+        const codigoCliente = clienteData.codigoCliente;
 
-        // Recalcula cartões
-        const novosCartoes = cartaoFidelidade.map((cartao: any) => {
-          const regra = regrasFidelidade[cartao.tipo] || { limite: cartao.limite, periodo: cartao.periodo };
+        // Filtra pedidos do mês atual deste cliente
+        const pedidosDoCliente = pedidosSnap.docs
+          .map(d => d.data())
+          .filter(p => {
+            const data = p.criadoEm?.toDate ? p.criadoEm.toDate() : new Date(p.criadoEm);
+            return (
+              p.codigoCliente === codigoCliente &&
+              data.getMonth() === mesAtual &&
+              data.getFullYear() === anoAtual
+            );
+          });
 
-          // Quantidade total de produtos (mes atual opcional se necessário)
-          const quantidadeTotal = cartao.quantidade || 0;
+        // Contar quantidade de produtos por classe
+        const contagemPorClasse: Record<string, number> = {};
+        pedidosDoCliente.forEach(pedido => {
+          (pedido.produtos || []).forEach(produto => {
+            const classe = (produto.classe || "outros").toLowerCase();
+            contagemPorClasse[classe] = (contagemPorClasse[classe] || 0) + (produto.quantidade || 1);
+          });
+        });
 
-          // Cria cupons novos se necessário
-          const cupomGanho: any[] = [];
-          const cupomResgatado: any[] = cartao.cupomResgatado || [];
+        // Cria/atualiza os cartões de fidelidade
+        const novosCartoes = Object.entries(regrasFidelidade).map(([tipo, regra]) => {
+          const quantidadeTotal = contagemPorClasse[tipo.toLowerCase()] || 0;
           const totalCupons = Math.floor(quantidadeTotal / regra.limite);
 
-          for (let i = 0; i < totalCupons; i++) {
-            cupomGanho.push({
-              codigo: gerarCodigoCupom(cartao.tipo),
-              dataGanho: new Date().toISOString(),
-              quantidade: 1,
-            });
-          }
-
+          const cupomGanho = Array.from({ length: totalCupons }).map(() => ({
+            codigo: gerarCodigoCupom(tipo),
+            dataGanho: new Date().toISOString(),
+            quantidade: 1,
+          }));
+          const cupomResgatado: any[] = []; // sempre zerado
           const saldoCorrigido = cupomGanho.length - cupomResgatado.length;
 
           setDetalhes(prev => [
             ...prev,
-            `Cliente: ${clienteData.codigoCliente}, Nome: ${clienteData.nome} Cartão: ${cartao.tipo}, Cupons Gerados: ${totalCupons}`,
+            `Cliente: ${codigoCliente}, Nome: ${clienteData.nome}, Cartão: ${tipo}, Cupons Gerados: ${totalCupons}`,
           ]);
 
           return sanitize({
-            tipo: cartao.tipo,
+            tipo,
             limite: regra.limite,
             periodo: regra.periodo,
             quantidade: quantidadeTotal % regra.limite,
-            saldoCupom: saldoCorrigido >= 0 ? saldoCorrigido : 0,
+            saldoCupom: saldoCorrigido,
             cupomGanho,
             cupomResgatado,
           });
