@@ -122,21 +122,26 @@ export function useCartaoFidelidade(codigoCliente?: string) {
           const quantidadeTotal = cartao.quantidade;
           const totalCuponsEsperados = Math.floor(quantidadeTotal / cartao.limite);
 
-          // Zerando cupons antigos
-          cartao.cupomGanho = [];
-          cartao.cupomResgatado = [];
+          // ❌ Não zerar os cupons antigos
+          // cartao.cupomGanho = [];
 
-          for (let i = 0; i < totalCuponsEsperados; i++) {
-            cartao.cupomGanho.push({
+          // Apenas adiciona cupons faltando
+          const cuponsExistentes = cartao.cupomGanho || [];
+          const faltando = totalCuponsEsperados - cuponsExistentes.length;
+
+          for (let i = 0; i < faltando; i++) {
+            cuponsExistentes.push({
               codigo: gerarCodigoCupom(cartao.tipo),
               dataGanho: new Date().toISOString(),
               quantidade: 1,
             });
           }
 
+          cartao.cupomGanho = cuponsExistentes;
           cartao.quantidade = quantidadeTotal % cartao.limite;
-          cartao.saldoCupom = cartao.cupomGanho.length;
+          cartao.saldoCupom = cartao.cupomGanho.length - (cartao.cupomResgatado?.length || 0);
         });
+
 
         const cartoesAtualizados = Object.values(cartoesTemp);
         setCartoes(cartoesAtualizados);
