@@ -108,7 +108,7 @@ export function useResgateCupom(codigoCliente?: string) {
       );
       setCuponsDisponiveis(novosGanhos);
 
-      console.log(`✅ Cupom ${cupomCodigo} (${tipo}) marcado como usado`);
+      console.log(`✅ Cupom ${cupomCodigo} (${tipo}) marcado como usado.`);
     } catch (error) {
       console.error("Erro ao marcar cupom como usado:", error);
     }
