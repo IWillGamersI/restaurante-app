@@ -184,7 +184,7 @@ useEffect(() => {
         <div className="w-full flex justify-between">
           <div>
             <h2 className="text-3xl font-bold">Resumo do Mês - {meses[mesSelecionado]} {anoSelecionado}</h2>
-            <div className="text-gray-700 font-medium mt-1">
+            <div className="text-gray-700 font-medium mt-1 flex gap-2">
               <div className="text-blue-600">
                 Faturamento total: 
               </div>
@@ -192,7 +192,7 @@ useEffect(() => {
                 € {stados.resumoMensal.faturamentoTotal.toFixed(2)}
               </div>
             </div>
-            <div className="text-gray-700 font-medium mt-1">
+            <div className="text-gray-700 font-medium mt-1 flex gap-2">
               <div className="text-blue-600">
                 Lucro total: 
               </div>
