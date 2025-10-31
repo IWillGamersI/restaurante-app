@@ -182,7 +182,7 @@ useEffect(() => {
       {/* Header resumo mensal */}
       <div className="bg-blue-50 rounded-xl shadow-lg p-6 flex flex-col justify-between items-center gap-4">
         <div className="w-full flex justify-between">
-          <div className="flex justify-between">
+          <div className="w-full flex justify-between">
             <h2 className="text-3xl font-bold">Resumo do Mês - {meses[mesSelecionado]} {anoSelecionado}</h2>
             <div className="text-gray-700 font-medium mt-1 flex gap-2 items-center">
               <div className="text-blue-600">
