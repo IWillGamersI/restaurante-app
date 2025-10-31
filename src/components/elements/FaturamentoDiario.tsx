@@ -182,7 +182,8 @@ useEffect(() => {
       {/* Header resumo mensal */}
       <div className="bg-blue-50 rounded-xl shadow-lg p-6 flex flex-col justify-between items-center gap-4">
         <div className="w-full flex justify-between">
-          <div className="w-full flex justify-between">
+
+          <div className="w-full flex flex-col">
             <h2 className="text-3xl font-bold">Resumo do Mês - {meses[mesSelecionado]} {anoSelecionado}</h2>
             <div className="text-gray-700 font-medium mt-1 flex gap-2 items-center">
               <div className="text-blue-600">
@@ -199,9 +200,9 @@ useEffect(() => {
               <div className="text-green-600 text-2xl">
                 € {(stados.resumoMensal.faturamentoTotal/3).toFixed(2)}
               </div>
-            </div>
-            
+            </div>            
           </div>
+
           <div className="flex gap-4 flex-wrap">
             <div className="bg-white p-3 rounded-lg shadow text-center">
               <p className="font-semibold text-gray-600">Almoço</p>
