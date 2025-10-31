@@ -26,10 +26,15 @@ export function Faturamento() {
   const [anoSelecionado, setAnoSelecionado] = useState<number>(stados.anoSelecionado);
 
   function getCategoriaCard(produtoId: string){
-    if(["lKIAjTOykwD8KBthcJGY","k85d75DjFHtOXjCdBq2G",
-        "c8gpimbu2HDkqAXdVLHz5","7UaaATg9xN1l4jbR8jja",
-        "iILSyuFJVroECe49aVK5","gmahALnNJZVjJnWGdKhB",
-        "GonReI3Ot7Vyt29a3vWY", 'x3iIQ4M0Lk595gm5GqnI','80BLwzPor8ZFIswCu5Am'].includes(produtoId)
+    if(["lKIAjTOykwD8KBthcJGY",
+        "k85d75DjFHtOXjCdBq2G",
+        "c8gpimbu2HDkqAXdVLHz",
+        "7UaaATg9xN1l4jbR8jja",
+        "iILSyuFJVroECe49aVK5",
+        "gmahALnNJZVjJnWGdKhB",
+        "GonReI3Ot7Vyt29a3vWY", 
+        'x3iIQ4M0Lk595gm5GqnI',
+        '80BLwzPor8ZFIswCu5Am'].includes(produtoId)
       )
     {
         return 'menuEstudante'
