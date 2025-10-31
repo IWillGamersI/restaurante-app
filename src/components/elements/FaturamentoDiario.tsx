@@ -184,12 +184,17 @@ useEffect(() => {
         <div className="w-full flex justify-between">
           <div>
             <h2 className="text-3xl font-bold">Resumo do Mês - {meses[mesSelecionado]} {anoSelecionado}</h2>
-            <p className="text-gray-700 font-medium mt-1 text-2xl">
-              Faturamento total: € {stados.resumoMensal.faturamentoTotal.toFixed(2)}
-            </p>
-            <p className="text-gray-700 font-medium mt-1 text-2xl">
+            <div className="text-gray-700 font-medium mt-1">
+              <div className="text-blue-600">
+                Faturamento total: € 
+              </div>
+              <div className="text-green-600 text-xl">
+                {stados.resumoMensal.faturamentoTotal.toFixed(2)}
+              </div>
+            </div>
+            <div className="text-gray-700 font-medium mt-1 text-2xl">
               Lucro total: € {(stados.resumoMensal.faturamentoTotal/3).toFixed(2)}
-            </p>
+            </div>
           </div>
           <div className="flex gap-4 flex-wrap">
             <div className="bg-white p-3 rounded-lg shadow text-center">
