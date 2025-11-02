@@ -10,8 +10,8 @@ export function CartaoFidelidade({ cartao }: Props) {
   // 🔹 Condição para exibir o cartão
   const temCompra = (cartao.quantidade ?? 0) > 0;
   const temCupom =
-    (cartao.cupomGanho?.length ?? 0) > 0 ||
-    (cartao.cupomResgatado?.length ?? 0) > 0;
+    (cartao.cupomGanho?.length ?? 0) > 0 
+    //|| (cartao.cupomResgatado?.length ?? 0) > 0;
 
   if (!temCompra && !temCupom) {
     return null; // 🔸 não renderiza nada se o cartão estiver "vazio"
