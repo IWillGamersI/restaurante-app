@@ -14,7 +14,7 @@ export function CartaoFidelidade({ cartao }: Props) {
     //|| (cartao.cupomResgatado?.length ?? 0) > 0;
 
   if (!temCompra && !temCupom) {
-    return null; // 🔸 não renderiza nada se o cartão estiver "vazio"
+    return 'Sem compras, faça uma compra para ativar o cartão !!!'; // 🔸 não renderiza nada se o cartão estiver "vazio"
   }
 
   // 🔹 Buscar regra correspondente ao tipo do cartão
