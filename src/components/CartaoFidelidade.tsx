@@ -6,7 +6,6 @@ interface Props {
   cartao: CartaoFidelidadeType;
 }
 
-let msgSemCartao = false
 
 export function CartaoFidelidade({ cartao }: Props) {
   // 🔹 Condição para exibir o cartão
@@ -15,10 +14,6 @@ export function CartaoFidelidade({ cartao }: Props) {
   
 
   if (!temCompra && !temCupom) {
-    if(!msgSemCartao){
-      msgSemCartao = true
-      return <div className="text-center text-gray-400">Faça uma compra para ativar o cartão!!!</div>
-    }
     return null // 🔸 não renderiza nada se o cartão estiver "vazio"
   }
 

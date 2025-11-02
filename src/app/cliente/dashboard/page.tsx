@@ -135,9 +135,31 @@ export default function Dashboard() {
   );
 
   const Fidelidade = () => {
-    if (loadingCartoes) return <div className="p-4">Carregando cartões...</div>;
-    if (!cartoes || cartoes.length === 0) return <div className="p-4 text-center text-gray-500">Nenhum cartão de fidelidade ainda.</div>;
+    if (loadingCartoes)
+      return <div className="p-4">Carregando cartões...</div>;
 
+    if (!cartoes || cartoes.length === 0)
+      return (
+        <div className="p-4 text-center text-gray-500">
+          Nenhum cartão de fidelidade ainda.
+        </div>
+      );
+
+    // 🔹 Verifica se há algum cartão ativo (com compra ou cupom)
+    const temCartaoAtivo = cartoes.some(
+      (c) => (c.quantidade ?? 0) > 0 || (c.cupomGanho?.length ?? 0) > 0
+    );
+
+    // 🔹 Se nenhum cartão ativo, mostra apenas uma mensagem
+    if (!temCartaoAtivo) {
+      return (
+        <div className="p-4 text-center text-gray-500">
+          Faça uma compra para ativar o cartão!!!
+        </div>
+      );
+    }
+
+    // 🔹 Caso tenha algum ativo, renderiza todos normalmente
     return (
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
         {cartoes.map((c) => (
@@ -146,6 +168,7 @@ export default function Dashboard() {
       </div>
     );
   };
+
 
   const Cupons = () => {
     if (loadingCartoes) return <div className="p-4">Carregando cupons...</div>;
