@@ -17,6 +17,11 @@ export function CartaoFidelidade({ cartao }: Props) {
     return null; // 🔸 não renderiza nada se o cartão estiver "vazio"
   }
 
+  const msg = !temCompra && !temCupom ? (
+        
+        <div>Faça uma compra para ativar o cartão!!!</div>
+      ):''
+
   // 🔹 Buscar regra correspondente ao tipo do cartão
   const regra = obterRegraFidelidade(cartao.tipo);
   const meta = regra?.limite ?? 10; // fallback para 10 se não encontrar regra
@@ -44,9 +49,9 @@ export function CartaoFidelidade({ cartao }: Props) {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
-      {!temCompra && !temCupom ? (
-        <div>Faça uma compra para ativar o cartão!!!</div>
-      ):''}
+      
+      <div>{msg}</div>
+      
       {/* 🔹 Nome do cartão */}
       <h3 className="font-bold text-xl mb-4 capitalize">{cartao.tipo}</h3>
 
