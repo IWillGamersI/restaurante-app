@@ -45,21 +45,6 @@ export function CartaoFidelidade({ cartao }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
       
-      {/* 🔹 Estatísticas de cupons */}
-      <div className="mt-4 flex justify-between w-full text-sm text-gray-600">
-        <div className="flex flex-col bg-green-200 text-green-700 rounded px-2 py-1 text-center">
-          <div className="font-bold">Já Ganhou</div>
-          <div className="text-md">
-            {cartao.cupomGanho.length}
-          </div>
-        </div>
-
-        <div className="flex flex-col bg-blue-200 text-blue-700 rounded px-2 py-1 text-center">
-          <div className="font-bold">Já Resgatou</div>
-          <div className="text-md">{cartao.cupomResgatado.length}</div>
-        </div>
-      </div>
-
       {/* 🔹 Nome do cartão */}
       <h3 className="font-bold text-xl mb-4 capitalize">{cartao.tipo}</h3>
 
