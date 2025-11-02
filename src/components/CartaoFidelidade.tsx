@@ -14,13 +14,9 @@ export function CartaoFidelidade({ cartao }: Props) {
     //|| (cartao.cupomResgatado?.length ?? 0) > 0;
 
   if (!temCompra && !temCupom) {
-    return null; // 🔸 não renderiza nada se o cartão estiver "vazio"
+    const msg = <div>Faça uma compra para ativar o cartão!!!</div>
+    return msg; // 🔸 não renderiza nada se o cartão estiver "vazio"
   }
-
-  const msg = !temCompra && !temCupom ? (
-        
-        <div>Faça uma compra para ativar o cartão!!!</div>
-      ):''
 
   // 🔹 Buscar regra correspondente ao tipo do cartão
   const regra = obterRegraFidelidade(cartao.tipo);
