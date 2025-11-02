@@ -30,16 +30,6 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
   const [temCupom, setTemCupom] = useState(false);
   const [cuponsSelecionados, setCuponsSelecionados] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!codigoCliente) return;
-    setTemCupom(cartoes.some(c => c.saldoCupom > 0));
-  }, [cartoes]);
-
-  const toggleCupom = (codigo: string) => {
-    setCuponsSelecionados(prev =>
-      prev.includes(codigo) ? prev.filter(c => c !== codigo) : [...prev, codigo]
-    );
-  };
 
   const handleBlurTelefone = async () => {
     if (!clienteTelefone) return;
@@ -119,42 +109,6 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
         }}
         disabled={!!idCliente && !!clienteTelefone}
       />
-
-      {temCupom && clienteTelefone && (
-        <div className="w-full flex flex-wrap items-center gap-2 mt-2">
-          <p className="text-sm font-semibold ">🎟️ Cupons disponíveis</p>
-          <div className="flex gap-2">
-            {cartoes.flatMap(c =>
-              c.cupomGanho.map(cupom => ({
-                ...cupom,
-                tipoCartao: c.tipo
-              }))
-            ).map(cupom => (
-              <div
-                key={cupom.codigo}
-                className={`flex gap-2 items-center justify-between p-3 py-1 rounded-xl shadow-sm border cursor-pointer transition-all ${
-                  cuponsSelecionados.includes(cupom.codigo)
-                    ? 'bg-green-100 border-green-500'
-                    : 'bg-white border-gray-300 hover:shadow-md'
-                }`}
-                onClick={() => toggleCupom(cupom.codigo)}
-              >
-                <div className="flex items-center gap-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={cuponsSelecionados.includes(cupom.codigo)}
-                    onChange={() => toggleCupom(cupom.codigo)}
-                    className="w-4 h-4 accent-green-600"
-                  />
-                  <Ticket className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium">{cupom.codigo}</span>
-                </div>
-                <span className="text-xs text-gray-500">{cupom.tipoCartao}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 });

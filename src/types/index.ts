@@ -104,10 +104,17 @@ export type ProdutoPedido = Produto & {
   quantidade: number;
   extras: Extra[];
   preco: number; // preço do pedido (pode ser igual a precoVenda)
-  concluido?: string
-  cupomAplicado?: string
-  ignorarParaFidelidade?: boolean
+  concluido?: string;
+  ignorarParaFidelidade?: boolean;
+  cupomAplicado?: {
+    codigo: string;
+    tipo: string;
+    valorCupom: number;
+    resgatado: boolean;
+    dataResgate?: string;
+  };
 };
+
 
 
 export type PedidoFormState = Omit<Pedido, 'id' | 'criadoEm'> & {

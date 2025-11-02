@@ -80,7 +80,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
           toggleCupom,
           carregarCupons,
           limparCuponsSelecionados,
-          marcarCupomComoUsado
+          marcarCupomComoUsado,
+          resgatarCupons
         } = useResgateCupom(codigoCliente || undefined)
   
   useEffect(()=>{
@@ -204,32 +205,43 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
 
     // Se houver telefone, verifica se já existe cliente
     if (clienteTelefone) {
-      const q = query(clientesRef, where("telefone", "==", clienteTelefone));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const clienteDoc = snapshot.docs[0];
-        clienteIdFinal = clienteDoc.id;
-        codigoClienteFinal = clienteDoc.data().codigoCliente;
-      } else {
-        const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+    const q = query(clientesRef, where("telefone", "==", clienteTelefone));
+    const snapshot = await getDocs(q);
 
-        const docRef = await addDoc(clientesRef, {
-          nome: clienteNome || "Cliente CLNT",
-          telefone: clienteTelefone,
-          codigoCliente: novoCodigo,
-          codigoPais: '351'
-        });
-        clienteIdFinal = docRef.id;
-        codigoClienteFinal = novoCodigo;
-      }
+    if (!snapshot.empty) {
+      // 🔹 Cliente já existe
+      const clienteDoc = snapshot.docs[0];
+      clienteIdFinal = clienteDoc.id;
+      codigoClienteFinal = clienteDoc.data().codigoCliente;
     } else {
-      // Cliente genérico
-      clienteIdFinal = clienteIdFinal || "CLT-123";
-      codigoClienteFinal = codigoClienteFinal || "CLT-123";
-      clienteNome = clienteNome || "Cliente";
-      clienteTelefone = clienteTelefone || null;
-      codigoPedidoFinal = gerarCodigoPedido();
+      // 🔹 Cria novo cliente
+      const novoCodigo = gerarCodigoCliente(clienteNome, clienteTelefone);
+      const docRef = await addDoc(clientesRef, {
+        nome: clienteNome || "Cliente CLNT",
+        telefone: clienteTelefone,
+        codigoCliente: novoCodigo,
+        codigoPais: '351'
+      });
+      clienteIdFinal = docRef.id;
+      codigoClienteFinal = novoCodigo;
     }
+
+    // ✅ Atualiza estado e carrega cupons do cliente encontrado/criado
+    setCodigoCliente(codigoClienteFinal || '');
+    await carregarCupons();
+
+  } else {
+    // ⚠️ Cliente genérico (sem telefone, sem fidelidade)
+    clienteIdFinal = clienteIdFinal || "CLT-123";
+    codigoClienteFinal = codigoClienteFinal || "CLT-123";
+    clienteNome = clienteNome || "Cliente";
+    clienteTelefone = clienteTelefone || '999999999';
+    codigoPedidoFinal = gerarCodigoPedido();
+
+    // ❌ Não tenta carregar cupons (cliente genérico não tem fidelidade)
+    setCodigoCliente(codigoClienteFinal);
+  }
+
 
     try {
 
@@ -355,7 +367,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     return updateDoc(doc(db, "pedidos", id), { status: novoStatus });
   };
 
-  const confirmarProduto = (cartao?: CartaoFidelidade) => {
+  const confirmarProduto = () => {
     if (!produtoModal) return;
 
     // 🔹 Filtra cupons válidos para este produto
@@ -363,14 +375,11 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
     );
 
-    // Pega apenas o primeiro cupom válido
+    // 🔹 Pega apenas o primeiro cupom válido (se houver)
     const cupomDoProduto = cuponsDoProduto[0];
 
-    // 🔹 Define preço com desconto apenas se houver saldo no cartão
-    const precoComDesconto =
-      cupomDoProduto && cartao && cartao.saldoCupom > 0
-        ? 0
-        : produtoModal.precoVenda;
+    // 🔹 Se houver cupom válido, o preço fica 0 — mas o cupom ainda NÃO é resgatado
+    const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
       id: produtoModal.id,
@@ -384,10 +393,20 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       categoria: produtoModal.categoria,
       classe: produtoModal.classe,
       imagemUrl: produtoModal.imagemUrl,
-      ...(cupomDoProduto && { cupomAplicado: cupomDoProduto.codigo }),
+      ...(cupomDoProduto && {
+        cupomAplicado: {
+          codigo: cupomDoProduto.codigo,
+          tipo: cupomDoProduto.tipo,
+          valorCupom: produtoModal.precoVenda, // conforme combinamos: valorCupom = preço do produto
+          resgatado: false,
+          // dataResgate fica undefined até ser resgatado
+        }
+      }),
       ignorarParaFidelidade: !!cupomDoProduto,
+
     };
 
+    // 🔹 Adiciona ou atualiza produto no pedido
     setProdutosPedido((prev) => {
       const index = prev.findIndex(
         (p) =>
@@ -402,7 +421,15 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
           ...copia[index],
           quantidade: copia[index].quantidade + novoProduto.quantidade,
           preco: precoComDesconto,
-          cupomAplicado: cupomDoProduto?.codigo || copia[index].cupomAplicado,
+          cupomAplicado: cupomDoProduto
+            ? {
+                codigo: cupomDoProduto.codigo,
+                tipo: cupomDoProduto.tipo,
+                valorCupom: produtoModal.precoVenda, // 💡 igual ao produto
+                resgatado: false, // ainda não foi resgatado
+                // dataResgate ficará undefined até entrega
+              }
+            : copia[index].cupomAplicado,
           ignorarParaFidelidade: !!cupomDoProduto,
         };
         return copia;
@@ -411,20 +438,17 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       return [...prev, novoProduto];
     });
 
-    // 🔹 Marca cupom como usado e atualiza saldo do cartão
-    if (cupomDoProduto && cartao && cartao.saldoCupom > 0) {
-      marcarCupomComoUsado(cupomDoProduto.codigo, cupomDoProduto.tipo);
 
-      // Atualiza saldo do cartão
-      cartao.saldoCupom = Math.max(cartao.saldoCupom - 1, 0);
-    }
+    // ❌ NADA de marcar cupom como usado aqui
+    // Ele será resgatado apenas quando o status do pedido for "Entregue"
 
-    // 🔹 Fecha modal e reseta extras e quantidade
+    // 🔹 Fecha modal e reseta seleção
     setModalAberto(false);
     setProdutoModal(null);
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
+
 
 
 
@@ -471,6 +495,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     setAjuste(0);
     setNumeroMesa('')
     setObs('')
+
   };
 
   const aumentar = () => setAjuste((prev) => parseFloat((prev + 0.1).toFixed(2)));
@@ -524,6 +549,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    marcarCupomComoUsado
+    marcarCupomComoUsado,
+    resgatarCupons
   };
 }

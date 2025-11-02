@@ -16,32 +16,36 @@ export function useResgateCupom(codigoCliente?: string) {
 
   const limparCuponsSelecionados = () => setCuponsSelecionados([]);
 
-  // 🔹 Buscar cupons do cliente
+  // 🔹 Buscar cupons do cliente pelo codigoCliente
   const carregarCupons = async () => {
     if (!codigoCliente) return;
 
-    const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
-    const querySnap = await getDocs(q);
+    try {
+      const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
+      const snap = await getDocs(q);
 
-    if (querySnap.empty) {
-      console.log("❌ Nenhum cliente encontrado com esse codigoCliente:", codigoCliente);
-      return;
+      if (snap.empty) {
+        console.log("❌ Nenhum cliente encontrado com esse codigoCliente:", codigoCliente);
+        return;
+      }
+
+      const clienteData: any = snap.docs[0].data();
+      const cartoes = clienteData.cartaoFidelidade || [];
+
+      const ganhos = cartoes.flatMap((cartao: any) =>
+        (cartao.cupomGanho || []).map((c: any) => ({
+          ...c,
+          tipo: cartao.tipo,
+        }))
+      );
+
+      setCuponsDisponiveis(ganhos);
+    } catch (error) {
+      console.error("Erro ao carregar cupons:", error);
     }
-
-    const clienteData: any = querySnap.docs[0].data();
-    const cartoes = clienteData.cartaoFidelidade || [];
-
-    const ganhos = cartoes.flatMap((cartao: any) =>
-      (cartao.cupomGanho || []).map((c: any) => ({
-        ...c,
-        tipo: cartao.tipo,
-      }))
-    );
-
-    setCuponsDisponiveis(ganhos);
   };
 
-  // 🔁 Recarrega sempre que mudar o cliente
+  // 🔁 Atualiza sempre que o codigoCliente mudar
   useEffect(() => {
     if (codigoCliente) carregarCupons();
   }, [codigoCliente]);
@@ -62,7 +66,7 @@ export function useResgateCupom(codigoCliente?: string) {
     });
   };
 
-  // 🔹 Marca um cupom específico como usado (para quando aplicar em um produto)
+  // 🔹 Marcar cupom como usado (para quando aplicar em um produto)
   const marcarCupomComoUsado = async (cupomCodigo: string, tipo: string) => {
     if (!codigoCliente) return;
 
@@ -102,64 +106,75 @@ export function useResgateCupom(codigoCliente?: string) {
 
       await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
 
-      // Atualiza cupons no estado local
+      // Atualiza o estado local
       const novosGanhos = cartoesAtualizados.flatMap((cartao: any) =>
         (cartao.cupomGanho || []).map((c: any) => ({ ...c, tipo: cartao.tipo }))
       );
       setCuponsDisponiveis(novosGanhos);
 
-      console.log(`✅ Cupom ${cupomCodigo} (${tipo}) marcado como usado.`);
+      console.log(`✅ Cupom ${cupomCodigo} (${tipo}) marcado como usado`);
     } catch (error) {
       console.error("Erro ao marcar cupom como usado:", error);
     }
   };
 
-  // 🔹 Resgatar múltiplos cupons (se quiser resgatar de uma vez)
+  // 🔹 Resgatar múltiplos cupons
   const resgatarCupons = async () => {
     if (!codigoCliente || cuponsSelecionados.length === 0) return;
 
-    const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
-    const querySnap = await getDocs(q);
+    try {
+      const q = query(collection(db, "clientes"), where("codigoCliente", "==", codigoCliente));
+      const snap = await getDocs(q);
 
-    if (querySnap.empty) {
-      console.error("❌ Cliente não encontrado para resgatar cupons:", codigoCliente);
-      return;
+      if (snap.empty) {
+        console.error("❌ Cliente não encontrado para resgatar cupons:", codigoCliente);
+        return;
+      }
+
+      const clienteDoc = snap.docs[0];
+      const clienteRef = clienteDoc.ref;
+      const clienteData = clienteDoc.data();
+
+      const cartoesAtualizados = (clienteData.cartaoFidelidade || []).map((cartao: any) => {
+        const ganhos = cartao.cupomGanho || [];
+        const usados = ganhos.filter((g: any) =>
+          cuponsSelecionados.some(
+            (sel) => sel.codigo === g.codigo && sel.tipo === cartao.tipo
+          )
+        );
+        const naoUsados = ganhos.filter(
+          (g: any) =>
+            !cuponsSelecionados.some(
+              (sel) => sel.codigo === g.codigo && sel.tipo === cartao.tipo
+            )
+        );
+
+        return {
+          ...cartao,
+          saldoCupom: Math.max((cartao.saldoCupom || 0) - usados.length, 0),
+          cupomGanho: naoUsados,
+          cupomResgatado: [
+            ...(cartao.cupomResgatado || []),
+            ...usados.map((u: any) => ({
+              codigo: u.codigo,
+              dataResgate: new Date().toISOString(),
+            })),
+          ],
+        };
+      });
+
+      await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
+
+      setCuponsSelecionados([]);
+      const novosGanhos = cartoesAtualizados.flatMap((cartao: any) =>
+        (cartao.cupomGanho || []).map((c: any) => ({ ...c, tipo: cartao.tipo }))
+      );
+      setCuponsDisponiveis(novosGanhos);
+
+      console.log("✅ Cupons resgatados com sucesso!");
+    } catch (error) {
+      console.error("Erro ao resgatar cupons:", error);
     }
-
-    const clienteDoc = querySnap.docs[0];
-    const clienteRef = clienteDoc.ref;
-    const cartoes: any[] = clienteDoc.data().cartaoFidelidade || [];
-
-    const cartoesAtualizados = cartoes.map((cartao) => {
-      const ganhos = cartao.cupomGanho || [];
-      const usados = ganhos.filter((g: any) =>
-        cuponsSelecionados.some((sel) => sel.codigo === g.codigo && sel.tipo === cartao.tipo)
-      );
-      const naoUsados = ganhos.filter(
-        (g: any) => !cuponsSelecionados.some((sel) => sel.codigo === g.codigo && sel.tipo === cartao.tipo)
-      );
-
-      return {
-        ...cartao,
-        saldoCupom: (cartao.saldoCupom || 0) - usados.length,
-        cupomGanho: naoUsados,
-        cupomResgatado: [
-          ...(cartao.cupomResgatado || []),
-          ...usados.map((u: any) => ({
-            codigo: u.codigo,
-            dataResgate: new Date().toISOString(),
-          })),
-        ],
-      };
-    });
-
-    await updateDoc(clienteRef, { cartaoFidelidade: cartoesAtualizados });
-
-    setCuponsSelecionados([]);
-    const novosGanhos = cartoesAtualizados.flatMap((cartao: any) =>
-      (cartao.cupomGanho || []).map((c: any) => ({ ...c, tipo: cartao.tipo }))
-    );
-    setCuponsDisponiveis(novosGanhos);
   };
 
   return {
@@ -167,7 +182,7 @@ export function useResgateCupom(codigoCliente?: string) {
     cuponsSelecionados,
     toggleCupom,
     resgatarCupons,
-    marcarCupomComoUsado, // ✅ agora disponível no hook
+    marcarCupomComoUsado,
     carregarCupons,
     limparCuponsSelecionados,
   };

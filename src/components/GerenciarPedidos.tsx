@@ -16,12 +16,28 @@ import { PedidoInfoForm } from "./elements/FormularioPedido";
 import { HeaderData } from "./elements/HeaderData";
 import { Pedido } from "@/types";
 import { useResgateCupom } from "@/hook/useResgateCupom";
+import { useEffect } from "react";
 
 export default function GerenciarPedidos() {
+
+  const normalize = (str = '') => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   const stados = useStados();
-  const pedido = usePedido(stados);
   const { gerarCodigoPedido } = useCodigos();
-  const { statusColor } = useStatus();  
+  const { statusColor } = useStatus();
+
+  // ✅ Hook de cupons (passa o código do cliente para buscar automaticamente)
+  const {
+    cuponsDisponiveis,
+    cuponsSelecionados,
+    toggleCupom,
+    marcarCupomComoUsado,
+    carregarCupons,
+    resgatarCupons,
+  } = useResgateCupom(stados.codigoCliente);
+
+  // ✅ Hook principal de pedido
+  const pedido = usePedido(stados);
 
   const {
     atualizarStatus,
@@ -44,15 +60,18 @@ export default function GerenciarPedidos() {
     produtoSelecionado,
     setProdutoSelecionado,    
     pedidos,
-    cuponsDisponiveis,
-    cuponsSelecionados,
-    toggleCupom,
-    marcarCupomComoUsado
   } = pedido;
+
+  // 🔁 Recarrega cupons sempre que o código do cliente mudar
+  useEffect(() => {
+    if (stados.codigoCliente) carregarCupons();
+  }, [stados.codigoCliente]);
+
+
 
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
   const { extras, extrasPorClasse } = useExtras();
-
+  
   const {
     tipoFatura,
     setTipoFatura,
@@ -108,10 +127,7 @@ export default function GerenciarPedidos() {
     setCodigoCliente('');
     setCodigoPedido('');
     setNumeroMesa('');
-    
   };
-
-
 
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' ));
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue'));
@@ -127,7 +143,8 @@ export default function GerenciarPedidos() {
   };
 
   
-  return (
+  
+  return (    
     <div className="max-w-6xl mx-auto space-y-6 ">
       <div className="flex flex-col gap-3 bg-white p-6 rounded-lg shadow">
         <HeaderData
@@ -164,6 +181,24 @@ export default function GerenciarPedidos() {
           classes={classes.filter((c): c is string => !!c)}
           setClasseSelecionada={setClasseSelecionada}
         />
+
+        {/* 🔹 Mostrar cupons disponíveis do cliente */}
+        {cuponsDisponiveis.length > 0 && (
+          <div className="flex flex-wrap gap-2 border border-green-400 bg-green-50 p-3 rounded mb-3">
+            <h4 className="w-full font-semibold text-green-700 flex items-center gap-2">
+              <Ticket size={18} /> Cupons disponíveis:
+            </h4>
+            {cuponsDisponiveis.map((cupom, i) => (
+              <span
+                key={cupom.codigo + i}
+                className="px-3 py-1 bg-green-100 text-green-700 border border-green-400 rounded text-sm"
+              >
+                {cupom.codigo} - {cupom.tipo}
+              </span>
+            ))}
+          </div>
+        )}
+
 
         <div className="w-full flex flex-col justify-between min-h-80 lg:flex-row ">
 
@@ -309,29 +344,32 @@ export default function GerenciarPedidos() {
                     />
                   </div>
 
-                  <div className="flex gap-2 flex-wrap">
-                    {cuponsDisponiveis
-                      .filter(c => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase())
-                      .map((c, i) => {
-                        const selecionado = cuponsSelecionados.some(sel => sel.codigo === c.codigo && sel.tipo === c.tipo);
-                        console.log("cuponsDisponiveis", cuponsDisponiveis);
-                        console.log("produtoModal", produtoModal?.classe);
-
-                        return (
-                          <div key={c.tipo + i} className="flex gap-2">
+                 <div className="flex flex-col gap-3">
+                    {/* 🔹 Listagem de cupons aplicáveis ao produto */}
+                    <div className="flex gap-2 flex-wrap">
+                      {cuponsDisponiveis
+                        .filter(c =>
+                          normalize(produtoModal?.classe || '').includes(normalize(c.tipo))
+                        )
+                        .map((c, i) => {
+                          const selecionado = cuponsSelecionados.some(
+                            sel => sel.codigo === c.codigo && sel.tipo === c.tipo
+                          );
+                          return (
                             <button
+                              key={c.codigo + i}
                               onClick={() => toggleCupom(c)}
-                              className={`py-1 px-2 rounded border cursor-pointer ${
+                              className={`py-1 px-2 rounded border text-sm font-medium transition ${
                                 selecionado
-                                  ? "bg-green-600 text-white"
-                                  : "bg-green-100 text-green-600 hover:bg-green-200"
+                                  ? "bg-green-600 text-white border-green-600"
+                                  : "bg-green-100 text-green-700 border-green-400 hover:bg-green-200"
                               }`}
                             >
                               {c.codigo} - {c.tipo}
                             </button>
-                          </div>
-                        );
-                      })}                 
+                          );
+                        })}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
@@ -395,16 +433,11 @@ export default function GerenciarPedidos() {
                   Cancelar<Delete/>
                 </Button>
                 <Button
-                  onClick={() => {
-                    // 🔹 Confirma o produto com cupom aplicado
-                    confirmarProduto();                    
-
-                    // 🔹 Fecha modal
+                  onClick={async () => {
+                    confirmarProduto();
                     setModalAberto(false);
-
-                    // 🔹 Limpa seleção do cupom no modal
-                    // (Opcional, se quiser resetar para o próximo produto)
                   }}
+
                   className="bg-green-600 text-white hover:bg-green-800 cursor-pointer"
                 >
                   <PlusCircleIcon /> Confirmar
@@ -439,7 +472,26 @@ export default function GerenciarPedidos() {
                         <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                         <select
                           value={p.status}
-                          onChange={(e) => atualizarStatus(p.id || '', e.target.value)}
+                          onChange={async (e) => {
+                            const novoStatus = e.target.value;
+
+                            await atualizarStatus(p.id || '', novoStatus);
+
+                            if (novoStatus.toLowerCase() === "entregue") {
+                              const produtosComCupom = (p.produtos || []).filter(prod => prod.cupomAplicado);
+
+                              for (const produto of produtosComCupom) {
+                                if (produto.cupomAplicado && produto.cupomAplicado.codigo && produto.cupomAplicado.tipo) {
+                                  await marcarCupomComoUsado(
+                                    produto.cupomAplicado.codigo,
+                                    produto.cupomAplicado.tipo
+                                  );
+                                }
+                              }
+                              console.log("✅ Cupons resgatados com sucesso (pedido entregue)!");
+                            }
+                          }}
+
                           className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status || '')}`}
                         >
                           {STATUS_PEDIDO_OPTIONS.map((status)=>(
