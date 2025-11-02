@@ -6,16 +6,20 @@ interface Props {
   cartao: CartaoFidelidadeType;
 }
 
+let msgSemCartao = false
+
 export function CartaoFidelidade({ cartao }: Props) {
   // 🔹 Condição para exibir o cartão
   const temCompra = (cartao.quantidade ?? 0) > 0;
-  const temCupom =
-    (cartao.cupomGanho?.length ?? 0) > 0 
-    //|| (cartao.cupomResgatado?.length ?? 0) > 0;
+  const temCupom = (cartao.cupomGanho?.length ?? 0) > 0 
+  
 
   if (!temCompra && !temCupom) {
-    const msg = <div>Faça uma compra para ativar o cartão!!!</div>
-    return msg; // 🔸 não renderiza nada se o cartão estiver "vazio"
+    if(!msgSemCartao){
+      msgSemCartao = true
+      return <div>Faça uma compra para ativar o cartão!!!</div>
+    }
+    return null // 🔸 não renderiza nada se o cartão estiver "vazio"
   }
 
   // 🔹 Buscar regra correspondente ao tipo do cartão
@@ -45,9 +49,7 @@ export function CartaoFidelidade({ cartao }: Props) {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transform transition-transform duration-500 hover:scale-105 hover:shadow-2xl">
-      
-      <div>{msg}</div>
-      
+            
       {/* 🔹 Nome do cartão */}
       <h3 className="font-bold text-xl mb-4 capitalize">{cartao.tipo}</h3>
 
