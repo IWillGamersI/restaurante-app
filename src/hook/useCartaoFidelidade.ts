@@ -122,9 +122,6 @@ export function useCartaoFidelidade(codigoCliente?: string) {
           const quantidadeTotal = cartao.quantidade;
           const totalCuponsEsperados = Math.floor(quantidadeTotal / cartao.limite);
 
-          // ❌ Não zerar os cupons antigos
-          // cartao.cupomGanho = [];
-
           // Apenas adiciona cupons faltando
           const cuponsExistentes = cartao.cupomGanho || [];
           const faltando = totalCuponsEsperados - cuponsExistentes.length;

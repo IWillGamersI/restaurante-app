@@ -63,9 +63,30 @@ export default function GerenciarPedidos() {
   } = pedido;
 
   // 🔁 Recarrega cupons sempre que o código do cliente mudar
+  // 🔁 Recarrega cupons sempre que o cliente for alterado e tiver código válido
+  // 🔁 Recarrega cupons automaticamente após identificar o cliente pelo telefone
   useEffect(() => {
-    if (stados.codigoCliente) carregarCupons();
-  }, [stados.codigoCliente]);
+    const telefone = stados.clienteTelefone?.trim();
+    const codigo = stados.codigoCliente?.trim();
+
+    // Se já temos código de cliente, carrega cupons
+    if (codigo && codigo.length > 0) {
+      carregarCupons();
+    }
+    // Se ainda não temos o código, mas o telefone foi digitado, aguarda a identificação do cliente
+    else if (telefone && telefone.length >= 9) {
+      const interval = setInterval(() => {
+        if (stados.codigoCliente?.trim()) {
+          carregarCupons();
+          clearInterval(interval);
+        }
+      }, 500);
+
+      return () => clearInterval(interval);
+    }
+  }, [stados.codigoCliente, stados.clienteTelefone]);
+
+
 
 
 
