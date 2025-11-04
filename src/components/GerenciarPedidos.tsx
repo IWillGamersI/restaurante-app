@@ -100,9 +100,10 @@ export default function GerenciarPedidos() {
 
   const valorTotal = calcularTotalPedido(produtosPedido) + ajuste;
 
-  const handleSalvarPedido = () => {
+  const handleSalvarPedido = async () => {
     setQuerImprimir(true);
-    salvarPedido({
+
+    await salvarPedido({
       id: idPedidoSelecionado || undefined,
       tipoFatura,
       tipoPagamento,
@@ -120,14 +121,20 @@ export default function GerenciarPedidos() {
       obs: obs || ''
     });
 
-    // 🔹 Limpa os campos e cupons após lançar o pedido
-    setIdPedidoSelecionado(null);
-    setClienteTelefone('');
-    setClienteNome('');
-    setCodigoCliente('');
-    setCodigoPedido('');
-    setNumeroMesa('');
+    // 🔹 Só limpar se o pedido realmente foi lançado com sucesso
+    // você pode adicionar uma flag de sucesso dentro do salvarPedido no futuro
+    // mas por enquanto, ele apenas executa e depois limpa
+    if (produtosPedido.length > 0 && tipoPagamento && tipoFatura) {
+      setIdPedidoSelecionado(null);
+      setClienteTelefone('');
+      setClienteNome('');
+      setCodigoCliente('');
+      setCodigoPedido('');
+      setNumeroMesa('');
+    }
   };
+
+
 
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' ));
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue'));
