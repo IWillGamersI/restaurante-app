@@ -124,7 +124,7 @@ export default function GerenciarPedidos() {
     // 🔹 Só limpar se o pedido realmente foi lançado com sucesso
     // você pode adicionar uma flag de sucesso dentro do salvarPedido no futuro
     // mas por enquanto, ele apenas executa e depois limpa
-    if (produtosPedido.length > 0 && tipoPagamento && tipoFatura) {
+    if (produtosPedido.length > 0 && tipoPagamento && tipoFatura && tipoVenda) {
       setIdPedidoSelecionado(null);
       setClienteTelefone('');
       setClienteNome('');
