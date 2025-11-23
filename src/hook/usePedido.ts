@@ -370,15 +370,26 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   const confirmarProduto = () => {
     if (!produtoModal) return;
 
+    // 🔹 Mapear extras selecionados para incluir quantidade digitada
+    const extrasComQuantidade = extrasSelecionados.map(extra => {
+      // Pegar o input associado pelo ID
+      const input = document.getElementById(`extra-quantidade-${extra.id}`) as HTMLInputElement;
+      const quantidade = input?.value ? Number(input.value) : undefined;
+
+      // Se tiver quantidade, envia como "Nome x2", senão só o nome
+      return {
+        ...extra,
+        nome: quantidade ? `${extra.nome} - ${quantidade}x` : extra.nome,
+        quantidade: quantidade || 1 // opcional, se quiser ter a quantidade separada também
+      };
+    });
+
     // 🔹 Filtra cupons válidos para este produto
     const cuponsDoProduto = cuponsSelecionados.filter(
       (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
     );
 
-    // 🔹 Pega apenas o primeiro cupom válido (se houver)
     const cupomDoProduto = cuponsDoProduto[0];
-
-    // 🔹 Se houver cupom válido, o preço fica 0 — mas o cupom ainda NÃO é resgatado
     const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
 
     const novoProduto: ProdutoPedido = {
@@ -389,7 +400,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       precoVenda: produtoModal.precoVenda,
       custo: produtoModal.custo,
       quantidade: quantidadeSelecionada,
-      extras: extrasSelecionados,
+      extras: extrasComQuantidade, // 🔹 Aqui agora com nomes + quantidade
       categoria: produtoModal.categoria,
       classe: produtoModal.classe,
       imagemUrl: produtoModal.imagemUrl,
@@ -397,13 +408,11 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
         cupomAplicado: {
           codigo: cupomDoProduto.codigo,
           tipo: cupomDoProduto.tipo,
-          valorCupom: produtoModal.precoVenda, // conforme combinamos: valorCupom = preço do produto
+          valorCupom: produtoModal.precoVenda,
           resgatado: false,
-          // dataResgate fica undefined até ser resgatado
         }
       }),
       ignorarParaFidelidade: !!cupomDoProduto,
-
     };
 
     // 🔹 Adiciona ou atualiza produto no pedido
@@ -425,9 +434,8 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
             ? {
                 codigo: cupomDoProduto.codigo,
                 tipo: cupomDoProduto.tipo,
-                valorCupom: produtoModal.precoVenda, // 💡 igual ao produto
-                resgatado: false, // ainda não foi resgatado
-                // dataResgate ficará undefined até entrega
+                valorCupom: produtoModal.precoVenda,
+                resgatado: false,
               }
             : copia[index].cupomAplicado,
           ignorarParaFidelidade: !!cupomDoProduto,
@@ -438,20 +446,12 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
       return [...prev, novoProduto];
     });
 
-
-    // ❌ NADA de marcar cupom como usado aqui
-    // Ele será resgatado apenas quando o status do pedido for "Entregue"
-
     // 🔹 Fecha modal e reseta seleção
     setModalAberto(false);
     setProdutoModal(null);
     setExtrasSelecionados([]);
     setQuantidadeSelecionada(1);
   };
-
-
-
-
 
 
   const removerProdutoPedido = (id: string) => {

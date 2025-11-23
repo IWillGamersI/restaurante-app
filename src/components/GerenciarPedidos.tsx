@@ -380,7 +380,7 @@ export default function GerenciarPedidos() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="flex gap-2">
                     {(() => {
                       if (!produtoModal) return null;
 
@@ -390,18 +390,26 @@ export default function GerenciarPedidos() {
 
                       if (tiposExtras.length === 0) return <p>Sem extras disponíveis</p>;
 
+                      const getQuantidadeInput = (extraId: string) => {
+                        const input = document.getElementById(`extra-quantidade-${extraId}`) as HTMLInputElement;
+                        return input?.value ? Number(input.value) : 1;
+                      };
+
                       return tiposExtras.map(tipo => (
-                        <div key={tipo} className="border rounded p-2">
+                        <div key={tipo} className="w-full border rounded p-2">
                           <h4 className="font-semibold capitalize text-blue-600 mb-2">{tipo}</h4>
                           <div className="flex flex-col text-sm gap-0.5">
                             {extras.filter(e => e.tipo === tipo).map(extra => {
                               const selecionado = extrasSelecionados.some(sel => sel.id === extra.id);
                               const limite = getLimiteExtra(produtoModal, tipo);
-                              const selecionadosDoMesmoTipo = extrasSelecionados.filter(sel => sel.tipo === tipo).length;
 
+                              // soma das quantidades dos extras do mesmo tipo
+                              const totalSelecionadosDoTipo = extrasSelecionados
+                                .filter(sel => sel.tipo === tipo)
+                                .reduce((sum, sel) => sum + getQuantidadeInput(sel.id), 0);
 
-                              // Se já atingiu o limite e esse item não está marcado, desabilita
-                              const disabled = limite !== null && selecionadosDoMesmoTipo >= limite && !selecionado;
+                              // desabilita se atingir o limite
+                              const disabled = limite !== null && totalSelecionadosDoTipo >= limite && !selecionado;
 
                               return (
                                 <label key={extra.id} className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -411,28 +419,51 @@ export default function GerenciarPedidos() {
                                     disabled={disabled}
                                     onChange={() => {
                                       if (selecionado) {
-                                        // Remove extra
                                         setExtrasSelecionados(prev => prev.filter(x => x.id !== extra.id));
                                       } else {
-                                        // Adiciona extra
                                         setExtrasSelecionados(prev => [...prev, extra]);
                                       }
                                     }}
                                     className="cursor-pointer"
                                   />
-                                  <span>{extra.nome}</span>
-                                  {extra.valor ? (
-                                    <span className="text-sm text-gray-600">(+€ {extra.valor.toFixed(2)})</span>
-                                  ) : null}
+                                  {tipo && tipo !== 'molho' && !extra.valor && tipo !== 'bebida-estudante' &&
+                                    <div className="w-full flex gap-1 justify-between ">
+                                      <span>{extra.nome}</span>
+                                      <input
+                                        id={`extra-quantidade-${extra.id}`}
+                                        className="w-10 border rounded text-center"
+                                        type="number"
+                                        min={1}
+                                      />
+                                    </div>
+                                  }
+                                  {tipo === 'molho' &&
+                                    <div><span>{extra.nome}</span></div>
+                                  }
+                                  {tipo === 'bebida-estudante' &&
+                                    <div><span>{extra.nome}</span></div>
+                                  }
+                                  {tipo === 'ingredienteplus' &&
+                                    <div className="w-full flex gap-1 justify-between ">
+                                      <span className="flex-1">{extra.nome}</span>
+                                      <span>€ {extra.valor?.toFixed(2)}</span>
+                                    </div>
+                                  }
+                                  {tipo === 'acaiplus' &&
+                                    <div className="w-full flex gap-1 justify-between ">
+                                      <span className="flex-1">{extra.nome}</span>
+                                      <span>€ {extra.valor?.toFixed(2)}</span>
+                                    </div>
+                                  }
                                 </label>
                               );
                             })}
-
                           </div>
                         </div>
                       ));
                     })()}
                   </div>
+
                 </div>
               )}
 
