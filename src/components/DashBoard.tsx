@@ -14,6 +14,7 @@ import { formatarMoeda } from '@/utils/format';
 import { Faturamento } from './elements/FaturamentoDiario';
 import { MetricasSemana } from './elements/MetricasSemana';
 import CuponsPage from '@/app/pages/admin/cupons/page';
+import FidelidadeAdmin from '@/app/pages/admin/fidelidade/page';
 
 
 
@@ -543,7 +544,7 @@ const cardsPrincipais = [
           <TabsTrigger className="cursor-pointer" value="canal">📡 Canais</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="horario">⏰ Horários</TabsTrigger>
           <TabsTrigger className="cursor-pointer" value="financas">💰 Finanças</TabsTrigger>
-          <TabsTrigger className="cursor-pointer" value="cupons">🎟️ Cupons</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="fidelidade">🎟️ Fidelidade</TabsTrigger>
         </TabsList>
 
         {/*Inicio*/}
@@ -922,9 +923,8 @@ const cardsPrincipais = [
           </div>
         </TabsContent>
 
-        {/* Cupons */}
-        <TabsContent value="cupons">
-          <CuponsPage/>
+        <TabsContent value='fidelidade'>
+          <FidelidadeAdmin/>
         </TabsContent>
 
 

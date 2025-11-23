@@ -86,10 +86,6 @@ export default function GerenciarPedidos() {
     }
   }, [stados.codigoCliente, stados.clienteTelefone]);
 
-
-
-
-
   const { classes, produtosFiltrados, setClasseSelecionada, classeSelecionada } = useProdutos();
   const { extras, extrasPorClasse } = useExtras();
   
@@ -152,10 +148,9 @@ export default function GerenciarPedidos() {
       setCodigoCliente('');
       setCodigoPedido('');
       setNumeroMesa('');
+      
     }
   };
-
-
 
   const pedidosAbertos = pedidosDoDia.filter(p => STATUS_ABERTO.includes(p.status || 'Fila' ));
   const pedidosFechados = pedidosDoDia.filter(p => STATUS_FECHADO.includes(p.status || 'Entregue'));
@@ -210,22 +205,7 @@ export default function GerenciarPedidos() {
           setClasseSelecionada={setClasseSelecionada}
         />
 
-        {/* 🔹 Mostrar cupons disponíveis do cliente */}
-        {cuponsDisponiveis.length > 0 && (
-          <div className="flex flex-wrap gap-2 border border-green-400 bg-green-50 p-3 rounded mb-3">
-            <h4 className="w-full font-semibold text-green-700 flex items-center gap-2">
-              <Ticket size={18} /> Cupons disponíveis:
-            </h4>
-            {cuponsDisponiveis.map((cupom, i) => (
-              <span
-                key={cupom.codigo + i}
-                className="px-3 py-1 bg-green-100 text-green-700 border border-green-400 rounded text-sm"
-              >
-                {cupom.codigo} - {cupom.tipo}
-              </span>
-            ))}
-          </div>
-        )}
+        
 
 
         <div className="w-full flex flex-col justify-between min-h-80 lg:flex-row ">
@@ -296,7 +276,7 @@ export default function GerenciarPedidos() {
                     ${produtoSelecionado === p.id ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
                 >
                   <div className='w-full flex flex-col justify-center items-center'>
-                    <img className='w-20 h-20 rounded-full' src={p.imagemUrl} />
+                    <img className='w-20 h-20 rounded-full' src={p.imagemUrl || '/public/logo.png'} />
                     <div className='flex flex-col'>
                       <p className="text-sm font-semibold">{p.nome}</p>
                     </div>

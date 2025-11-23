@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef } from "react";
+import React, { useState, forwardRef, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PedidoInfoFormProps } from "@/types";
@@ -26,13 +26,27 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
 }, ref) => {
 
   const { gerarCodigoCliente, gerarCodigoPedido } = useCodigos();
-  const { cartoes } = useCartaoFidelidade(codigoCliente);
+
+  // Hook depende do códigoCliente válido (ignora CLT-123)
+  const codigoParaHook = codigoCliente && codigoCliente !== 'CLT-123' ? codigoCliente : '';
+  const { cartoes } = useCartaoFidelidade(codigoParaHook);
+
   const [temCupom, setTemCupom] = useState(false);
   const [cuponsSelecionados, setCuponsSelecionados] = useState<string[]>([]);
 
+  // 🔹 Atualiza `temCupom` sempre que os cartoes ou codigoCliente mudam
+  useEffect(() => {
+    if (codigoCliente && codigoCliente !== 'CLT-123') {
+      setTemCupom(cartoes.some(cartao => (cartao.saldoCupom || 0) > 0));
+    } else {
+      setTemCupom(false);
+    }
+  }, [cartoes, codigoCliente]);
 
+  // 🔹 Atualiza dados do cliente ao desfocar o telefone
   const handleBlurTelefone = async () => {
     if (!clienteTelefone) return;
+
     const clientesRef = collection(db, "clientes");
     const q = query(clientesRef, where("telefone", "==", clienteTelefone));
     const snapshot = await getDocs(q);
@@ -40,28 +54,49 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
     if (!snapshot.empty) {
       const clienteDoc = snapshot.docs[0];
       const data = clienteDoc.data();
+      const codigo = gerarCodigoCliente(data.nome, data.telefone);
+
       setClienteNome(data.nome);
       setClienteTelefone(data.telefone);
       setIdCliente(clienteDoc.id);
-      setCodigoCliente(gerarCodigoCliente(data.nome, data.telefone));
+      setCodigoCliente(codigo);
       setCodigoPedido(gerarCodigoPedido(data.nome));
     } else {
       console.log("Cliente não encontrado. Será criado apenas ao salvar pedido.");
+      setClienteNome("");
+      setCodigoCliente("");
+      setIdCliente(null);
+      setCodigoPedido("");
+      setTemCupom(false);
+      setCuponsSelecionados([]);
     }
   };
 
+  // 🔹 Limpa cupons imediatamente quando o telefone muda
+  const handleTelefoneChange = (telefone: string) => {
+    setClienteTelefone(telefone);
+
+    // Limpa dados e cupons ao digitar ou apagar telefone
+    setClienteNome("");
+    setCodigoCliente("");
+    setIdCliente(null);
+    setCodigoPedido("");
+    setCuponsSelecionados([]);
+    setTemCupom(false);
+  };
+
   return (
-    <div className="flex flex-col justify-between flex-wrap sm:flex-row">
+    <div className="flex flex-col justify-between flex-wrap sm:flex-row gap-2">
 
       <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código Pedido" value={codigoPedido} readOnly disabled />
       <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código do Cliente" value={codigoCliente} readOnly disabled />
 
       <div className="flex items-center gap-2 justify-around bg-blue-600 px-2 rounded text-white">
         <label className="flex gap-1 cursor-pointer">
-          <input type="radio" name="fatura" value="CF" checked={tipoFatura === 'cf'} onChange={() => setTipoFatura('cf')} className="cursor-pointer" required /> CF
+          <input type="radio" name="fatura" value="CF" checked={tipoFatura === 'cf'} onChange={() => setTipoFatura('cf')} required /> CF
         </label>
         <label className="flex gap-1 cursor-pointer">
-          <input type="radio" name="fatura" value="SF" checked={tipoFatura === 'sf'} onChange={() => setTipoFatura('sf')} className="cursor-pointer" required /> SF
+          <input type="radio" name="fatura" value="SF" checked={tipoFatura === 'sf'} onChange={() => setTipoFatura('sf')} required /> SF
         </label>
       </div>
 
@@ -82,19 +117,9 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
       )}
 
       <input type="tel" pattern="[0-9]" inputMode="numeric" maxLength={9} className="border p-2 rounded text-center" placeholder="Telefone Cliente..."
-        value={clienteTelefone} disabled={tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt'}
-        onChange={e => {
-          const telefone = e.target.value;
-          setClienteTelefone(telefone);
-          if (!telefone) { 
-            setClienteNome(""); 
-            setCodigoCliente(''); 
-            setIdCliente(null); 
-            setCodigoPedido(""); 
-            setCuponsSelecionados([]); 
-            setTemCupom(false);
-          }
-        }}
+        value={clienteTelefone}
+        disabled={tipoVenda === 'glovo' || tipoVenda === 'uber' || tipoVenda === 'bolt'}
+        onChange={e => handleTelefoneChange(e.target.value)}
         onBlur={handleBlurTelefone}
       />
 
@@ -109,6 +134,24 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
         }}
         disabled={!!idCliente && !!clienteTelefone}
       />
+
+      {/* 🔹 Mostrar cupons disponíveis apenas quando existem */}
+      {temCupom && cartoes.length > 0 && (
+        <div className="flex flex-wrap gap-2 border border-green-400 bg-green-50 p-3 rounded mb-3">
+          <h4 className="w-full font-semibold text-green-700 flex items-center gap-2">
+            <Ticket size={18} /> Cupons disponíveis:
+          </h4>
+          {cartoes.map((cartao, i) => (
+            <span
+              key={cartao.tipo + i}
+              className="px-3 py-1 bg-green-100 text-green-700 border border-green-400 rounded text-sm"
+            >
+              {cartao.tipo}: {cartao.saldoCupom || 0} cupons disponíveis
+            </span>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 });
