@@ -31,9 +31,8 @@ export default function GerenciarPedidos() {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    marcarCupomComoUsado,
     carregarCupons,
-    resgatarCupons,
+    resgatarCupomSelecionado,
   } = useResgateCupom(stados.codigoCliente);
 
   // ✅ Hook principal de pedido
@@ -516,19 +515,31 @@ export default function GerenciarPedidos() {
 
                             await atualizarStatus(p.id || '', novoStatus);
 
-                            if (novoStatus.toLowerCase() === "entregue") {
+                           if (novoStatus.toLowerCase() === "entregue") {
                               const produtosComCupom = (p.produtos || []).filter(prod => prod.cupomAplicado);
 
-                              for (const produto of produtosComCupom) {
-                                if (produto.cupomAplicado && produto.cupomAplicado.codigo && produto.cupomAplicado.tipo) {
-                                  await marcarCupomComoUsado(
-                                    produto.cupomAplicado.codigo,
-                                    produto.cupomAplicado.tipo
-                                  );
-                                }
+                              if (produtosComCupom.length > 0) {
+                                // Prepara os cupons para resgatar
+                                produtosComCupom.forEach(produto => {
+                                  const cupom = produto.cupomAplicado;
+                                  if (cupom && cupom.codigo && cupom.tipo) {
+                                    // Adiciona ao estado de cuponsSelecionados para resgatar
+                                    toggleCupom({ 
+                                      codigo: cupom.codigo, 
+                                      tipo: cupom.tipo, 
+                                      dataGanho: new Date().toISOString(), 
+                                      quantidade: 1 
+                                    });
+                                  }
+                                });
+
+                                // Resgata todos os cupons selecionados de uma vez
+                                await resgatarCupomSelecionado();
+
+                                console.log("✅ Cupons resgatados com sucesso (pedido entregue)!");
                               }
-                              console.log("✅ Cupons resgatados com sucesso (pedido entregue)!");
                             }
+
                           }}
 
                           className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status || '')}`}

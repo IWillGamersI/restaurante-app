@@ -1,3 +1,5 @@
+'use client'
+
 import { db } from "@/lib/firebase";
 import { Extra, Pedido, Produto, ProdutoPedido } from "@/types";
 import { useCodigos } from "@/hook/useCodigos";
@@ -57,6 +59,10 @@ export interface CartaoFidelidade {
 }
 
 export function usePedido(stados: ReturnType<typeof useStados>) {
+
+   const normalize = (str: string) =>
+  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtosPedido, setProdutosPedido] = useState<ProdutoPedido[]>([]);
   const [produtoModal, setProdutoModal] = useState<Produto | null>(null);
@@ -75,14 +81,14 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
   } = stados;
 
   const { 
-          cuponsDisponiveis,
-          cuponsSelecionados,
-          toggleCupom,
-          carregarCupons,
-          limparCuponsSelecionados,
-          marcarCupomComoUsado,
-          resgatarCupons
-        } = useResgateCupom(codigoCliente || undefined)
+    cuponsDisponiveis,
+    cuponsSelecionados,
+    toggleCupom,
+    resgatarCupomSelecionado, // antigo resgatarCupons
+    carregarCupons,
+    limparCuponsSelecionados
+  } = useResgateCupom(codigoCliente || undefined);
+
   
   useEffect(()=>{
     if(codigoCliente){
@@ -367,91 +373,104 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     return updateDoc(doc(db, "pedidos", id), { status: novoStatus });
   };
 
-  const confirmarProduto = () => {
-    if (!produtoModal) return;
+    const confirmarProduto = async () => {
+      if (!produtoModal) return;
 
-    // 🔹 Mapear extras selecionados para incluir quantidade digitada
-    const extrasComQuantidade = extrasSelecionados.map(extra => {
-      // Pegar o input associado pelo ID
-      const input = document.getElementById(`extra-quantidade-${extra.id}`) as HTMLInputElement;
-      const quantidade = input?.value ? Number(input.value) : undefined;
+      console.log("CUPONS SELECIONADOS DENTRO DO MODAL:", cuponsSelecionados);
+      console.log("PRODUTO CLASSE:", produtoModal?.classe);
 
-      // Se tiver quantidade, envia como "Nome x2", senão só o nome
-      return {
-        ...extra,
-        nome: quantidade ? `${extra.nome} - ${quantidade}x` : extra.nome,
-        quantidade: quantidade || 1 // opcional, se quiser ter a quantidade separada também
-      };
-    });
+      // 🔹 Mapear extras selecionados para incluir quantidade digitada
+      const extrasComQuantidade = extrasSelecionados.map(extra => {
+        const input = document.getElementById(`extra-quantidade-${extra.id}`) as HTMLInputElement;
+        const quantidade = input?.value ? Number(input.value) : undefined;
 
-    // 🔹 Filtra cupons válidos para este produto
-    const cuponsDoProduto = cuponsSelecionados.filter(
-      (c) => c.tipo.toLowerCase() === produtoModal.classe?.toLowerCase()
-    );
+        return {
+          ...extra,
+          nome: quantidade ? `${extra.nome} - ${quantidade}x` : extra.nome,
+          quantidade: quantidade || 1
+        };
+      });
 
-    const cupomDoProduto = cuponsDoProduto[0];
-    const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
-
-    const novoProduto: ProdutoPedido = {
-      id: produtoModal.id,
-      nome: produtoModal.nome,
-      descricao: produtoModal.descricao,
-      preco: precoComDesconto,
-      precoVenda: produtoModal.precoVenda,
-      custo: produtoModal.custo,
-      quantidade: quantidadeSelecionada,
-      extras: extrasComQuantidade, // 🔹 Aqui agora com nomes + quantidade
-      categoria: produtoModal.categoria,
-      classe: produtoModal.classe,
-      imagemUrl: produtoModal.imagemUrl,
-      ...(cupomDoProduto && {
-        cupomAplicado: {
-          codigo: cupomDoProduto.codigo,
-          tipo: cupomDoProduto.tipo,
-          valorCupom: produtoModal.precoVenda,
-          resgatado: false,
-        }
-      }),
-      ignorarParaFidelidade: !!cupomDoProduto,
-    };
-
-    // 🔹 Adiciona ou atualiza produto no pedido
-    setProdutosPedido((prev) => {
-      const index = prev.findIndex(
-        (p) =>
-          p.id === novoProduto.id &&
-          JSON.stringify(p.extras.map((e) => e.id).sort()) ===
-            JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
+      // 🔹 Filtra cupons válidos para este produto
+      const cuponsDoProduto = cuponsSelecionados.filter(
+        (c) => normalize(c.tipo) === normalize(produtoModal.classe || "")
       );
 
-      if (index !== -1) {
-        const copia = [...prev];
-        copia[index] = {
-          ...copia[index],
-          quantidade: copia[index].quantidade + novoProduto.quantidade,
-          preco: precoComDesconto,
-          cupomAplicado: cupomDoProduto
-            ? {
-                codigo: cupomDoProduto.codigo,
-                tipo: cupomDoProduto.tipo,
-                valorCupom: produtoModal.precoVenda,
-                resgatado: false,
-              }
-            : copia[index].cupomAplicado,
-          ignorarParaFidelidade: !!cupomDoProduto,
-        };
-        return copia;
+      const cupomDoProduto = cuponsDoProduto[0];
+      const precoComDesconto = cupomDoProduto ? 0 : produtoModal.precoVenda;
+
+      const novoProduto: ProdutoPedido = {
+        id: produtoModal.id,
+        nome: produtoModal.nome,
+        descricao: produtoModal.descricao,
+        preco: precoComDesconto,
+        precoVenda: produtoModal.precoVenda,
+        custo: produtoModal.custo,
+        quantidade: quantidadeSelecionada,
+        extras: extrasComQuantidade,
+        categoria: produtoModal.categoria,
+        classe: produtoModal.classe,
+        imagemUrl: produtoModal.imagemUrl,
+        ...(cupomDoProduto && {
+          cupomAplicado: {
+            codigo: cupomDoProduto.codigo,
+            tipo: cupomDoProduto.tipo,
+            valorCupom: produtoModal.precoVenda,
+            resgatado: true,
+            dataResgate: new Date().toISOString(),
+          }
+        }),
+        ignorarParaFidelidade: !!cupomDoProduto,
+      };
+
+      // 🔹 Adiciona ou atualiza produto no pedido
+      setProdutosPedido((prev) => {
+        const index = prev.findIndex(
+          (p) =>
+            p.id === novoProduto.id &&
+            JSON.stringify(p.extras.map((e) => e.id).sort()) ===
+              JSON.stringify(novoProduto.extras.map((e) => e.id).sort())
+        );
+
+        if (index !== -1) {
+          const copia = [...prev];
+          copia[index] = {
+            ...copia[index],
+            quantidade: copia[index].quantidade + novoProduto.quantidade,
+            preco: precoComDesconto,
+            cupomAplicado: cupomDoProduto
+              ? {
+                  codigo: cupomDoProduto.codigo,
+                  tipo: cupomDoProduto.tipo,
+                  valorCupom: produtoModal.precoVenda,
+                  resgatado: true,
+                  dataResgate: new Date().toISOString(),
+                }
+              : copia[index].cupomAplicado,
+            ignorarParaFidelidade: !!cupomDoProduto,
+          };
+          return copia;
+        }
+
+        return [...prev, novoProduto];
+      });
+
+      // 🔹 Marca cupom como usado no Firestore imediatamente
+      // 🔥 Resgata o cupom selecionado no Firestore
+      if (cupomDoProduto) {
+        toggleCupom(cupomDoProduto); // adiciona ao estado de selecionados
+        await resgatarCupomSelecionado(); // move para cupomResgatado no Firestore
       }
 
-      return [...prev, novoProduto];
-    });
 
-    // 🔹 Fecha modal e reseta seleção
-    setModalAberto(false);
-    setProdutoModal(null);
-    setExtrasSelecionados([]);
-    setQuantidadeSelecionada(1);
-  };
+      // 🔹 Fecha modal e reseta seleção
+      setModalAberto(false);
+      setProdutoModal(null);
+      setExtrasSelecionados([]);
+      setQuantidadeSelecionada(1);
+    };
+
+
 
 
   const removerProdutoPedido = (id: string) => {
@@ -549,7 +568,6 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     cuponsDisponiveis,
     cuponsSelecionados,
     toggleCupom,
-    marcarCupomComoUsado,
-    resgatarCupons
+    resgatarCupomSelecionado
   };
 }
