@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { db } from "@/lib/firebase";
 import { Extra, Pedido, Produto, ProdutoPedido } from "@/types";
