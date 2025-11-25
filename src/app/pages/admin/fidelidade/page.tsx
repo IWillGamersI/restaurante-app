@@ -1,3 +1,5 @@
+'use client'
+
 import { useCartaoAdmin } from "@/hook/useCartaoAdmin";
 import { usePedido } from "@/hook/usePedido";
 import { useStados } from "@/hook/useStados";
