@@ -1,3 +1,5 @@
+'use-client'
+
 import { useState } from "react";
 import { Produto, Pedido, FiltroPeriodo,Despesa,DespesasPaga, FaturamentoSemanal, ResumoMensal, FaturamentoDiario } from "@/types";
 import { useProdutos } from '@/hook/useProdutos';
