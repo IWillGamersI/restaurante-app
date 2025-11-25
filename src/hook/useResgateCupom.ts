@@ -16,7 +16,7 @@ export function useResgateCupom(codigoCliente?: string) {
 
   const limparCuponsSelecionados = () => setCuponsSelecionados([]);
 
-  // 🔹 Carrega todos os cupons disponíveis do cliente
+  // 🔹 Carrega todos os cupons disponíveis do client
   const carregarCupons = async () => {
     if (!codigoCliente) return;
 
