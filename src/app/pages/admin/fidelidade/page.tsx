@@ -76,6 +76,12 @@ export default function FidelidadeAdmin() {
     })
   );
 
+  // Lista clientes com cupons
+  const clientesComCupons = clientes
+  .filter(c => c.cartoes.some(cartao => (cartao.cupomGanho?.length || 0) > 0))
+  .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+
   // Lista completa ordenada por nome
   const clientesOrdenados = [...clientes].sort((a, b) =>
     (a.nome || '').localeCompare(b.nome || '', 'pt', { sensitivity: 'base' })
@@ -168,6 +174,46 @@ Aproveite até ${ultimoDiaMes.toLocaleDateString('pt-BR')} para ganhar todos os 
           </div>
         </div>
       )}
+
+      {clientesComCupons.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xl font-bold mb-3">Clientes com Cupons Disponíveis 🎟️</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            {clientesComCupons.map(cliente => (
+              <div
+                key={cliente.codigoCliente}
+                className="bg-green-50 p-4 rounded-xl shadow-sm border hover:shadow-md transition flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-semibold text-lg">{cliente.nome}</p>
+                  {cliente.cartoes.map(cartao => {
+                    const qtd = cartao.cupomGanho?.length || 0;
+                    if (qtd === 0) return null;
+                    return (
+                      <p key={cartao.tipo} className="text-sm text-gray-700">
+                        {cartao.tipo}: <b>{qtd}</b> cupom(s)
+                      </p>
+                    );
+                  })}
+                </div>
+
+                {cliente.telefone && (
+                  <a
+                    href={`https://wa.me/351${cliente.telefone}?text=${encodeURIComponent(
+                      `Olá ${cliente.nome}! Você possui cupons disponíveis no programa de fidelidade. Aproveite!`
+                    )}`}
+                    target="_blank"
+                    className="bg-green-600 text-white py-2 px-4 rounded-lg shadow hover:bg-green-700 transition"
+                  >
+                    WhatsApp 📲
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Lista clientes com 8+ pontos */}
       {clientesCom8Pontos.length > 0 && (
