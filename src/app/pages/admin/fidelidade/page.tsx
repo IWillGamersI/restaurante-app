@@ -200,7 +200,7 @@ Aproveite até ${ultimoDiaMes.toLocaleDateString('pt-BR')} para ganhar todos os 
                 {cliente.telefone && (
                   <a
                     href={`https://wa.me/351${cliente.telefone}?text=${encodeURIComponent(
-                      `Olá ${cliente.nome}! Você possui cupons disponíveis no programa de fidelidade. Aproveite!`
+                      `Olá ${cliente.nome}! Aqui é a Top pizzas, você possui cupons disponíveis no programa de fidelidade. Aproveite!`
                     )}`}
                     target="_blank"
                     className="bg-green-600 text-white py-2 px-4 rounded-lg shadow hover:bg-green-700 transition"
