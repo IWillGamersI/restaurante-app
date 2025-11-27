@@ -59,13 +59,13 @@ export default function FidelidadeAdmin() {
   // Função para calcular faltando para próximo cupom baseado no mês atual
   const faltandoParaCupom = (cartao: any, codigoCliente: string) => {
     const regra = obterRegraFidelidade(cartao.tipo);
-    
+    if(regra?.tipo.length == 0) return 0;
     if (!regra) return 0;
 
     const ultima = ultimaCompraMap.get(codigoCliente);
     const pontosMesAtual = ultima && ultima.getMonth() === mesAtual ? cartao.quantidade : 0;
     const faltando = regra.limite - pontosMesAtual;
-    return faltando > 7 ? faltando : 0;
+    return faltando > 0 ? faltando : 0;
   };
 
   // Lista clientes com >= 8 pontos (considerando pontos do mês atual)
