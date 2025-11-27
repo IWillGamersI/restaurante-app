@@ -105,7 +105,7 @@ Aproveite seu dia!
     const linhas = cliente.cartoes.map((cartao: any) => {
       const faltando = faltandoParaCupom(cartao, cliente.codigoCliente);
 
-      const linhaEscrita = faltando <= 4 ? `• ${cartao.tipo}: ${faltando} compras faltando` : false
+      const linhaEscrita = faltando <= 4 ? `• ${cartao.tipo}: ${faltando} compras faltando` : ''
 
       return linhaEscrita 
     }).join('\n')
