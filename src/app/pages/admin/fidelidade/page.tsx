@@ -106,7 +106,7 @@ Aproveite seu dia!
       const faltando = faltandoParaCupom(cartao, cliente.codigoCliente);
 
       return faltando <= 4 ? `• ${cartao.tipo}: ${faltando} compras faltando`: ''
-    }).join('\n');
+    })
 
     const texto = `
         Olá ${cliente.nome}!
@@ -114,7 +114,7 @@ Aproveite seu dia!
 Aqui é da Top pizzas!
 
 Você está quase conquistando seus cupons deste mês:
-${linhas !== '' ? linhas : ''}
+${linhas.join('\n')}
 
 Aproveite até ${ultimoDiaMes.toLocaleDateString('pt-BR')} para ganhar todos os cupons!
     `;
