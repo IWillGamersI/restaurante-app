@@ -15,6 +15,10 @@ const produtosMonitorados = [
   { id: "GonReI3Ot7Vyt29a3vWY", nome: "ME - Tagliatelle", valor:5 },
   { id: "x3iIQ4M0Lk595gm5GqnI", nome: "ME - Hambúrger", valor:5 },
   { id: "80BLwzPor8ZFIswCu5Am", nome: "ME - Hot Dog", valor:5 },
+  { id: "LHRgHdNmXowghMQypP3c", nome: "Pastel de Bacon", valor:5 },
+  { id: "hbl3RKmJdgmKNoUo74dH", nome: "Pastel de Chouriço", valor:5 },
+  { id: "6NISClTzcbDgi108CJhH", nome: "Pastel de Queijo", valor:5 },
+  { id: "wsq7YMAGg2ZROuvuEuoU", nome: "Pastel de Queijo e Fiambre", valor:5 },
 ];
 
 export function Faturamento() {
@@ -34,7 +38,12 @@ export function Faturamento() {
         "gmahALnNJZVjJnWGdKhB",
         "GonReI3Ot7Vyt29a3vWY", 
         'x3iIQ4M0Lk595gm5GqnI',
-        '80BLwzPor8ZFIswCu5Am'].includes(produtoId)
+        '80BLwzPor8ZFIswCu5Am',
+        'LHRgHdNmXowghMQypP3c',
+        'hbl3RKmJdgmKNoUo74dH',
+        '6NISClTzcbDgi108CJhH',
+        'wsq7YMAGg2ZROuvuEuoU'
+       ].includes(produtoId)
       )
     {
         return 'menuEstudante'
