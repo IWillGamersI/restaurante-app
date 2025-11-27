@@ -104,7 +104,8 @@ Aproveite seu dia!
   const gerarMensagemCupom = (cliente: any) => {
     const linhas = cliente.cartoes.map((cartao: any) => {
       const faltando = faltandoParaCupom(cartao, cliente.codigoCliente);
-      return faltando <= 4 ? `• $ ${cartao.tipo}: ${faltando} compras faltando`:''
+
+      return faltando <= 4 ? `• ${cartao.tipo}: ${faltando} compras faltando`: null
     }).join('\n');
 
     const texto = `
