@@ -16,6 +16,7 @@ import { Produto } from '@/types';
 
 
 
+
 export default function GerenciarProdutos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [nome, setNome] = useState('');
@@ -28,6 +29,7 @@ export default function GerenciarProdutos() {
   const [sucesso, setSucesso] = useState('');
   const [categoria,setCategoria] = useState('');
   const [classe, setClasse] = useState('')
+  const [tamanho, setTamanho] = useState('')
   //const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>("todas");
   
 
@@ -55,6 +57,7 @@ export default function GerenciarProdutos() {
     setSucesso('');
     setCategoria('');
     setClasse('')
+    setTamanho('')
   };
 
   const salvarProduto = async () => {
@@ -71,6 +74,7 @@ export default function GerenciarProdutos() {
       precoCusto: Number(precoCusto),
       categoria,
       classe,
+      tamanho
     };
 
     try {
@@ -98,6 +102,7 @@ export default function GerenciarProdutos() {
     setEditandoId(p.id);
     setCategoria(p.categoria!);
     setClasse(p.classe!)
+    setTamanho(p.tamanho!)
   };
 
   const remover = async (id: string) => {
@@ -147,6 +152,17 @@ export default function GerenciarProdutos() {
             <option value="estudante">Estudante</option>
           </select>
 
+          <select
+            className="border p-3 rounded-lg"
+            value={tamanho}
+            onChange={(e) => setTamanho(e.target.value)}
+          >
+            <option value="">Selecione o Tamanho</option>
+            <option value="mini">Mini</option>
+            <option value="pequeno">Pequeno</option>
+            <option value="medio">Médio</option>
+            <option value="grande">Grande</option>
+          </select>
 
           <input
             type="text"
@@ -231,7 +247,7 @@ export default function GerenciarProdutos() {
               <div key={p.id} className="border-2 rounded-xl  shadow-sm border-blue-600">
                 {p.imagemUrl && (
                   <img
-                    src={p.imagemUrl}
+                    src={p.imagemUrl !== '' ? p.imagemUrl : '/logo.png'}
                     alt={p.nome}
                     className="w-full h-60 object-cover rounded-xl"
                   />

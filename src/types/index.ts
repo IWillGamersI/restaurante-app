@@ -3,6 +3,8 @@ import { Timestamp } from "firebase/firestore";
 //configurações
 export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'
 
+export type Tamanho = 'mini' | 'pequeno' | 'medio' | 'grande';
+
 export type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus' | 'bebida-estudante';
 
 export const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6'];
@@ -65,7 +67,8 @@ export interface Produto {
   classe?: string;
   precoVenda: number;
   custo?: number;
-  quantidade?: number
+  quantidade?: number;
+  tamanho?: Tamanho;
 }
 
 export interface Extra {
@@ -98,6 +101,7 @@ export interface Pedido {
   obs?: string
   canal?: string
   custo?: number
+  tamanho?: Tamanho
 }
 
 export type ProdutoPedido = Produto & {

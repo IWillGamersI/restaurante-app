@@ -28,7 +28,7 @@ export function useExtras(){
     }, [])
 
     const extrasPorClasse: Record<string, string[]> = {
-        acai: ['acai', 'acaiplus'],
+        acai: ['acai', 'acaiplus','frutas'],
         entrada: [],
         prato: ['acompanhamento', 'ingredienteplus'],
         pizza: ['ingredienteplus'],

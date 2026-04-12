@@ -77,6 +77,7 @@ export default function CadastroExtras() {
   const ingredienteacai = orderLista(itens,'acai')  
   const ingredienteacaiplus = orderLista(itens,'acaiplus')
   const bebidaestudante = orderLista(itens,'bebida-estudante')
+  const frutas = orderLista(itens,'frutas')
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
@@ -99,6 +100,7 @@ export default function CadastroExtras() {
             <option value="acai">Açai</option>
             <option value="acaiplus">Açai Plus</option>
             <option value="bebida-estudante">Bebida Estudante</option>
+            <option value="frutas">Frutas</option>
           </select>
         </div>
 
@@ -298,8 +300,30 @@ export default function CadastroExtras() {
           )}
         </div>
 
+        {/* Card Frutas */}
+        <div className="flex-1 bg-white rounded shadow p-4 h-85 overflow-auto">
+          <h3 className="text-xl font-semibold mb-4 text-center">Frutas</h3> 
+          {frutas.length === 0 ? (
+            <p className="text-gray-500 text-center">Nenhuma fruta cadastrada.</p>
+          ) : (   
+            <ul className="space-y-2">
+              {frutas.map(item => (
+                <li key={item.id} className="flex justify-between items-center bg-gray-100 p-2 rounded gap-2">
+                  <span className='flex-1'>{item.nome}</span>
+                  <span>€ {(item.valor.toFixed(2))}</span>  
+                  <button
+                    onClick={() => removerItem(item.id)}
+                    className="text-red-600 p-1 rounded-full hover:bg-red-600 hover:text-white text-sm cursor-pointer"
+                  >
+                    <Trash2 size={20}/>
+                  </button> 
+                </li>
+              ))}
+            </ul>
+          )}
 
 
+          </div>
 
       </div>
     </div>

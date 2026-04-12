@@ -145,7 +145,7 @@ export function usePedido(stados: ReturnType<typeof useStados>) {
     valorTotal,
     numeroMesa,
     imprimir,
-    obs
+    obs,
   }: SalvarPedidoArgs) => {
 
     // Validações obrigatórias

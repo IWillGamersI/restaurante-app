@@ -20,7 +20,9 @@ export function useProdutos(){
                 classe: data.classe || '',
                 categoria: data.categoria || '',
                 descricao: data.descricao || '',
-                custo: data.precoCusto || ''
+                custo: data.precoCusto || '',
+                tamanho: data.tamanho || '',
+                estoque: data.estoque || 0
             }
         })
         setProdutos(lista)

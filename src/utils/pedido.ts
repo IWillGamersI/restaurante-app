@@ -14,7 +14,7 @@ export const STATUS_ABERTO: StatusPedido[] = ['Fila','Preparando','Pronto']
 export const STATUS_FECHADO: StatusPedido[] = ['Entregue','Cancelado']
 
 export const extrasPorClasse: Record<string, string[]> = {
-    acai: ['acai', 'acaiplus'],
+    acai: ['acai', 'acaiplus', 'frutas'],
     entrada: [],
     prato: ['acompanhamento', 'ingredienteplus'],
     pizza: ['ingredienteplus'],
@@ -45,8 +45,15 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
       if (tipoExtra === "bebida-estudante") return 1;
     }
 
-    if(produto.classe === 'acai') {
-      if(tipoExtra === 'acai') return 4;
+    if(produto.classe === 'acai' ){
+      if(produto.tamanho === 'mini' && tipoExtra === 'acai') return 1;
+      if(produto.tamanho === 'mini' && tipoExtra === 'frutas') return 1;
+      if(produto.tamanho === 'pequeno' && tipoExtra === 'acai') return 3;
+      if(produto.tamanho === 'pequeno' && tipoExtra === 'frutas') return 1;
+      if(produto.tamanho === 'medio' && tipoExtra === 'acai') return 3;
+      if(produto.tamanho === 'medio' && tipoExtra === 'frutas') return 2;
+      if(produto.tamanho === 'grande' && tipoExtra === 'acai') return 4;
+      if(produto.tamanho === 'grande' && tipoExtra === 'frutas') return 2;
     }
 
     if(produto.classe === 'prato'){

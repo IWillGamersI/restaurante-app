@@ -11,24 +11,14 @@ import {
   updateDoc,
   query,
   onSnapshot,
-  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
-  Plus,
   Trash2,
-  Edit,
-  Package,
-  Calendar,
   CheckCircle2,
-  Hourglass,
   ClipboardList,
-  ChevronRight,
-  ChevronDown,
   BookX,
 } from 'lucide-react';
-import { div } from 'framer-motion/client';
-
 
 interface Produto {
   id: string;
