@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-import "./globals.css";
+import "./globals.css"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Top Pizzas",
+  title: "Top Brasil",
   description: "Pizzaria localizada em Sesimbra",
   icons: {
     icon: "/logo-192.png",
