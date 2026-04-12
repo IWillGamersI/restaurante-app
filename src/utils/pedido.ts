@@ -46,8 +46,6 @@ export function getLimiteExtra(produto: Produto, tipoExtra:string): number | nul
     }
 
     if(produto.classe === 'acai' ){
-      if(produto.tamanho === 'mini' && tipoExtra === 'acai') return 1;
-      if(produto.tamanho === 'mini' && tipoExtra === 'frutas') return 1;
       if(produto.tamanho === 'pequeno' && tipoExtra === 'acai') return 3;
       if(produto.tamanho === 'pequeno' && tipoExtra === 'frutas') return 1;
       if(produto.tamanho === 'medio' && tipoExtra === 'acai') return 3;

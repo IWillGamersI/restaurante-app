@@ -3,7 +3,7 @@ import { Timestamp } from "firebase/firestore";
 //configurações
 export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'
 
-export type Tamanho = 'mini' | 'pequeno' | 'medio' | 'grande';
+export type Tamanho =  'pequeno' | 'medio' | 'grande';
 
 export type TipoExtra = 'molho' | 'ingrediente' | 'acompanhamento' | 'acai' | 'ingredienteplus' | 'acaiplus' | 'bebida-estudante';
 
