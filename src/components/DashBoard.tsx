@@ -13,8 +13,8 @@ import { useStados } from '@/hook/useStados';
 import { formatarMoeda } from '@/utils/format';
 import { Faturamento } from './elements/FaturamentoDiario';
 import { MetricasSemana } from './elements/MetricasSemana';
-import CuponsPage from '@/app/pages/admin/cupons/page';
 import FidelidadeAdmin from '@/app/pages/admin/fidelidade/page';
+import { nomeEstabelecimento } from '@/types';
 
 
 
@@ -659,7 +659,7 @@ const cardsPrincipais = [
                     <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
                       <img src={imgSrc} alt={card.title} className=" rounded-full w-10 h-10 object-cover" />
                     </div>
-                    <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
+                    <span className="text-gray-700 text-lg font-semibold">{card.title == 'Restaurante' ? nomeEstabelecimento : card.title}</span>
                   </div>
                   <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Pedidos</span> 

@@ -1,6 +1,9 @@
 import { Timestamp } from "firebase/firestore";
 
 //configurações
+
+export const nomeEstabelecimento = 'Top Brasil'
+
 export type StatusPedido = 'Fila' | 'Preparando' | 'Pronto' | 'Entregue' | 'Cancelado'
 
 export type Tamanho =  'pequeno' | 'medio' | 'grande';
