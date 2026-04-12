@@ -828,7 +828,7 @@ const cardsPrincipais = [
                     <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
                       <img src={imgSrc} alt={card.title} className=" rounded-full w-10 h-10 object-cover" />
                     </div>
-                    <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
+                    <span className="text-gray-700 text-lg font-semibold">{card.title === 'Restaurante' ? nomeEstabelecimento : card.title}</span>
                   </div>
                   <div className="flex flex-col gap-1 mt-2">
                     <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
