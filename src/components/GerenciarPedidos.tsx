@@ -275,7 +275,7 @@ export default function GerenciarPedidos() {
                     ${produtoSelecionado === p.id ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
                 >
                   <div className='w-full flex flex-col justify-center items-center'>
-                    <img className='w-20 h-20 rounded-full' src={p.imagemUrl || '/public/logo.png'} />
+                    <img className='w-20 h-20 rounded-full' src={p.imagemUrl || '/logo.png'} />
                     <div className='flex flex-col'>
                       <p className="text-sm font-semibold">{p.nome}</p>
                     </div>

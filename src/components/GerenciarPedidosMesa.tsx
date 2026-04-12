@@ -559,6 +559,7 @@ const salvarPedido = async () => {
         </div>
         <hr />
 
+        {/* Campos de cliente e tipo de pedido */}
         <div className="flex flex-col gap-2">
           {/* Código do pedido */} 
           <input
@@ -580,6 +581,7 @@ const salvarPedido = async () => {
             disabled
           />
 
+          {/* Tipo de fatura */}
           <div className='flex  justify-around bg-blue-600 p-4 rounded text-white'>
             <label className='flex gap-1 cursor-pointer'>
               <input
@@ -607,6 +609,7 @@ const salvarPedido = async () => {
             </label>
           </div>
 
+          {/* Tipo de venda */}
           <select
             className="border p-3 rounded"
             value={tipoVenda}
@@ -748,9 +751,7 @@ const salvarPedido = async () => {
           </div>
           
         </div>
-            <hr />
-            <p className='font-semibold text-blue-600'>Extras</p>
-
+            
         {/* Extras dinâmicos */}
         <div className="grid grid-cols-1 gap-3 mt-4">
           {produtoSelecionado &&
@@ -833,8 +834,8 @@ const salvarPedido = async () => {
           ))}
         </ul>
 
+        {/* Forma de Pagamento e Lançar Pedido */}
         <div className="w-full flex flex-col justify-between items-center gap-2">
-          
           <div className='w-full flex flex-1 justify-between bg-blue-600 text-white rounded p-2'>
             <label className='flex gap-1 cursor-pointer'>
               <input

@@ -238,18 +238,18 @@ export default function GerenciarProdutos() {
           classes={classes}
           setClasseSelecionada={setClasseSelecionada}
         />            
-
+        <div className='mb-4'></div>
         {produtos.length === 0 ? (
           <p className="text-gray-500">Nenhum produto cadastrado.</p>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {produtosFiltrados.map((p) => (
-              <div key={p.id} className="border-2 rounded-xl  shadow-sm border-blue-600">
+              <div key={p.id} className="border-2 shadow-sm border-blue-600">
                 {p.imagemUrl && (
                   <img
                     src={p.imagemUrl !== '' ? p.imagemUrl : '/logo.png'}
                     alt={p.nome}
-                    className="w-full h-60 object-cover rounded-xl"
+                    className="w-full h-60 object-cover "
                   />
                 )}
                 <hr className='border-blue-600' />
