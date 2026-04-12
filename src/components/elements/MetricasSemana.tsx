@@ -72,7 +72,7 @@ export function MetricasSemana({ pedidos, filtrarPedidos }: MetricasSemanaProps)
         {cardsSemana.map((card, i) => (
           <div
             key={i}
-            className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+            className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-linear-to-r from-white/90 to-white/70"
           >
             <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
               {card.icon}
@@ -96,7 +96,12 @@ export function MetricasSemana({ pedidos, filtrarPedidos }: MetricasSemanaProps)
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="dia" />
               <YAxis />
-              <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, "Faturamento"]} />
+              <Tooltip
+                formatter={(value) => {
+                  const num = Number(value ?? 0);
+                  return [`€${num.toFixed(2)}`, "Valor"];
+                }}
+              />
               <Legend />
               <Line type="monotone" dataKey="faturamento" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} />
             </LineChart>

@@ -893,7 +893,7 @@ const salvarPedido = async () => {
       </div>
 
       {/* Listagem de Pedidos */}
-      <div className="grid grid-cols-1 gap-4 max-h-[100vh] overflow-auto">
+      <div className="grid grid-cols-1 gap-4 max-h-screen overflow-auto">
         {/* Pedidos Abertos */}
         <div className="bg-white p-4 rounded-lg shadow mt-4">
           <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -932,7 +932,7 @@ const salvarPedido = async () => {
                             <div>{item.nome} - {item.categoria}</div>
                             {item.extras?.length > 0 && (
                               <div className="mt-1 text-sm">
-                                <div className='font-semibold border-t-1'>
+                                <div className='font-semibold border-t'>
                                  - Extras
                                 </div>
                                 <div className="pl-5">
@@ -1036,7 +1036,7 @@ const salvarPedido = async () => {
                             <div>{item.nome} - {item.categoria}</div>
                             {item.extras?.length > 0 && (
                               <div className="mt-1 text-sm">
-                                <div className='font-semibold border-t-1'>
+                                <div className='font-semibold border-t'>
                                  - Extras
                                 </div>
                                 <div className="pl-5">
@@ -1071,7 +1071,7 @@ const salvarPedido = async () => {
                     <p>Total</p>
                     <p>€ {p.valor.toFixed(2)}</p>
                   </div>
-                  <hr className='border-1'/>
+                  <hr className='border'/>
                   <div >
                     {p.status == 'Cancelado' ? 
                       <div className='font-semibold text-right' >

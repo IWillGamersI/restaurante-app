@@ -213,11 +213,11 @@ useEffect(() => {
           </div>
 
           <div className="flex gap-4 font-bold text-2xl">
-            <div className="w-[200px] bg-white p-3 rounded-lg shadow text-center">
+            <div className="w-50 bg-white p-3 rounded-lg shadow text-center">
               <p className="font-semibold text-gray-600">Almoço</p>
               <p className="font-bold text-green-600">€ {stados.resumoMensal.almocoTotal.toFixed(2)}</p>
             </div>
-            <div className="w-[200px] bg-white p-3 rounded-lg shadow text-center">
+            <div className="w-50 bg-white p-3 rounded-lg shadow text-center">
               <p className="font-semibold text-gray-600">Jantar</p>
               <p className="font-bold text-yellow-600">€ {stados.resumoMensal.jantarTotal.toFixed(2)}</p>
             </div>

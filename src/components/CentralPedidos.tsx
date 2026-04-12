@@ -213,7 +213,7 @@ export default function CentralPedidos() {
                         <select
                           value={p.status}
                           onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                          className={`w-37.5 text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
                         >
                           <option value="Fila">Fila</option>
                           <option value="Preparando">Preparando</option>
@@ -243,7 +243,7 @@ export default function CentralPedidos() {
                             <div>{item.nome} - {item.categoria}</div>
                             {item.extras?.length > 0 && (
                               <div className="mt-1 text-sm">
-                                <div className='font-semibold border-t-1'>
+                                <div className='font-semibold border-t'>
                                  - Extras
                                 </div>
                                 <div className="pl-5">
@@ -357,7 +357,7 @@ export default function CentralPedidos() {
                             <div>{item.nome} - {item.categoria}</div>
                             {item.extras?.length > 0 && (
                               <div className="mt-1 text-sm">
-                                <div className='font-semibold border-t-1'>
+                                <div className='font-semibold border-t'>
                                  - Extras
                                 </div>
                                 <div className="pl-5">
@@ -392,7 +392,7 @@ export default function CentralPedidos() {
                     <p>Total</p>
                     <p>€ {p.valor.toFixed(2)}</p>
                   </div>
-                  <hr className='border-1'/>
+                  <hr className='border'/>
                   <div >
                     {p.status == 'Cancelado' ? 
                     <div className='flex items-center justify-between'>
@@ -472,7 +472,7 @@ export default function CentralPedidos() {
                         <select
                           value={p.status}
                           onChange={(e) => atualizarStatus(p.id, e.target.value)}
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
+                          className={`w-37.5 text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status)}`}
                         >
                           <option value="Fila">Fila</option>
                           <option value="Preparando">Preparando</option>

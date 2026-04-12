@@ -88,8 +88,8 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
   return (
     <div className="flex flex-col justify-between flex-wrap sm:flex-row gap-2">
 
-      <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código Pedido" value={codigoPedido} readOnly disabled />
-      <input type="text" className="border p-2 rounded lg:max-w-[100px] text-center" placeholder="Código do Cliente" value={codigoCliente} readOnly disabled />
+      <input type="text" className="border p-2 rounded lg:max-w-25 text-center" placeholder="Código Pedido" value={codigoPedido} readOnly disabled />
+      <input type="text" className="border p-2 rounded lg:max-w-25 text-center" placeholder="Código do Cliente" value={codigoCliente} readOnly disabled />
 
       <div className="flex items-center gap-2 justify-around bg-blue-600 px-2 rounded text-white">
         <label className="flex gap-1 cursor-pointer">
@@ -111,7 +111,7 @@ export const PedidoInfoForm = forwardRef<any, PedidoInfoFormProps>(({
       </select>
 
       {tipoVenda === 'mesa' && (
-        <input type="tel" pattern="[1-9]" inputMode="numeric" maxLength={1} className="border p-2 rounded lg:max-w-[120px] text-center" placeholder="N. Mesa"
+        <input type="tel" pattern="[1-9]" inputMode="numeric" maxLength={1} className="border p-2 rounded lg:max-w-30 text-center" placeholder="N. Mesa"
           onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "") }}
           value={numeroMesa} onChange={(e) => setNumeroMesa(e.target.value)} />
       )}

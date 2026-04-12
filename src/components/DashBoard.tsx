@@ -554,7 +554,7 @@ const cardsPrincipais = [
             {cardsPrincipais.map((card, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+                className="flex items-center gap-4 p-6 rounded-2xl shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl bg-linear-to-r from-white/90 to-white/70"
               >
                 <div className={`p-4 rounded-full flex items-center justify-center ${card.icon.props.className} bg-opacity-20`}>
                   {card.icon}
@@ -569,14 +569,14 @@ const cardsPrincipais = [
           {/* Cards Despesas */}
           <div className='grid grid-cols-4 gap-4 mb-8'>          
                 {/* Próximas */}
-                  <Card className="bg-yellow-100 border-yellow-300 text-yellow-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t  to-yellow-200">
+                  <Card className="bg-yellow-100 border-yellow-300 text-yellow-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-linear-to-t  to-yellow-200">
                     <CardTitle className="text-lg font-semibold mb-2">📅 Próximos 7 dias</CardTitle>
                     <CardContent className="space-y-1 p-0">
                       {despesasProximas.length === 0 ? (
                         <div className="text-sm text-gray-600">Nenhum vencimento próximo</div>
                       ) : (
                         despesasProximas.map(d => (
-                          <div key={d.id} className="text-sm flex justify-between border-b-1 gap-2">
+                          <div key={d.id} className="text-sm flex justify-between border-b gap-2">
                             <div>Dia: {d.vencimentoDia < 10 ? `0${d.vencimentoDia}`: d.vencimentoDia}</div>
                             <div className='flex-1'> - {d.nome}</div>
                             <div className='flex gap-1 justify-between'>
@@ -592,7 +592,7 @@ const cardsPrincipais = [
                   </Card>
 
                 {/* Atrasadas */}
-                <Card className="bg-red-100 border-red-300 text-red-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-gradient-to-t to-red-200">
+                <Card className="bg-red-100 border-red-300 text-red-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg bg-linear-to-t to-red-200">
                   <CardTitle className="text-lg font-semibold mb-2">⚠️ Atrasadas</CardTitle>
                   <CardContent className=" p-0">
                     {despesasAtrasadas.length === 0 ? (
@@ -608,7 +608,7 @@ const cardsPrincipais = [
                 </Card>
 
                 {/* Próximo vencimento */}
-                <Card className="bg-blue-100 border-blue-300 text-blue-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg  bg-gradient-to-t to-blue-200">
+                <Card className="bg-blue-100 border-blue-300 text-blue-800 flex flex-col gap-4 p-6 rounded-2xl shadow-lg  bg-linear-to-t to-blue-200">
                   <CardTitle className="text-lg font-semibold mb-2">⏳ Próximo Vencimento</CardTitle>
                   <CardContent className="p-0">
                     {proximoVencimento ? (
@@ -653,7 +653,7 @@ const cardsPrincipais = [
               return (
                 <div
                   key={i}
-                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-linear-to-r from-white/90 to-white/70"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
@@ -661,12 +661,12 @@ const cardsPrincipais = [
                     </div>
                     <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
                   </div>
-                  <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                  <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Pedidos</span> 
                       <span className="font-bold">{card.quantidade}</span>
                     </span>
                   <div className="flex flex-col gap-1 mt-2">
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Faturamento</span> 
                       <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
                     </span>
@@ -674,14 +674,14 @@ const cardsPrincipais = [
                       <span className='text-blue-600 font-semibold'>Taxa</span> 
                       <span className="font-bold">{moeda} {card.valorTaxaCanal.toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Repasse</span> 
                       <span className="font-bold">{moeda} {(card.valorBruto - card.valorTaxaCanal).toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Custo</span> <span className="font-bold">{moeda} {card.valorCusto.toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
                     </span>
                     
@@ -766,7 +766,7 @@ const cardsPrincipais = [
                   <h2 className="text-2xl text-blue-600 font-extrabold">Produtos mais vendidos</h2>           
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     {topProdutos.map((produto, i) => (                
-                      <div key={i} className="flex flex-col justify-between border border-blue-400 h-[140px] rounded p-2">                  
+                      <div key={i} className="flex flex-col justify-between border border-blue-400 h-35 rounded p-2">                  
                         <p><span className="font-bold text-blue-600">{produto.nome}</span></p>
                         <div className="flex justify-between">
                           <span>Lucro</span>
@@ -790,7 +790,7 @@ const cardsPrincipais = [
                   <h2 className="text-2xl font-extrabold text-green-700">Produtos mais lucrativos</h2>  
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     {produtoMaisLucrativo.map((produto, i) => (                
-                      <div key={i} className="flex flex-col justify-between border border-green-400 h-[140px] rounded p-2">                  
+                      <div key={i} className="flex flex-col justify-between border border-green-400 h-35 rounded p-2">                  
                         <p><span className="font-bold text-green-600">{produto.nome}</span></p>
                         <div className="flex justify-between">
                           <span>Lucro</span>
@@ -822,7 +822,7 @@ const cardsPrincipais = [
               return (
                 <div
                   key={i}
-                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-gradient-to-r from-white/90 to-white/70"
+                  className="flex flex-col p-6 rounded-2xl shadow-lg hover:shadow-2xl bg-linear-to-r from-white/90 to-white/70"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full flex items-center justify-center bg-gray-100">
@@ -831,13 +831,13 @@ const cardsPrincipais = [
                     <span className="text-gray-700 text-lg font-semibold">{card.title}</span>
                   </div>
                   <div className="flex flex-col gap-1 mt-2">
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Faturamento</span> <span className="font-bold">{moeda} {card.valorBruto.toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Valor Líquido</span> <span className="font-bold">{moeda} {card.valorLiquido.toFixed(2)}</span>
                     </span>
-                    <span className="flex justify-between text-gray-500 text-sm border-b-1 border-gray-300">
+                    <span className="flex justify-between text-gray-500 text-sm border-b border-gray-300">
                       <span className='text-blue-600 font-semibold'>Quantidade de pedidos</span> <span className="font-bold">{card.quantidade}</span>
                     </span>
                   </div>
@@ -853,7 +853,12 @@ const cardsPrincipais = [
                   <Pie data={pedidosPorCanal} dataKey="qtd" nameKey="canal" outerRadius={100} label>
                     {pedidosPorCanal.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} pedidos`, 'Quantidade']} />
+                  <Tooltip
+                    formatter={(value) => {
+                      const num = Number(value ?? 0);
+                      return [`€${num.toFixed(2)}`, "Valor"];
+                    }}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -871,7 +876,12 @@ const cardsPrincipais = [
                   <Pie data={faturamentoPorRefeicao} dataKey="total" nameKey="refeicao" outerRadius={100} label>
                     {faturamentoPorRefeicao.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Total']} />
+                  <Tooltip
+                    formatter={(value) => {
+                      const num = Number(value ?? 0);
+                      return [`€${num.toFixed(2)}`, "Valor"];
+                    }}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -899,7 +909,12 @@ const cardsPrincipais = [
                     >
                       {[vendasComFatura, vendasSemFatura].map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Valor']} />
+                    <Tooltip
+                      formatter={(value) => {
+                        const num = Number(value ?? 0);
+                        return [`€${num.toFixed(2)}`, "Valor"];
+                      }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -914,7 +929,12 @@ const cardsPrincipais = [
                     <Pie data={vendasPorPagamento} dataKey="total" nameKey="pagamento" outerRadius={100} label>
                       {vendasPorPagamento.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${moeda} ${value.toFixed(2)}`, 'Valor']} />
+                    <Tooltip
+                      formatter={(value) => {
+                        const num = Number(value ?? 0);
+                        return [`€${num.toFixed(2)}`, "Valor"];
+                      }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>

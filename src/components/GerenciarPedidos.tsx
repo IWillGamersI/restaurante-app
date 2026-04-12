@@ -322,7 +322,7 @@ export default function GerenciarPedidos() {
               </button>
             </div>
             <input 
-              className="border-1 border-blue-600 rounded p-3" 
+              className="border border-blue-600 rounded p-3" 
               type="text" placeholder="observação..." 
               value={obs}     
               onChange={(e)=>stados.setObs(e.target.value)}         
@@ -489,7 +489,7 @@ export default function GerenciarPedidos() {
 
         
           {/* Listagem de Pedidos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[100vh] overflow-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-screen overflow-auto">
             {/* Pedidos Abertos */}
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-4 flex items-center text-blue-600 gap-2">
@@ -542,7 +542,7 @@ export default function GerenciarPedidos() {
 
                           }}
 
-                          className={`w-[150px] text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status || '')}`}
+                          className={`w-37.5 text-center inline-block px-3 py-1 border rounded text-sm font-semibold mt-1 cursor-pointer ${statusColor(p.status || '')}`}
                         >
                           {STATUS_PEDIDO_OPTIONS.map((status)=>(
                             <option
@@ -570,7 +570,7 @@ export default function GerenciarPedidos() {
                                 <div>{item.nome} - {item.categoria}</div>
                                 {item.extras?.length > 0 && (
                                   <div className="mt-1 text-sm">
-                                    <div className='font-semibold border-t-1'>
+                                    <div className='font-semibold border-t'>
                                     - Extras
                                     </div>
                                     <div className="pl-5">
@@ -666,7 +666,7 @@ export default function GerenciarPedidos() {
                                 <div>{item.nome} - {item.categoria}</div>
                                 {item.extras?.length > 0 && (
                                   <div className="mt-1 text-sm">
-                                    <div className='font-semibold border-t-1'>
+                                    <div className='font-semibold border-t'>
                                     - Extras
                                     </div>
                                     <div className="pl-5">
@@ -706,7 +706,7 @@ export default function GerenciarPedidos() {
                         <p>Total</p>
                         <p>€ {p.valor.toFixed(2)}</p>
                       </div>
-                      <hr className='border-1'/>
+                      <hr className='border'/>
                       <div >
                         {p.status == 'Cancelado' ? 
                           <div className='font-semibold text-right' >
