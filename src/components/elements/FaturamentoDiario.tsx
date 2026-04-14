@@ -19,10 +19,6 @@ const produtosMonitorados = [
   { id: "hbl3RKmJdgmKNoUo74dH", nome: "Pastel de Chouriço", valor:5 },
   { id: "6NISClTzcbDgi108CJhH", nome: "Pastel de Queijo", valor:5 },
   { id: "wsq7YMAGg2ZROuvuEuoU", nome: "Pastel de Queijo e Fiambre", valor:5 },
-  { id: "WHzdELEmrx3SKpp0GPlT", nome: "Bolinha de Queijo", valor:5 },
-  { id: "COZDzKu9q4jdpigfLhyd", nome: "Açai Pequeno", valor:5 },
-  { id: "HZDsEMb0lHmLv7WCoyR3", nome: "Açai Médio", valor:7 },
-  { id: "ldFXs8wra4FyCXJeeUBJ", nome: "Açai Grande", valor:10 },
 ];
 
 export function Faturamento() {
@@ -47,19 +43,14 @@ export function Faturamento() {
         'hbl3RKmJdgmKNoUo74dH',
         '6NISClTzcbDgi108CJhH',
         'wsq7YMAGg2ZROuvuEuoU',
-        'WHzdELEmrx3SKpp0GPlT',        
+        'WHzdELEmrx3SKpp0GPlT',
        ].includes(produtoId)
       )
     {
         return 'menuEstudante'
     }
 
-    if(["z0nYWvKLubKbRlfwcICA",
-        "T1OlBQVKqGHsOj23LMHR",
-        'COZDzKu9q4jdpigfLhyd',
-        'HZDsEMb0lHmLv7WCoyR3',
-        'ldFXs8wra4FyCXJeeUBJ',
-      ].includes(produtoId)){
+    if(["z0nYWvKLubKbRlfwcICA","T1OlBQVKqGHsOj23LMHR",'COZDzKu9q4jdpigfLhyd','HZDsEMb0lHmLv7WCoyR3','ldFXs8wra4FyCXJeeUBJ',].includes(produtoId)){
       return 'acai'
     }
 
