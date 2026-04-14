@@ -43,19 +43,19 @@ export function Faturamento() {
         'hbl3RKmJdgmKNoUo74dH',
         '6NISClTzcbDgi108CJhH',
         'wsq7YMAGg2ZROuvuEuoU',
-        'WHzdELEmrx3SKpp0GPlT',
-        'COZDzKu9q4jdpigfLhyd',
-        'HZDsEMb0lHmLv7WCoyR3',
-        'ldFXs8wra4FyCXJeeUBJ',
-
-        
+        'WHzdELEmrx3SKpp0GPlT',        
        ].includes(produtoId)
       )
     {
         return 'menuEstudante'
     }
 
-    if(["z0nYWvKLubKbRlfwcICA","T1OlBQVKqGHsOj23LMHR"].includes(produtoId)){
+    if(["z0nYWvKLubKbRlfwcICA",
+        "T1OlBQVKqGHsOj23LMHR",
+        'COZDzKu9q4jdpigfLhyd',
+        'HZDsEMb0lHmLv7WCoyR3',
+        'ldFXs8wra4FyCXJeeUBJ',
+      ].includes(produtoId)){
       return 'acai'
     }
 
