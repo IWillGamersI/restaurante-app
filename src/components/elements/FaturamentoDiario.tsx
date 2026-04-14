@@ -42,7 +42,13 @@ export function Faturamento() {
         'LHRgHdNmXowghMQypP3c',
         'hbl3RKmJdgmKNoUo74dH',
         '6NISClTzcbDgi108CJhH',
-        'wsq7YMAGg2ZROuvuEuoU'
+        'wsq7YMAGg2ZROuvuEuoU',
+        'WHzdELEmrx3SKpp0GPlT',
+        'COZDzKu9q4jdpigfLhyd',
+        'HZDsEMb0lHmLv7WCoyR3',
+        'ldFXs8wra4FyCXJeeUBJ',
+
+        
        ].includes(produtoId)
       )
     {
