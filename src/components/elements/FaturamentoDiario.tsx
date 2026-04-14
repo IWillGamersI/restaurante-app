@@ -19,6 +19,9 @@ const produtosMonitorados = [
   { id: "hbl3RKmJdgmKNoUo74dH", nome: "Pastel de Chouriço", valor:5 },
   { id: "6NISClTzcbDgi108CJhH", nome: "Pastel de Queijo", valor:5 },
   { id: "wsq7YMAGg2ZROuvuEuoU", nome: "Pastel de Queijo e Fiambre", valor:5 },
+  { id: "COZDzKu9q4jdpigfLhyd", nome: "Açai Pequeno", valor:5 },
+  { id: "HZDsEMb0lHmLv7WCoyR3", nome: "Açai Médio", valor:7 },
+  { id: "ldFXs8wra4FyCXJeeUBJ", nome: "Açai Grande", valor:10 },
 ];
 
 export function Faturamento() {
