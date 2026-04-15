@@ -4,6 +4,9 @@ import { useStados } from "@/hook/useStados";
 import { FaturamentoDiario, FaturamentoSemanal, ResumoMensal, meses, moeda, diasSemana, anos } from "@/types";
 
 const produtosMonitorados = [
+  { id: "WHzdELEmrx3SKpp0GPlT", nome: "Açai Pequeno", valor:5 },
+  { id: "COZDzKu9q4jdpigfLhyd", nome: "Açai Médio", valor:7 },
+  { id: "HZDsEMb0lHmLv7WCoyR3", nome: "Açai Grande", valor:10 },
   { id: "z0nYWvKLubKbRlfwcICA", nome: "Açai 300ml", valor:5 },
   { id: "T1OlBQVKqGHsOj23LMHR", nome: "Açai 500ml", valor:7.5 },
   { id: "lKIAjTOykwD8KBthcJGY", nome: "ME - Pizza Bacon", valor:5 },
@@ -19,9 +22,7 @@ const produtosMonitorados = [
   { id: "hbl3RKmJdgmKNoUo74dH", nome: "Pastel de Chouriço", valor:5 },
   { id: "6NISClTzcbDgi108CJhH", nome: "Pastel de Queijo", valor:5 },
   { id: "wsq7YMAGg2ZROuvuEuoU", nome: "Pastel de Queijo e Fiambre", valor:5 },
-  { id: "COZDzKu9q4jdpigfLhyd", nome: "Açai Pequeno", valor:5 },
-  { id: "HZDsEMb0lHmLv7WCoyR3", nome: "Açai Médio", valor:7 },
-  { id: "ldFXs8wra4FyCXJeeUBJ", nome: "Açai Grande", valor:10 },
+  { id: "ldFXs8wra4FyCXJeeUBJ", nome: "10 Nuggets de Frango", valor:5 },
 ];
 
 export function Faturamento() {
@@ -46,14 +47,14 @@ export function Faturamento() {
         'hbl3RKmJdgmKNoUo74dH',
         '6NISClTzcbDgi108CJhH',
         'wsq7YMAGg2ZROuvuEuoU',
-        'WHzdELEmrx3SKpp0GPlT',
+        'ldFXs8wra4FyCXJeeUBJ',
        ].includes(produtoId)
       )
     {
         return 'menuEstudante'
     }
 
-    if(["z0nYWvKLubKbRlfwcICA","T1OlBQVKqGHsOj23LMHR",'COZDzKu9q4jdpigfLhyd','HZDsEMb0lHmLv7WCoyR3','ldFXs8wra4FyCXJeeUBJ',].includes(produtoId)){
+    if(["z0nYWvKLubKbRlfwcICA","T1OlBQVKqGHsOj23LMHR",'COZDzKu9q4jdpigfLhyd','HZDsEMb0lHmLv7WCoyR3','WHzdELEmrx3SKpp0GPlT'].includes(produtoId)){
       return 'acai'
     }
 
