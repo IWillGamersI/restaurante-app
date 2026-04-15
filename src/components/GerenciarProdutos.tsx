@@ -265,9 +265,15 @@ export default function GerenciarProdutos() {
                 <hr className='border-blue-600'/>
                 <div className='flex justify-between p-2'>
                   
-                  <div className='flex items-center justify-end gap-2 w-full'>
-                    <p className='text-sm text-blue-500 font-semibold'>Classe: </p>
-                    <p className='text-right'>{p.classe}</p>
+                  <div className='flex items-center justify-between gap-2 w-full'>
+                    <div>
+                      <p className='text-sm text-blue-500 font-semibold'>ID: </p>
+                      <p className='text-right'>{p.id}</p>
+                    </div>
+                    <div>
+                      <p className='text-sm text-blue-500 font-semibold'>Classe: </p>
+                      <p className='text-right'>{p.classe}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-between items-center bg-blue-600 p-2 text-white font-bold">
