@@ -52,6 +52,7 @@ interface Pedido {
   produtos: ProdutoPedido[];
   extras: Extra[]
   tipoPagamento: string
+  telefone: string
 }
 
 
@@ -339,8 +340,8 @@ export default function CentralPedidos() {
                   <div className="flex justify-between items-center">
                     <div>
                       <p>{new Date(p.data).toLocaleDateString('pt-BR')}</p>
-                      <strong>{p.nomeCliente}</strong>
-                      
+                      <strong>Cliente: {p.nomeCliente}</strong>
+                      <p>Telefone: {p.telefone}</p>
                     </div>
                     <div className="bg-blue-600 p-2 text-white rounded">{p.codigoPedido}</div>
                   </div>
