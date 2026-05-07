@@ -422,7 +422,7 @@ export default function CentralPedidos() {
                             
                         </div>
                         <div className='font-semibold text-right' >
-                            <span className='text-blue-600'>Forma e Pagamento:</span> <span className='text-green-500'>{p.tipoPagamento}</span>
+                            <span className='text-blue-600'>Pagamento:</span> <span className='text-green-500'>{p.tipoPagamento}</span>
                             
                         </div>
 
